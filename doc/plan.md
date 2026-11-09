@@ -3,7 +3,7 @@
 > Putanje i reference `fajl:linija` u ovom planu odnose se na **`Paketomat.v2`** na commit-u `0029647`, osim gde
 > piše drugačije. Plan je prenet iz v2 (`doc/plan-linux.md`) 9.11.2026.
 
-Status: **predlog**, ništa nije urađeno. Nastalo 9.11.2026 iz pregleda koda v2 na grani `dev` (`0029647`), dopunjeno
+Status: **F0a završen 9.11.2026** (sekcija 10); F0b čeka ciljni uređaj. Nastalo 9.11.2026 iz pregleda koda v2 na grani `dev` (`0029647`), dopunjeno
 Codex review-om (sekcija 9). Prvi korak je proba na Linuxu (F0); nastavak zavisi od odluke klijenta. Cilj je da v4
 bude naslednik v2 na **obe** platforme.
 
@@ -139,16 +139,17 @@ Cilj: na ciljnom Linux uređaju dokazati najrizičnije delove jednim kompletnim 
   neutralnim tipovima slika i boja — struktura koja ostaje i posle probe
 
 **Mora da se dokaže**
-- [ ] Kratki i dugi pritisak (touch), Home zaključan tokom plaćanja
-- [ ] Animacije (`EventTrigger`/`Storyboard` ekvivalenti), zvuk, QR
-- [ ] Gašenje preko SIGTERM sa završnim upisom
+- [~] Kratki i dugi pritisak (touch), Home zaključan tokom plaćanja — Home zaključan uživo (UIA/AT-SPI); kratak/dug
+      pritisak samo Headless testovima; stvaran touch — F0b
+- [x] Animacije (`EventTrigger`/`Storyboard` ekvivalenti), zvuk, QR
+- [x] Gašenje preko SIGTERM sa završnim upisom (systemd na uređaju — F0b)
 - [ ] Kiosk sesija: distribucija (Ubuntu 24.04 LTS ili Debian 12), `cage` (Wayland) ili X11, autologin, rotacija za
       portrait (prikaz **i** touch koordinate), bez screensaver-a, zaključano bez izlaza na desktop
 - [ ] Daljinska podrška na Linux uređaju (šta menja RDP/AnyDesk)
-- [ ] Jedan serijski kontroler i jedan TCP kontroler (NCU16L/24L) na Linuxu
-- [ ] Pravi POS i PenPOS/ESIR ako su dostupni, inače simulatori
-- [ ] Build i testovi u CI na Linuxu i Windows-u od prvog dana; verzija Avalonia i backend-a fiksirana
-- [ ] Platformski sloj (sekcija 1a) postoji kao struktura; za probu potpuno implementirane samo Linux strane koje
+- [~] Jedan serijski kontroler i jedan TCP kontroler (NCU16L/24L) na Linuxu — TCP (NCU24L sim) da; serijski — F0b
+- [~] Pravi POS i PenPOS/ESIR ako su dostupni, inače simulatori — simulatori da (svi POS scenariji); pravi — F0b
+- [x] Build i testovi u CI na Linuxu i Windows-u od prvog dana; verzija Avalonia i backend-a fiksirana
+- [x] Platformski sloj (sekcija 1a) postoji kao struktura; za probu potpuno implementirane samo Linux strane koje
       tok koristi, Windows strane koliko treba za razvoj sa simulatorima
 
 **Van probe**
@@ -251,3 +252,78 @@ posebno proverena.
 
 Dodatno pitanje o GUI opcijama: Codex dodao Uno, Photino, Electron.NET, Qt, Flutter, Slint i strategiju „WPF ostaje
 na Windows-u"; osnovna preporuka nepromenjena. OpenMaui razmotren naknadno i odbačen (sekcija 4).
+
+## 10. Ishod F0a (9.11.2026)
+
+F0a = tok primaoca na Windows-u i Linux VM-u (Debian 12, KDE Wayland) sa v2 simulatorima. **F0b (ciljni uređaj) još nije
+rađen** — zaključci o touch-u, kiosk sesiji i pravom hardveru čekaju njega. Detalji i dokazi: `tasks/todo.md` (Review).
+
+### Radilo direktno (Avalonia Free)
+
+- Svih 7 stranica toka primaoca (Start, šifra + `NumericKeypad`, telefon, plaćanje, fiskalni QR, vrata, poruke), izbor
+  jezika, koraci; brend DailyExpress iz v2 `theme.xaml` bez izmena. Uporedni snimci sa v2 (1280×800): raspored, veličine,
+  boje i tekstovi isti; razlika je font (Inter umesto Segoe UI) i pomeraj sadržaja od ~12 px.
+- Animacije (strelica, zoom, spinner, linija QR koda, uvećanje dugmeta) kao Avalonia animacije; `BoxShadow` umesto
+  `DropShadowEffect`.
+- Home ugašen tokom plaćanja i preuzimanja — uživo na obe platforme (stanje dugmeta preko UIA/AT-SPI). Kratak i dug
+  pritisak (`PressBehavior`, pointer događaji i tajmer) proveren samo Headless testovima: UIA `Invoke` i AT-SPI `doAction`
+  zaobilaze pointer, pa stvaran miš/touch nije proveren (F0b).
+- Gašenje: SIGTERM (`PosixSignalRegistration`) i kraj Windows sesije (`WM_QUERYENDSESSION` → `ShutdownRequested`) sa
+  završnim upisom pre odgovora, kao v2 51f479b. Windows je proveren porukama koje sistem šalje pri odjavi
+  (`WM_QUERYENDSESSION`/`WM_ENDSESSION` svim prozorima procesa), ne pravom odjavom — rizik 6 iz sekcije 8 skoro zatvoren.
+- `AutomationId` se vidi na **obe** platforme: Windows UI Automation (`InvokePattern`) i Linux AT-SPI (`accessible_id`,
+  `doAction`), bez instalacije i bez plaćenog paketa. Ceo tok i svi POS scenariji su na oba sistema vođeni iz skripte —
+  osnova za E2E (F4 „AT-SPI ili sopstveni hook“ → AT-SPI radi).
+- Avalonia.Headless testovi sa snimcima ekrana rade i na Linuxu bez displeja (CI).
+- CI (ubuntu + windows) zelen; testovi: Windows 571 + 12 UI, Linux 573 + 12 UI.
+
+### Radilo zaobilazno
+
+- **Niti:** jezgro iz v2 menja ViewModel-e sa pozadinskih niti; obaveštenja prikazu idu kroz `UiThread.Raise` (UI nit).
+- **Zvuk:** LibVLCSharp (LGPL-2.1, dinamičko povezivanje) umesto Avalonia Pro Media Player-a; na Linuxu resolver za
+  `libvlc.so.5` (paket `libvlc5`, bez `libvlc-dev`).
+- **Razlike WPF → Avalonia nađene u radu:** PNG sa DPI ≠ 96 se ne skalira; `OnExplicitShutdown` ne gasi proces na
+  zatvaranje prozora (`OnMainWindowClose`); vezan `IsVisible` bez `DataContext`-a je `true`; podrazumevana vrednost
+  svojstva ne prolazi kroz `OnPropertyChanged`. WPF crteži (`DrawingImage`) konvertovani skriptom.
+- **Linux greške u kodu iz v2**, nađene tek na Linuxu: `SerialClient` vrti petlju bez pauze kad port ne može da se otvori
+  (isto u v2 kad je COM zauzet — preneti u v2), rekurzija `WriteAsync` van Windows-a, ECR log sa `\` putanjama.
+
+### Nije rešeno besplatnim paketom
+
+- Ništa. Plaćeni paketi (Pro, XPF) nisu bili potrebni.
+
+### Otvoreno za F0b i dalje
+
+- Ciljni uređaj: touch (kratak/dug), kiosk sesija (`cage`/X11, autologin, rotacija prikaza i touch-a), daljinska podrška,
+  serijski kontroler na `/dev/serial/by-id` (`dialout`), pravi POS (`/dev/ttyACM*`), PenPOS/ESIR, systemd gašenje,
+  isključen sleep (VM: KDE ga je uspavao posle 15 min), oporavak ZLG modula posle naglog prekida, `linux-x64` publish.
+- Agent: identitet procesa na Linuxu (`boot_id` + `starttime`), Unix socket — dogovor u F2.
+- „Light“ simulatori bez GUI-ja za E2E, usklađeni sa v2 (odluka korisnika 9.11.2026: na kraju F0a).
+
+### Tempo i procena ostatka
+
+F0a je urađen za **jedan radni dan** (9.11.2026, ~8 h: commit-i 15:51–23:09), uz Claude Code i Codex pregled svake
+izmene, a provere uživo uz korisnika i sesiju na VM-u. Plan je za ceo F0 predviđao 4–5 nedelja bez ubrzanja AI alatima
+(sekcija 7).
+
+Tempo nije linearno prenosiv: preneta je jedna, najčistija putanja, a veliki deo ostatka zavisi od hardvera, Agent strane
+i pilota, koji se ne ubrzavaju. **Gruba procena iz tempa F0a — potvrditi posle F0b i F1:**
+
+| Deo | Ranije (čovek-nedelje) | Iz tempa F0a (čovek-nedelje) | Zašto |
+|---|---|---|---|
+| F0 (F0a + F0b) | 4–5 | ~1 | F0a jedan dan; F0b kiosk sesija na uređaju, kalendarski čeka hardver |
+| F1 ostatak jezgra | 2–3 | ~1 | kopija iz v2 kao u F0a (jezgro + 30 test fajlova za ~1 h) |
+| F2 platforma + Agent | 2–3 | 1–2 | zavisi od Agent strane |
+| F3 UI + alati | 7–10 | 2–3 | 7 stranica × 1 layout za ~2 h; ostaje 6 layouta, brendovi, alati |
+| F4 testovi | 3–4 | 1–2 | AT-SPI i UIA dokazani |
+| F5 isporuka | 3–4 | 2–3 | potpis, manifest, nadogradnja — dogovor sa Agent/server stranom |
+| F6 pilot | 2–3 | 1–2 | rad uz pilot; trajanje određuje kalendar (2–3 nedelje) |
+| **Ukupno do Linux produkcije** | **~23–32** | **~9–14** | samo radni napor, bez čekanja |
+| F7 Windows flota | 3–5 | 2–4 | regresija, instaler, postepen prelazak |
+
+Kalendarski rok i dalje određuju hardver, ServiceAgent za Linux (nije u proceni) i pilot.
+
+### Predlog odluke
+
+**Nastavak sa Avalonia Free (opcija A)**, bez Pro paketa i bez XPF probe: tok primaoca radi na obe platforme sa istim
+kodom, a nijedna prepreka nije tražila plaćeni paket. Uslov: F0b na ciljnom uređaju potvrdi touch i kiosk sesiju.
