@@ -1,0 +1,22 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+	<SolidColorBrush x:Key="ApplicationBackgroundColor" 
+					 Color="#474f58"/>
+	<SolidColorBrush x:Key="StepsBackgroundColor" 
+					 Color="#a03338"/>
+    <SolidColorBrush x:Key="PopupMessageBackgroundColor"
+					Color="#EF333333"/>
+    <SolidColorBrush x:Key="PopupMessageForegroundColor" 
+					Color="WhiteSmoke"/>
+    <SolidColorBrush x:Key="InformationBackgroundColor" 
+					Color="#DD6D6D6D"/>
+    <SolidColorBrush x:Key="InformationForegroundColor" 
+				 Color="WhiteSmoke"/>
+    <SolidColorBrush x:Key="AccentedForegroundColor1"
+					Color="LightSalmon"/>
+    <SolidColorBrush x:Key="AccentedForegroundColor2" 
+					Color="Yellow"/>
+    <ImageBrush x:Key="ApplicationLogo" 
+				ImageSource="logo.png"/>
+</ResourceDictionary>

@@ -1,0 +1,25 @@
+{
+  "Serilog": {
+	"Using": [ "Serilog.Sinks.File", "Serilog.Formatting.Compact" ],
+    "MinimumLevel": {
+      "Default": "Debug",
+      "Override": {
+        "Microsoft": "Warning",
+        "System": "Warning"
+      }
+    },
+    "WriteTo": [
+      {
+        "Name": "File",
+        "Args": {
+          "path": "Logs/log-%TOPPOS_LOGFILE_TAG%-.txt",
+          "rollingInterval": "Day",
+          "retainedFileCountLimit": 7,
+          "restrictedToMinimumLevel": "Debug",
+          "outputTemplate": "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff} {Level:u3}] {Message:lj} {Properties}{NewLine}{Exception}",
+          "hooks": "TopPos.Client.Logging.SerilogHooks::RollingFileHeaderWriter, TopPos.Client.WPF"
+        }
+      }
+    ]
+  }
+}

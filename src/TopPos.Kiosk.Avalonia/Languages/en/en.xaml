@@ -1,0 +1,34 @@
+<?xml version="1.0" ?>
+<ResourceDictionary xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:d="http://schemas.microsoft.com/expression/blend/2008" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+    <DrawingGroup x:Key="GreatBritainFlag">
+        <DrawingGroup.ClipGeometry>
+            <RectangleGeometry Rect="0.0,0.0,640.0,480.0"/>
+        </DrawingGroup.ClipGeometry>
+        <GeometryDrawing Brush="#ff012169">
+            <GeometryDrawing.Geometry>
+                <PathGeometry Figures="M 0 0 h 640 v 480 H 0 z" FillRule="Nonzero"/>
+            </GeometryDrawing.Geometry>
+        </GeometryDrawing>
+        <GeometryDrawing Brush="#ffffffff">
+            <GeometryDrawing.Geometry>
+                <PathGeometry Figures="m 75 0 l 244 181 L 562 0 h 78 v 62 L 400 241 l 240 178 v 61 h -80 L 320 301 L 81 480 H 0 v -60 l 239 -178 L 0 64 V 0 z" FillRule="Nonzero"/>
+            </GeometryDrawing.Geometry>
+        </GeometryDrawing>
+        <GeometryDrawing Brush="#ffc8102e">
+            <GeometryDrawing.Geometry>
+                <PathGeometry Figures="m 424 281 l 216 159 v 40 L 369 281 z m -184 20 l 6 35 L 54 480 H 0 z M 640 0 v 3 L 391 191 l 2 -44 L 590 0 z M 0 0 l 239 176 h -60 L 0 42 z" FillRule="Nonzero"/>
+            </GeometryDrawing.Geometry>
+        </GeometryDrawing>
+        <GeometryDrawing Brush="#ffffffff">
+            <GeometryDrawing.Geometry>
+                <PathGeometry Figures="M 241 0 v 480 h 160 V 0 z M 0 160 v 160 h 640 V 160 z" FillRule="Nonzero"/>
+            </GeometryDrawing.Geometry>
+        </GeometryDrawing>
+        <GeometryDrawing Brush="#ffc8102e">
+            <GeometryDrawing.Geometry>
+                <PathGeometry Figures="M 0 193 v 96 h 640 v -96 z M 273 0 v 480 h 96 V 0 z" FillRule="Nonzero"/>
+            </GeometryDrawing.Geometry>
+        </GeometryDrawing>
+    </DrawingGroup>
+    <DrawingImage Drawing="{StaticResource GreatBritainFlag}" x:Key="di_gb__1__xaml"/>
+</ResourceDictionary>

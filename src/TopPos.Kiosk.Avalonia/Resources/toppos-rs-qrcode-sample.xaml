@@ -1,0 +1,1186 @@
+<?xml version="1.0" ?>
+<ResourceDictionary xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:d="http://schemas.microsoft.com/expression/blend/2008" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+    <DrawingGroup x:Key="QRCodeSample">
+        <DrawingGroup.ClipGeometry>
+            <RectangleGeometry Rect="0.0,0.0,1000.0,1000.0"/>
+        </DrawingGroup.ClipGeometry>
+        <DrawingGroup>
+            <DrawingGroup>
+                <DrawingGroup.ClipGeometry>
+                    <RectangleGeometry Rect="0.0,0.0,660.0,660.0"/>
+                </DrawingGroup.ClipGeometry>
+                <GeometryDrawing Brush="#ffffffff">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="0.0,0.0,660.0,660.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="240.0,80.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="320.0,80.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="240.0,100.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="260.0,100.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="300.0,100.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="340.0,100.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="400.0,100.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="260.0,120.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="280.0,120.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="340.0,120.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="360.0,120.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="380.0,120.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="240.0,140.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="260.0,140.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="280.0,140.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="300.0,140.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="340.0,140.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="380.0,140.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="260.0,160.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="280.0,160.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="300.0,160.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="380.0,160.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="400.0,160.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="320.0,180.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="340.0,180.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="380.0,180.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="400.0,180.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="240.0,200.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="280.0,200.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="320.0,200.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="360.0,200.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="400.0,200.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="240.0,220.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="260.0,220.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="280.0,220.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="320.0,220.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="360.0,220.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="380.0,220.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="80.0,240.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="120.0,240.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="140.0,240.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="180.0,240.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="200.0,240.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="220.0,240.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="260.0,240.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="300.0,240.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="340.0,240.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="440.0,240.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="500.0,240.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="540.0,240.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="560.0,240.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="80.0,260.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="100.0,260.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="160.0,260.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="220.0,260.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="240.0,260.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="280.0,260.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="300.0,260.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="340.0,260.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="420.0,260.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="460.0,260.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="480.0,260.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="560.0,260.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="80.0,280.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="100.0,280.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="140.0,280.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="160.0,280.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="180.0,280.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="200.0,280.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="240.0,280.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="260.0,280.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="320.0,280.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="340.0,280.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="400.0,280.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="500.0,280.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="520.0,280.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="540.0,280.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="560.0,280.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="100.0,300.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="140.0,300.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="220.0,300.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="240.0,300.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="280.0,300.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="380.0,300.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="420.0,300.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="440.0,300.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="460.0,300.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="500.0,300.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="520.0,300.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="560.0,300.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="80.0,320.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="120.0,320.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="140.0,320.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="200.0,320.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="240.0,320.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="300.0,320.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="320.0,320.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="360.0,320.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="380.0,320.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="400.0,320.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="420.0,320.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="440.0,320.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="460.0,320.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="480.0,320.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="500.0,320.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="540.0,320.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="560.0,320.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="120.0,340.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="140.0,340.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="220.0,340.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="240.0,340.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="260.0,340.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="280.0,340.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="300.0,340.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="320.0,340.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="360.0,340.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="380.0,340.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="400.0,340.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="420.0,340.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="460.0,340.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="500.0,340.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="100.0,360.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="200.0,360.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="220.0,360.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="240.0,360.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="280.0,360.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="300.0,360.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="340.0,360.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="380.0,360.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="400.0,360.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="420.0,360.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="460.0,360.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="480.0,360.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="500.0,360.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="80.0,380.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="120.0,380.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="140.0,380.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="180.0,380.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="220.0,380.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="280.0,380.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="300.0,380.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="360.0,380.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="400.0,380.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="540.0,380.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="560.0,380.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="160.0,400.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="200.0,400.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="220.0,400.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="260.0,400.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="320.0,400.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="360.0,400.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="400.0,400.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="420.0,400.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="440.0,400.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="460.0,400.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="480.0,400.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="540.0,400.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="240.0,420.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="260.0,420.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="280.0,420.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="360.0,420.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="400.0,420.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="480.0,420.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="500.0,420.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="520.0,420.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="240.0,440.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="260.0,440.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="340.0,440.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="360.0,440.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="380.0,440.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="400.0,440.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="440.0,440.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="480.0,440.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="520.0,440.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="540.0,440.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="560.0,440.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="240.0,460.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="260.0,460.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="300.0,460.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="340.0,460.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="360.0,460.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="400.0,460.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="480.0,460.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="540.0,460.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="560.0,460.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="280.0,480.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="340.0,480.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="360.0,480.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="400.0,480.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="420.0,480.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="440.0,480.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="460.0,480.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="480.0,480.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="520.0,480.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="560.0,480.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="240.0,500.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="400.0,500.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="420.0,500.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="480.0,500.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="540.0,500.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="560.0,500.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="240.0,520.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="260.0,520.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="280.0,520.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="360.0,520.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="380.0,520.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="440.0,520.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="500.0,520.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="520.0,520.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="540.0,520.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="300.0,540.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="320.0,540.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="340.0,540.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="360.0,540.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="400.0,540.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="420.0,540.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="480.0,540.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="520.0,540.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="540.0,540.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="560.0,540.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="240.0,560.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="300.0,560.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="380.0,560.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="420.0,560.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="520.0,560.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="540.0,560.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="560.0,560.0,20.0,20.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <PathGeometry Figures="M 80 80 h 140 v 140 h -140 Z M 100 100 h 100 v 100 h -100 Z"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <PathGeometry Figures="M 440 80 h 140 v 140 h -140 Z M 460 100 h 100 v 100 h -100 Z"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="120.0,120.0,60.0,60.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="480.0,120.0,60.0,60.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <PathGeometry Figures="M 80 440 h 140 v 140 h -140 Z M 100 460 h 100 v 100 h -100 Z"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#ff000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="120.0,480.0,60.0,60.0"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingGroup>
+    </DrawingGroup>
+	<DrawingImage Drawing="{StaticResource QRCodeSample}" x:Key="di_toppos_rs_qr_code_sample_xaml"/>
+</ResourceDictionary>
