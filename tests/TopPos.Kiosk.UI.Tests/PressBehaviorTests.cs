@@ -18,6 +18,9 @@ namespace TopPos.Kiosk.UI.Tests
 	{
 		private const int __threshold = 150;
 
+		/// <summary>Prag za testove u kojima dug pritisak ne sme slučajno da se okine (spora CI mašina između dva koraka).</summary>
+		private const int __longThreshold = 2000;
+
 		private sealed class Fixture
 		{
 			public int Short;
@@ -25,12 +28,12 @@ namespace TopPos.Kiosk.UI.Tests
 			public readonly Button Button;
 			public readonly Window Window;
 
-			public Fixture()
+			public Fixture(int threshold = __threshold)
 			{
 				Button = new Button { Width = 100, Height = 100, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left, VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top };
 				PressBehavior.SetShortPressCommand(Button, new RelayCommand(_ => Short++));
 				PressBehavior.SetLongPressCommand(Button, new RelayCommand(_ => Long++));
-				PressBehavior.SetLongPressThreshold(Button, __threshold);
+				PressBehavior.SetLongPressThreshold(Button, threshold);
 				Window = new Window { Width = 300, Height = 300, Content = Button };
 				Window.Show();
 			}
@@ -49,10 +52,23 @@ namespace TopPos.Kiosk.UI.Tests
 			}
 		}
 
+		/// <summary>
+		/// Pušta UI nit da radi dok uslov ne bude ispunjen (najviše 5 s): fiksno čekanje je na CI-ju (windows-latest)
+		/// bilo prekratko za tajmer dugog pritiska.
+		/// </summary>
+		private static void WaitUntil(Func<bool> condition)
+		{
+			var until = DateTime.UtcNow.AddSeconds(5);
+			while (!condition() && DateTime.UtcNow < until) {
+				Dispatcher.UIThread.RunJobs();
+				Thread.Sleep(10);
+			}
+		}
+
 		[AvaloniaFact]
 		public void Short_press_runs_short_command_only()
 		{
-			var f = new Fixture();
+			var f = new Fixture(__longThreshold);
 			f.Down();
 			Wait(30);
 			f.Up();
@@ -67,7 +83,8 @@ namespace TopPos.Kiosk.UI.Tests
 		{
 			var f = new Fixture();
 			f.Down();
-			Wait(__threshold * 3);
+			WaitUntil(() => f.Long > 0);
+			Wait(__threshold);      // tajmer se ne okida ponovo
 			f.Up();
 			Wait(30);
 
@@ -93,11 +110,11 @@ namespace TopPos.Kiosk.UI.Tests
 		[AvaloniaFact]
 		public void Button_disabled_while_held_runs_nothing()
 		{
-			var f = new Fixture();
+			var f = new Fixture(__longThreshold);
 			f.Down();
 			Wait(30);
 			f.Button.IsEnabled = false;
-			Wait(__threshold * 3);
+			Wait(__longThreshold + 500);
 			f.Up();
 			Wait(30);
 
