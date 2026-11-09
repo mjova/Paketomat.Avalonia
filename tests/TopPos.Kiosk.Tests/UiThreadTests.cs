@@ -22,6 +22,7 @@ namespace TopPos.Kiosk.Tests
 			public bool CheckAccess() => OnUiThread;
 			public void Invoke(Action action) { Invoked++; action(); }
 			public void Post(Action action) { lock (Posted) { Posted.Add(action); } }
+			public void WaitWithMessagePump(Task task) => task.ContinueWith(_ => { }, TaskScheduler.Default).Wait();
 			public void RunPosted()
 			{
 				List<Action> actions;

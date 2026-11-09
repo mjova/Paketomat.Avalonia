@@ -14,6 +14,12 @@ namespace Flatsoft.Common.UI
 
 		/// <summary>Stavlja u red UI niti i ne čeka; redosled poziva iz iste niti se čuva, i u odnosu na <see cref="Invoke"/>.</summary>
 		void Post(Action action);
+
+		/// <summary>
+		/// Čeka kraj <paramref name="task"/> bez izuzetka (ishod čita pozivalac). Na UI niti za to vreme obrađuje poruke
+		/// (ugnežđena petlja, v2 WPF <c>DispatcherFrame</c>), da nastavak koji čeka UI nit ne bi zastao.
+		/// </summary>
+		void WaitWithMessagePump(Task task);
 	}
 
 	/// <summary>
@@ -27,6 +33,7 @@ namespace Flatsoft.Common.UI
 			public bool CheckAccess() => true;
 			public void Invoke(Action action) => action();
 			public void Post(Action action) => action();
+			public void WaitWithMessagePump(Task task) => ((IAsyncResult) task).AsyncWaitHandle.WaitOne();
 		}
 
 		public static IUiDispatcher Dispatcher { get; set; } = new ImmediateDispatcher();

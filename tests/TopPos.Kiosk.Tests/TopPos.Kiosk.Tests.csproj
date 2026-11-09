@@ -15,6 +15,11 @@
     </PackageReference>
   </ItemGroup>
 
+  <ItemGroup Condition="$([MSBuild]::IsOSPlatform('Windows'))">
+    <!-- LibVLC za test zvuka (TOPPOS_AUDIO_TEST_FILE); na Linuxu je sistemska biblioteka -->
+    <PackageReference Include="VideoLAN.LibVLC.Windows" />
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="../../src/TopPos.Kiosk.Core/TopPos.Kiosk.Core.csproj" />
     <ProjectReference Include="../../src/TopPos.LockController.NCU16L/TopPos.LockController.NCU16L.csproj" />

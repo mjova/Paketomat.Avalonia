@@ -6,10 +6,10 @@ namespace Flatsoft.Common.UI
 	/// </summary>
 	public interface IAudioPlayer
 	{
-		/// <summary>Pušta fajl; prethodni zvuk se prekida.</summary>
+		/// <summary>Dodaje fajl u red; fajlovi se puštaju redom, jedan za drugim (kao v2). Nepostojeći fajl se samo loguje.</summary>
 		void Play(string audioFileName);
 
-		/// <summary>Zaustavlja zvuk koji se pušta.</summary>
+		/// <summary>Zaustavlja zvuk koji se pušta i prazni red.</summary>
 		void Reset();
 	}
 }

@@ -10,6 +10,16 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- Bez nativne LibVLC biblioteke: na Windows-u je dodaje aplikacija (VideoLAN.LibVLC.Windows), na Linuxu je sistemska. -->
+    <PackageReference Include="LibVLCSharp" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Flatsoft.Common.UI\Flatsoft.Common.UI.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <InternalsVisibleTo Include="TopPos.Kiosk.Tests" />
   </ItemGroup>
 
