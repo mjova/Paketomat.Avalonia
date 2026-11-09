@@ -4,12 +4,12 @@ using System.Net;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
-using TopPos.Client.WPF;
+using TopPos.Kiosk;
 using TopPos.LockController;
 using TopPos.Service;
 using Xunit;
 
-namespace TopPos.Workflow.Tests
+namespace TopPos.Kiosk.Tests
 {
 	/// <summary>
 	/// <see cref="LockerStatusUpdater"/>: greška vrata koju server još nije primio i redovno očitavanje vrata.

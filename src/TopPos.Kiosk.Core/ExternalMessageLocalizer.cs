@@ -3,7 +3,7 @@ using System.Text.RegularExpressions;
 using Flatsoft.Common;
 using Microsoft.Extensions.Logging;
 
-namespace TopPos.Client.WPF
+namespace TopPos.Kiosk
 {
     /// <summary>
     /// Prevodi sirove statusne/greške poruke koje stižu od spoljnih sistema

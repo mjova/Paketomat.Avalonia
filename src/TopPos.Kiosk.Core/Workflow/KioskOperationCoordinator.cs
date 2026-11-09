@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Logging;
 
-namespace TopPos.Client.WPF.Workflow
+namespace TopPos.Kiosk.Workflow
 {
 	/// <summary>Kako rezervacija počinje i završava.</summary>
 	public enum KioskLeaseMode

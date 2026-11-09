@@ -6,7 +6,7 @@ using System.Text.Json;
 using TopPos.LockController;
 using TopPos.Service;
 
-namespace TopPos.Client.WPF
+namespace TopPos.Kiosk
 {
 	public static class Helpers
 	{

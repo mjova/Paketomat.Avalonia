@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 
-namespace TopPos.Client.WPF
+namespace TopPos.Kiosk
 {
 	public class OperationCountdownTimer
 	{

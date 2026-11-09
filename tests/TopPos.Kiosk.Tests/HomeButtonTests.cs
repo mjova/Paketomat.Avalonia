@@ -1,8 +1,8 @@
-using TopPos.Client.WPF.Workflow;
+using TopPos.Kiosk.Workflow;
 using Xunit;
-using S = TopPos.Client.WPF.Workflow.WorkflowState;
+using S = TopPos.Kiosk.Workflow.WorkflowState;
 
-namespace TopPos.Workflow.Tests
+namespace TopPos.Kiosk.Tests
 {
 	/// <summary>
 	/// Home je ugašen od plaćanja, odnosno dodele vrata, do potvrde serveru. Test prolazi kroz sva stanja, pa novo stanje

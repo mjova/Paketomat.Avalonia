@@ -1,9 +1,8 @@
-using System.ComponentModel;
 using System.Diagnostics;
-using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging;
+using TopPos.Platform;
 
-namespace TopPos.Client.WPF.Workflow
+namespace TopPos.Kiosk.Workflow
 {
 	/// <summary>
 	/// Izjava procesa u <c>status.lock</c> (doc/StatusSemaphore.md, „Izjava procesa i kanala“): ko piše fajl
@@ -21,11 +20,13 @@ namespace TopPos.Client.WPF.Workflow
 	public sealed record StatusDeclaration(int ProcessId, DateTime? ProcessStartUtc, string? AgentPipeName)
 	{
 		/// <summary>
-		/// Tekući proces. Vreme starta je creation time iz <c>GetProcessTimes</c>, isti izvor koji čita Agent; neuspeh ne
-		/// prekida start kioska (<see cref="ResolveProcessStartUtc"/>).
+		/// Tekući proces. Vreme starta je iz platformskog sloja, isti izvor koji čita Agent (Windows: creation time iz
+		/// <c>GetProcessTimes</c>, Linux: <c>/proc/self/stat</c>); neuspeh ne prekida start kioska (<see cref="ResolveProcessStartUtc"/>).
 		/// </summary>
 		public static StatusDeclaration ForCurrentProcess(string? agentPipeName, ILogger? logger)
-			=> new(Environment.ProcessId, ResolveProcessStartUtc(GetCurrentProcessStartUtc, GetCurrentProcessStartUtcFromProcess, logger), agentPipeName);
+			=> new(Environment.ProcessId,
+					ResolveProcessStartUtc(PlatformServices.ProcessInfo.GetCurrentProcessStartUtc, GetCurrentProcessStartUtcFromProcess, logger),
+					agentPipeName);
 
 		/// <summary>
 		/// Vreme starta iz prvog izvora, pa iz rezervnog (Warning u log); ako ne uspe ni jedan, <c>null</c> (Error u log).
@@ -37,7 +38,7 @@ namespace TopPos.Client.WPF.Workflow
 				return primary();
 			}
 			catch (Exception ex) {
-				logger?.LogWarning(ex, "StatusSemaphore: vreme starta procesa nije pročitano iz GetProcessTimes; koristi se Process.StartTime.");
+				logger?.LogWarning(ex, "StatusSemaphore: vreme starta procesa nije pročitano iz izvora platforme (GetProcessTimes, /proc/self/stat); koristi se Process.StartTime.");
 			}
 			try {
 				return fallback();
@@ -48,13 +49,7 @@ namespace TopPos.Client.WPF.Workflow
 			}
 		}
 
-		private static DateTime GetCurrentProcessStartUtc()
-		{
-			if (!GetProcessTimes(GetCurrentProcess(), out long creationTime, out _, out _, out _)) {
-				throw new Win32Exception(Marshal.GetLastWin32Error(), "GetProcessTimes za tekući proces nije uspeo.");
-			}
-			return DateTime.FromFileTimeUtc(creationTime);
-		}
+		// v4: GetProcessTimes (kernel32) je premešten u TopPos.Platform (WindowsProcessInfo).
 
 		// Process.StartTime je lokalno vreme iz istog FILETIME-a; povratak u UTC je tačan i u satu promene letnjeg vremena.
 		private static DateTime GetCurrentProcessStartUtcFromProcess()
@@ -62,13 +57,5 @@ namespace TopPos.Client.WPF.Workflow
 			using var process = Process.GetCurrentProcess();
 			return process.StartTime.ToUniversalTime();
 		}
-
-		// Pseudo-ručka tekućeg procesa; ne zatvara se.
-		[DllImport("kernel32.dll")]
-		private static extern IntPtr GetCurrentProcess();
-
-		[DllImport("kernel32.dll", SetLastError = true)]
-		[return: MarshalAs(UnmanagedType.Bool)]
-		private static extern bool GetProcessTimes(IntPtr process, out long creationTime, out long exitTime, out long kernelTime, out long userTime);
 	}
 }

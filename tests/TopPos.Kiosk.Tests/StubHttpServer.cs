@@ -2,7 +2,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 
-namespace TopPos.Workflow.Tests
+namespace TopPos.Kiosk.Tests
 {
 	/// <summary>
 	/// HTTP/1.1 server na slobodnom portu za testove <c>TopPosServiceClient</c>-a: na svaki zahtev vraća zadati odgovor

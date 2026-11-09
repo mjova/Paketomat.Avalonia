@@ -4,15 +4,13 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Windows.Controls;
-using TopPos.Client.WPF.Pages;
-using TopPos.Client.WPF.Workflow;
+using TopPos.Kiosk.Workflow;
 using TopPos.LockController;
 using TopPos.PenPosService;
 using Stateless;
 using TopPos.Service;
 
-namespace TopPos.Client.WPF.ViewModels
+namespace TopPos.Kiosk.ViewModels
 {
 	/// <summary>
 	/// Pogled koji activator klase (Faza 5) imaju na MainWindowViewModel: deljeni servisi/trackeri,
@@ -35,7 +33,7 @@ namespace TopPos.Client.WPF.ViewModels
 		IPosClient? PosClient { get; }
 		PenPosServiceClient? PenPosServiceClient { get; }
 		LanguageManager LanguageManager { get; }
-		AudioPlayer AudioPlayer { get; }
+		IAudioPlayer AudioPlayer { get; }
 		PaymentConfirmationSender PaymentConfirmationSender { get; }
 		ServerConfirmationSender ServerConfirmationSender { get; }
 		BarcodeScanTracker BarcodeScanTracker { get; }
@@ -44,16 +42,15 @@ namespace TopPos.Client.WPF.ViewModels
 		WorkflowMachine WorkflowMachine { get; }
 		ILogger? Logger { get; }
 
-		// ─── Deljene UI komponente (koriste ih više activatora) ─────────────────
-		CourierBarcodeScanViewModel CourierBarcodeScanViewModel { get; }
-		CourierBarcodeScanPage CourierBarcodeScanPage { get; }
+		// v4: deljeni CourierBarcodeScanViewModel/Page (kurirski tokovi) dolaze u F1.
 
 		// ─── Host operacije ─────────────────────────────────────────────────────
 		/// <summary>Lokalizacija po ključu (zamena za ViewModelBase indekser <c>this[key]</c>).</summary>
 		string Localize(string key);
 		ValueTask DisplayMessage(string message, MessageType messageType, int? displayTimeInSeconds = null);
 		void RemoveMessage();
-		void SetCurrentPage(UserControl page);
+		/// <summary>v4: stranica je njen ViewModel; prikaz bira View po tipu ViewModel-a (v2: WPF UserControl).</summary>
+		void SetCurrentPage(IWorkflowViewModel page);
 		IWorkflowViewModel? CurrentWorkflowViewModel { get; set; }
 		void SetCurrentStep(int stepNumber);
 		string MakeCurrentLanguagePath(string filename);

@@ -1,9 +1,9 @@
-using TopPos.Client.WPF.Workflow;
+using TopPos.Kiosk.Workflow;
 using Xunit;
-using S = TopPos.Client.WPF.Workflow.WorkflowState;
-using T = TopPos.Client.WPF.Workflow.WorkflowTrigger;
+using S = TopPos.Kiosk.Workflow.WorkflowState;
+using T = TopPos.Kiosk.Workflow.WorkflowTrigger;
 
-namespace TopPos.Workflow.Tests
+namespace TopPos.Kiosk.Tests
 {
 	/// <summary>
 	/// Atomski prijem nove operacije (<see cref="WorkflowMachine.TryReserveWhenIdle"/>) i uslov koji se proverava kad triger

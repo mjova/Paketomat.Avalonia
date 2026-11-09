@@ -3,7 +3,7 @@ using Flatsoft.Common;
 using TopPos.PenPosService;
 using TopPos.Service;
 
-namespace TopPos.Client.WPF
+namespace TopPos.Kiosk
 {
 	public class AppConfiguration
 	{

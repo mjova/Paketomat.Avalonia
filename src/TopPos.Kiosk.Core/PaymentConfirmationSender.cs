@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Logging;
 using TopPos.Service;
 
-namespace TopPos.Client.WPF;
+namespace TopPos.Kiosk;
 public record PaymentConfirmation(string UnlockCode, string TransactionNumber, string TidNumber, decimal Amount) : QueuedConfirmation;
 
 /// <summary>Trajni red potvrda plaćanja (<c>PotvrdaPlacanja</c>) — <see cref="ConfirmationQueue{T}"/> nad <see cref="PaymentConfirmation"/>.</summary>

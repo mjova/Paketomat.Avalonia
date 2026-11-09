@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+  Platformski sloj (doc/plan.md, sekcija 1a): interfejsi i implementacije za Windows i Linux. Platformu proverava samo
+  PlatformServices; ostatak koda koristi interfejse.
+  -->
+  <PropertyGroup>
+    <!-- LibraryImport (P/Invoke izvorni generator) -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="TopPos.Kiosk.Tests" />
+  </ItemGroup>
+
+</Project>

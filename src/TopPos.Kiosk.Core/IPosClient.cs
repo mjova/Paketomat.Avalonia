@@ -1,9 +1,9 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using static TopPos.Client.WPF.PosClient;
+using static TopPos.Kiosk.PosClient;
 
-namespace TopPos.Client.WPF
+namespace TopPos.Kiosk
 {
 	/// <summary>
 	/// Apstrakcija nad POS terminalom. Implementacija se bira u kompozicionom korenu

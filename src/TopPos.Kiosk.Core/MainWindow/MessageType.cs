@@ -1,4 +1,4 @@
-namespace TopPos.Client.WPF.ViewModels
+namespace TopPos.Kiosk.ViewModels
 {
 	/// <summary>
 	/// Tip poruke koja se prikazuje korisniku (utiče na ikonu/boju). Ranije nested u

@@ -5,9 +5,9 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using static TopPos.Client.WPF.PosClient;
+using static TopPos.Kiosk.PosClient;
 
-namespace TopPos.Client.WPF
+namespace TopPos.Kiosk
 {
 	/// <summary>
 	/// Simulator POS terminala za dev/test okruženje — bez pravog hardvera i bez <c>TopPos.ECR</c>.

@@ -126,7 +126,7 @@ namespace Flatsoft.Common.UI
 
 		protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
 		{
-			PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+			UiThread.Raise(() => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName)));	// v4: na UI nit
 		}
 
 		private sealed class CancelAsyncCommand : ICommand, IDisposable
@@ -173,7 +173,7 @@ namespace Flatsoft.Common.UI
 
 			private void RaiseCanExecuteChanged()
 			{
-				CanExecuteChanged?.Invoke(this, EventArgs.Empty);
+				UiThread.Raise(() => CanExecuteChanged?.Invoke(this, EventArgs.Empty));	// v4: na UI nit
 			}
 		}
 	}

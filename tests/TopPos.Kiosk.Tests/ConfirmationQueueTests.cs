@@ -1,10 +1,10 @@
 using System.IO;
 using System.Text.Json;
 using Microsoft.Extensions.Logging.Abstractions;
-using TopPos.Client.WPF;
+using TopPos.Kiosk;
 using Xunit;
 
-namespace TopPos.Workflow.Tests
+namespace TopPos.Kiosk.Tests
 {
 	/// <summary>
 	/// <see cref="ConfirmationQueue{T}"/>: ishod slanja određuje da li zapis ostaje u redu. Slanje je zamenjeno skriptom

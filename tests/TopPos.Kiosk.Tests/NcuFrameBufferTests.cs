@@ -2,7 +2,7 @@ using TopPos.LockController.NCU16L;
 using TopPos.LockController.NCU24L;
 using Xunit;
 
-namespace TopPos.Workflow.Tests
+namespace TopPos.Kiosk.Tests
 {
 	/// <summary>
 	/// Prijemni bafer NCU kontrolera čita okvire redom, od granice okvira. Nizovi u testovima sudara su iz Codex review-a

@@ -1,9 +1,9 @@
 using System.Collections.Concurrent;
-using TopPos.Client.WPF;
+using TopPos.Kiosk;
 using TopPos.LockController;
 using Xunit;
 
-namespace TopPos.Workflow.Tests
+namespace TopPos.Kiosk.Tests
 {
 	/// <summary>
 	/// DoorStatusTracker: kraj praćenja je vidljiv pozivaocu i kad je praćenje zaustavljeno (ranije je čekanje na callback

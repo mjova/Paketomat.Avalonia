@@ -3,7 +3,7 @@ using Microsoft.Extensions.Logging;
 using TopPos.LockController;
 using Xunit;
 
-namespace TopPos.Workflow.Tests
+namespace TopPos.Kiosk.Tests
 {
 	/// <summary>
 	/// DoorWatcher sa lažnim kontrolerom, uključujući broj vrata koji nije deljiv sa brojem vrata po modulu (npr. 35/8).

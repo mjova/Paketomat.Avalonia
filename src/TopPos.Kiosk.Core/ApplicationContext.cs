@@ -1,6 +1,6 @@
 ﻿using TopPos.Service;
 
-namespace TopPos.Client.WPF
+namespace TopPos.Kiosk
 {
 	// Used for writing header log entries into each rolling log file
 	public class ApplicationContext

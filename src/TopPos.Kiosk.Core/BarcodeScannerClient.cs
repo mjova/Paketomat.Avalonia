@@ -5,7 +5,7 @@ using System.Text;
 using Microsoft.Extensions.Logging;
 using Flatsoft.Net.Serial;
 
-namespace TopPos.Client.WPF
+namespace TopPos.Kiosk
 {
 	public class BarcodeScannerClient
 	{

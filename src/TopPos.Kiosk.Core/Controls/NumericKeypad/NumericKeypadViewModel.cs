@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 using Flatsoft.Common;
 using Flatsoft.Common.UI;
 
-namespace TopPos.Client.WPF.ViewModels
+namespace TopPos.Kiosk.ViewModels
 {
 	public class NumericKeypadViewModel : ViewModelBase
     {

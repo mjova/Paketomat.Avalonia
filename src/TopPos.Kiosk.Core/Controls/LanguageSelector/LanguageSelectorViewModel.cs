@@ -1,14 +1,14 @@
 ﻿using System.Windows.Input;
-using System.Windows.Media;
 using Microsoft.Extensions.Logging;
 using Flatsoft.Common;
 using Flatsoft.Common.UI;
 
-namespace TopPos.Client.WPF.ViewModels
+namespace TopPos.Kiosk.ViewModels
 {
+	// v4: slika zastave je objekat prikaza (Avalonia slika) koji daje imageFinder; v2: WPF DrawingGroup.
 	public class LanguageSelectorItem
 	{
-		public LanguageSelectorItem(LanguageData languageData, DrawingGroup? laguageImage) 
+		public LanguageSelectorItem(LanguageData languageData, object? laguageImage) 
 		{ 
 			this.LanguageData = languageData;
 			this.LanguageImage = laguageImage;
@@ -16,14 +16,14 @@ namespace TopPos.Client.WPF.ViewModels
 
 		public LanguageData LanguageData { get; }	
 
-		public DrawingGroup? LanguageImage { get; }
+		public object? LanguageImage { get; }
 
 		public ICommand? SelectLanguageCommand { get; set; }
 	}
 
 	public class LanguageSelectorViewModel : ViewModelBase
     {
-        public LanguageSelectorViewModel(LanguageManager languageManager, Func<string?, DrawingGroup?> imageFinder, ILogger? logger)
+        public LanguageSelectorViewModel(LanguageManager languageManager, Func<string?, object?> imageFinder, ILogger? logger)
 			: base(languageManager, logger) 
         {
 			this.Languages = languageManager.Languages.Select(

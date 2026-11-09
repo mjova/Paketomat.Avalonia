@@ -4,15 +4,13 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Windows.Controls;
-using TopPos.Client.WPF.Pages;
-using TopPos.Client.WPF.Workflow;
+using TopPos.Kiosk.Workflow;
 using TopPos.LockController;
 using Stateless;
 using TopPos.PenPosService;
 using TopPos.Service;
 
-namespace TopPos.Client.WPF.ViewModels
+namespace TopPos.Kiosk.ViewModels
 {
 	/// <summary>
 	/// Bazna klasa za per-flow activator klase (Faza 5). Izlaže članove <b>istih imena</b> kao
@@ -44,7 +42,7 @@ namespace TopPos.Client.WPF.ViewModels
 		protected IPosClient? _posClient => _host.PosClient;
 		protected PenPosServiceClient? _penPosServiceClient => _host.PenPosServiceClient;
 		protected LanguageManager _languageManager => _host.LanguageManager;
-		protected AudioPlayer _audioPlayer => _host.AudioPlayer;
+		protected IAudioPlayer _audioPlayer => _host.AudioPlayer;
 		protected PaymentConfirmationSender _paymentConfirmationSender => _host.PaymentConfirmationSender;
 		protected ServerConfirmationSender _serverConfirmationSender => _host.ServerConfirmationSender;
 		protected BarcodeScanTracker _barcodeScanTracker => _host.BarcodeScanTracker;
@@ -52,10 +50,6 @@ namespace TopPos.Client.WPF.ViewModels
 		protected WorkflowContext _workflowContext => _host.WorkflowContext;
 		protected WorkflowMachine _workflowMachine => _host.WorkflowMachine;
 		protected ILogger? _logger => _host.Logger;
-
-		// ─── Deljene UI komponente ──────────────────────────────────────────────
-		protected CourierBarcodeScanViewModel _courierBarcodeScanViewModel => _host.CourierBarcodeScanViewModel;
-		protected CourierBarcodeScanPage _courierBarcodeScanPage => _host.CourierBarcodeScanPage;
 
 		// ─── Host operacije (ista imena/signature kao MWVM private metode) ──────
 		protected string this[string key] => _host.Localize(key);
@@ -177,7 +171,7 @@ namespace TopPos.Client.WPF.ViewModels
 		}
 
 		/// <summary>Setter-only — premeštene metode samo postavljaju tekuću stranicu, ne čitaju je.</summary>
-		protected UserControl CurrentPage { set => _host.SetCurrentPage(value); }
+		protected IWorkflowViewModel CurrentPage { set => _host.SetCurrentPage(value); }
 
 		/// <summary>Ime sa underscore namerno: tela premeštenih metoda koriste <c>_currentWorkflowViewModel</c> nepromenjeno.</summary>
 		protected IWorkflowViewModel? _currentWorkflowViewModel

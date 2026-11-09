@@ -3,7 +3,7 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 
-namespace TopPos.Client.WPF
+namespace TopPos.Kiosk
 {
 	/// <summary>Zapis u trajnom redu potvrda (<see cref="ConfirmationQueue{T}"/>).</summary>
 	public abstract record QueuedConfirmation

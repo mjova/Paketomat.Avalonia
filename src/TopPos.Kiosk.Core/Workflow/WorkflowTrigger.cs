@@ -1,4 +1,4 @@
-namespace TopPos.Client.WPF.Workflow
+namespace TopPos.Kiosk.Workflow
 {
 	/// <summary>
 	/// Svi mogući događaji koji menjaju stanje workflow-a. Imenovani po onome što se desilo

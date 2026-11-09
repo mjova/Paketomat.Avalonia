@@ -1,7 +1,7 @@
-using TopPos.Client.WPF;
+using TopPos.Kiosk;
 using Xunit;
 
-namespace TopPos.Workflow.Tests
+namespace TopPos.Kiosk.Tests
 {
 	/// <summary>
 	/// Istek opšteg tajmera nosi proveru važenja: Reset koji je krenuo baš kad je ekran zaustavio tajmer (ili ga pokrenuo

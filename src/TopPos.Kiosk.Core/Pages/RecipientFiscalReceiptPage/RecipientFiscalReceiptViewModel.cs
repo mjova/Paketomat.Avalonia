@@ -1,17 +1,15 @@
-using System.Windows.Media.Imaging;
-using System.Windows.Threading;
 using Flatsoft.Common;
 using Flatsoft.Common.UI;
 using Microsoft.Extensions.Logging;
 
-namespace TopPos.Client.WPF.ViewModels
+namespace TopPos.Kiosk.ViewModels
 {
 	public class RecipientFiscalReceiptViewModel : ViewModelBase, IWorkflowViewModel
 	{
         private readonly TimeSpan _fetchTimeout;
         private readonly TimeSpan _scanTimeout;
-        private DispatcherTimer? _scanTimer;
-        private DispatcherTimer? _countdownTimer;
+        private UiTimer? _scanTimer;     // v4: UiTimer umesto WPF DispatcherTimer
+        private UiTimer? _countdownTimer;
         private int? _countdownSeconds;
         private CancellationTokenSource? _ctsFetch;
         private string? _currentStatusMessageLanguageKey;
@@ -60,8 +58,9 @@ namespace TopPos.Client.WPF.ViewModels
             }
         }
 
-        private BitmapImage? _fiscalReceiptImage;
-        public BitmapImage? FiscalReceiptImage
+        // v4: PNG bajtovi QR koda (v2: WPF BitmapImage); prikaz od njih pravi sliku.
+        private byte[]? _fiscalReceiptImage;
+        public byte[]? FiscalReceiptImage
         {
             get => _fiscalReceiptImage;
             set {
@@ -161,7 +160,7 @@ namespace TopPos.Client.WPF.ViewModels
             UIThreadSwitcher.RunOnUiThread(() => {
                 _countdownSeconds = Math.Abs(seconds);
                 _countdownTimer?.Stop();
-                _countdownTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+                _countdownTimer = new UiTimer { Interval = TimeSpan.FromSeconds(1) };
                 _countdownTimer.Tick += (s, e) =>
                                     {
                                         _countdownSeconds--;
@@ -180,7 +179,7 @@ namespace TopPos.Client.WPF.ViewModels
         {
             UIThreadSwitcher.RunOnUiThread(() => {
                 _scanTimer?.Stop();
-                _scanTimer = new DispatcherTimer { Interval = _scanTimeout };
+                _scanTimer = new UiTimer { Interval = _scanTimeout };
                 _scanTimer.Tick += async (s, e) =>
                                     {
                                         _scanTimer?.Stop();
@@ -223,6 +222,6 @@ namespace TopPos.Client.WPF.ViewModels
 
         public IAsyncCommand CompleteCommand { get; }
         public Func<ValueTask>? HandleCompleteClicked { get; set; }
-        public Func<CancellationToken, ValueTask<BitmapImage?>>? FuncFetchFiscalReceiptImage { get; set; }
+        public Func<CancellationToken, ValueTask<byte[]?>>? FuncFetchFiscalReceiptImage { get; set; }
 	}
 }

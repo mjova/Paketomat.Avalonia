@@ -1,7 +1,7 @@
 using TopPos.LockController;
 using Xunit;
 
-namespace TopPos.Workflow.Tests
+namespace TopPos.Kiosk.Tests
 {
 	/// <summary>
 	/// Najveći broj vrata po tipu kontrolera (konfigurator odbija snimanje, klijent odbija start).

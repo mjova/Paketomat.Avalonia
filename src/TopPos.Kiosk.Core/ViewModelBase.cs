@@ -3,7 +3,7 @@ using System.ComponentModel;
 using Microsoft.Extensions.Logging;
 using Flatsoft.Common;
 
-namespace TopPos.Client.WPF.ViewModels
+namespace TopPos.Kiosk.ViewModels
 {
 	public abstract class ViewModelBase : Flatsoft.Common.UI.ViewModelBase
 	{

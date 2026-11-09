@@ -2,7 +2,7 @@ using System.Net;
 using TopPos.Service;
 using Xunit;
 
-namespace TopPos.Workflow.Tests
+namespace TopPos.Kiosk.Tests
 {
 	/// <summary>
 	/// Prijava i poništavanje greške pozicije: koji odgovori 400 znače da je stanje vrata primljeno, a koji da ostaje na

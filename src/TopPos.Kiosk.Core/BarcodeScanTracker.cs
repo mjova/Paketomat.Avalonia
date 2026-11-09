@@ -1,7 +1,7 @@
 ﻿using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 
-namespace TopPos.Client.WPF
+namespace TopPos.Kiosk
 {
 	/// <summary>
 	/// Čeka barkod sa skenera do isteka roka i javlja ga (ili istek). Jedno čekanje u isto vreme: novo <see cref="Start"/>

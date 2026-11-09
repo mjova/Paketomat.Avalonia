@@ -1,4 +1,4 @@
-namespace TopPos.Client.WPF.Workflow
+namespace TopPos.Kiosk.Workflow
 {
 	/// <summary>
 	/// Zahtev Agenta za preuzimanje (<c>RecipientPickup</c>): <c>requestId</c> operacije i podaci koje je podrška unela umesto

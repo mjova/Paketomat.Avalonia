@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Logging;
 using Flatsoft.Common;
 
-namespace TopPos.Client.WPF.ViewModels
+namespace TopPos.Kiosk.ViewModels
 {
 	public class RecipientPaymentViewModel : ViewModelBase, IWorkflowViewModel
 	{

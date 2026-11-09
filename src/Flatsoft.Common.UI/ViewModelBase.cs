@@ -8,10 +8,11 @@ namespace Flatsoft.Common.UI
 		public event PropertyChangedEventHandler? PropertyChanged;
 
 		protected void OnPropertyChanged([CallerMemberName] string? propertyName = null)
-			=> PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+			=> OnPropertyChanged(new PropertyChangedEventArgs(propertyName));
 
+		// v4: obaveštenje ide na UI nit (v2 kod menja svojstva i sa pozadinskih niti; WPF je to prebacivao sam).
 		protected void OnPropertyChanged(PropertyChangedEventArgs args)
-			=> PropertyChanged?.Invoke(this, args);
+			=> UiThread.Raise(() => PropertyChanged?.Invoke(this, args));
 
 		protected bool SetProperty<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
 		{

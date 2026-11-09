@@ -5,7 +5,7 @@ using System.Transactions;
 using ECR;
 using Microsoft.Extensions.Logging;
 
-namespace TopPos.Client.WPF
+namespace TopPos.Kiosk
 {
 
 

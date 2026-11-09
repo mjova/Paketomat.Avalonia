@@ -1,8 +1,8 @@
 using System.Text;
-using TopPos.Client.WPF;
+using TopPos.Kiosk;
 using Xunit;
 
-namespace TopPos.Workflow.Tests
+namespace TopPos.Kiosk.Tests
 {
 	/// <summary>
 	/// Završni odgovor POS terminala (10) i poređenje sa zahtevom — <see cref="PosClient"/> rezultat samo loguje. Okvir je

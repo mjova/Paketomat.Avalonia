@@ -1,6 +1,6 @@
 using TopPos.Service;
 
-namespace TopPos.Client.WPF.Workflow
+namespace TopPos.Kiosk.Workflow
 {
 	/// <summary>
 	/// Neuspela potvrda ostavljanja: ishod i poruka servera (uz odbijanje). Putuje uz triger do ekrana neuspele potvrde, a ne

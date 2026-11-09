@@ -2,21 +2,20 @@ using Flatsoft.Common;
 using Flatsoft.Common.UI;
 using Microsoft.Extensions.Logging;
 using System.IO;
-using System.Windows;
-using System.Windows.Controls;
 using System.Windows.Input;
-using System.Windows.Media;
-using TopPos.Client.WPF.AgentCommunication;
-using TopPos.Client.WPF.Pages;
-using TopPos.Client.WPF.Windows;
-using TopPos.Client.WPF.Workflow;
+using TopPos.Kiosk.Workflow;
 using TopPos.LockController;
 using TopPos.PenPosService;
 using TopPos.Service;
 using static TopPos.LockController.DoorWatcher;
 
-namespace TopPos.Client.WPF.ViewModels
+namespace TopPos.Kiosk.ViewModels
 {
+	/// <summary>
+	/// v4: bez UI biblioteke — tekuća stranica je ViewModel (prikaz bira View po tipu), slike (zastava, ikona poruke) daje
+	/// prikaz, a zvuk platformski sloj. U F0 je povezan samo tok primaoca (i servisna vrata); kurirski i pošiljalački tokovi
+	/// (F1) i Agent (F2) se dodaju iz v2 kad dođu na red.
+	/// </summary>
 	public partial class MainWindowViewModel : ViewModelBase
 	{
 		private readonly AppConfiguration _configuration;
@@ -27,9 +26,6 @@ namespace TopPos.Client.WPF.ViewModels
 		private readonly PenPosServiceClient? _penPosServiceClient;
 		private readonly LanguageManager _languageManager;
 		private readonly StartViewModel _startViewModel;
-		private readonly StartPage _startPage;
-		private readonly CourierBarcodeScanViewModel _courierBarcodeScanViewModel;
-		private readonly CourierBarcodeScanPage _courierBarcodeScanPage;
 		private readonly OperationCountdownTimer _operationCountdownTimer;
 		private readonly DoorStatusTracker _doorStatusTracker;
 		private readonly BarcodeScanTracker _barcodeScanTracker;
@@ -38,7 +34,8 @@ namespace TopPos.Client.WPF.ViewModels
 		private readonly LockerStatusUpdater _lockerStatusUpdater;
 		private readonly PaymentConfirmationSender _paymentConfirmationSender;
 		private readonly ServerConfirmationSender _serverConfirmationSender;
-		private readonly AudioPlayer _audioPlayer;
+		private readonly IAudioPlayer _audioPlayer;
+		private readonly Func<string?, object?> _languageImageFinder;
 		private CancellationTokenSource? _ctsCheckDeviceStatus;
 
 		private readonly WorkflowContext _workflowContext;
@@ -53,13 +50,9 @@ namespace TopPos.Client.WPF.ViewModels
 
 		// Faza 5 — per-flow activatori (drže svoje stranice/VM-ove i OnEntry handlere).
 		private readonly RecipientFlowActivator _recipientActivator;
-		private readonly CourierLoginActivator _courierLoginActivator;
-		private readonly CourierPickupActivator _courierPickupActivator;
-		private readonly CourierDepositActivator _courierDepositActivator;
-		private readonly SenderDepositActivator _senderDepositActivator;
-		private readonly DepositConfirmationFailedActivator _depositConfirmationFailedActivator;
-		private readonly RemoteServiceActivator _remoteServiceActivator;
 
+		/// <param name="audioPlayer">v4: zvuk iz platformskog sloja (v2 ga je pravio ovde, WPF MediaPlayer).</param>
+		/// <param name="languageImageFinder">v4: slika zastave jezika po <see cref="LanguageData.ImageResourceName"/>, iz prikaza.</param>
 		public MainWindowViewModel(AppConfiguration configuration,
 									ILockControllerClient lockControllerClient,
 									BarcodeScannerClient barcodeScannerClient,
@@ -69,9 +62,13 @@ namespace TopPos.Client.WPF.ViewModels
 									LanguageManager langManager,
 									KioskStatusSource statusSource,
 									KioskOperationCoordinator coordinator,
+									IAudioPlayer audioPlayer,
+									Func<string?, object?> languageImageFinder,
 									ILogger? logger)
 			: base(langManager, logger)
 		{
+			_audioPlayer = audioPlayer;
+			_languageImageFinder = languageImageFinder;
 			_configuration = configuration;
 			_lockControllerClient = lockControllerClient;
 			_barcodeScannerClient = barcodeScannerClient;
@@ -120,78 +117,29 @@ namespace TopPos.Client.WPF.ViewModels
 			SetCurrentStep(0);
 
 			_startViewModel = SetUpStartPageViewModel();
-			_startPage = new StartPage() { DataContext = _startViewModel };
-
-
-
-
-
-
-
-
-			_courierBarcodeScanViewModel = SetUpCourierBarcodeScanViewModel();
-			_courierBarcodeScanPage = new CourierBarcodeScanPage { DataContext = _courierBarcodeScanViewModel };
-
 
 			_recipientActivator = new RecipientFlowActivator(this);
-			_courierLoginActivator = new CourierLoginActivator(this);
-			_courierPickupActivator = new CourierPickupActivator(this);
-			_courierDepositActivator = new CourierDepositActivator(this);
-			_senderDepositActivator = new SenderDepositActivator(this);
-			_depositConfirmationFailedActivator = new DepositConfirmationFailedActivator(this);
-			_remoteServiceActivator = new RemoteServiceActivator(this);
 
-			this.LanguageSelectorViewModel = new LanguageSelectorViewModel(langManager,
-															langImageResourceName => langImageResourceName != null ?
-															(DrawingGroup?) Application.Current.TryFindResource(langImageResourceName) : null,
-															logger);
+			this.LanguageSelectorViewModel = new LanguageSelectorViewModel(langManager, _languageImageFinder, logger);
 			this.LanguageSelectorViewModel.HandleLanguageSelected = languageId => {
 				this.ShowLanguageSelector = false;
-				this.CurrentLanguageFlag = (DrawingGroup?) Application.Current.TryFindResource(_languageManager.CurrentLanguage!.ImageResourceName);
+				this.CurrentLanguageFlag = _languageImageFinder(_languageManager.CurrentLanguage!.ImageResourceName);
 			};
 			this.ShowLanguageSelectorCommand = new RelayCommand(o => { this.ShowLanguageSelector = true; });
-			this.CurrentLanguageFlag = (DrawingGroup?) Application.Current.TryFindResource(_languageManager.CurrentLanguage!.ImageResourceName);
+			this.CurrentLanguageFlag = _languageImageFinder(_languageManager.CurrentLanguage!.ImageResourceName);
 
 			this.GoToStartPageCommand = new AsyncCommand<bool>(async (o, ct) => {
 				_logger?.LogDebug($"{nameof(MainWindowViewModel)}: executing {nameof(GoToStartPageCommand)}.");
 				await FireResetAsync(); return true;
 			});
 
+			// v4: prozor statusa uređaja (v2 DeviceStatusWindow, dug pritisak na Home) još ne postoji; dug pritisak samo vraća
+			// na Start, kao kratak.
 			this.DisplayDeviceStatusCommand = new AsyncCommand<bool>(async (o, ct) => {
 				_logger?.LogDebug($"{nameof(MainWindowViewModel)}: executing {nameof(DisplayDeviceStatusCommand)}.");
 				await FireResetAsync();
-				// Prozor je lokalna servisna operacija: kiosk je zauzet (uloga Service) dok je otvoren, a skener i Agent se odbijaju.
-				if (!await _coordinator.WaitUntilFreeAsync(TimeSpan.FromSeconds(5))) {
-					_logger?.LogWarning($"{nameof(DisplayDeviceStatusCommand)}: prozor statusa uređaja se ne otvara — prethodna sesija se nije završila za 5 s.");
-					return true;
-				}
-				var operation = _coordinator.TryBegin(_workflowMachine, KioskLeaseMode.StandaloneOperation, WorkflowStatusRules.ServiceRole, "prozor statusa uređaja");
-				if (operation == null || !_coordinator.TryActivate(operation)) {
-					if (operation != null) {
-						_coordinator.ReleaseIfReserved(operation);
-					}
-					_logger?.LogWarning($"{nameof(DisplayDeviceStatusCommand)}: prozor statusa uređaja se ne otvara — kiosk je zauzet.");
-					return true;
-				}
-				try {
-					// Provere uređaja su posao operacije: End posle zatvaranja oslobađa kiosk tek kad se (otkazane) provere završe.
-					var deviceStatusWindow = new DeviceStatusWindow(_barcodeScannerClient, _posClient!, _languageManager, _logger!,
-																	checks => _coordinator.TryRun(operation, checks), CancellationToken.None);
-					deviceStatusWindow.Owner = Application.Current.MainWindow;
-					deviceStatusWindow.ShowDialog();
-				}
-				finally {
-					_coordinator.End(operation);
-				}
+				_logger?.LogInformation($"{nameof(DisplayDeviceStatusCommand)}: prozor statusa uređaja u v4 još ne postoji.");
 				return true;
-			});
-
-
-			this.ScreenRotateCommand = new RelayCommand(o => {
-#if DEBUG
-				var mainWindow = Application.Current.MainWindow as MainWindow;
-				mainWindow!.ToggleDisplayOrientation();
-#endif
 			});
 
 			// Wire up together the door watcher and the locker status updater 
@@ -225,12 +173,6 @@ namespace TopPos.Client.WPF.ViewModels
 
 			this.IsLockerOperational = null;    // Always force initial UI update
 
-			_audioPlayer = new AudioPlayer(AppDomain.CurrentDomain.BaseDirectory, logger);
-
-			if (_configuration.General.PlayButtonPressedSound) {
-				Application.Current.MainWindow.AddHandler(Button.ClickEvent, new RoutedEventHandler((s, e) => _audioPlayer.Play(Path.Combine("Resources", "button-press.mp3"))));
-			}
-
 			// MORA pre _doorWatcher.Resume(): doorWatcher može pozvati OnLockerStatusChanged
 			// koji okida Reset trigger; OnEntry handler za Start mora biti registrovan pre toga.
 			WireWorkflowMachine();
@@ -248,6 +190,16 @@ namespace TopPos.Client.WPF.ViewModels
 		/// <c>await GoToStartPage()</c> (timer, error path, success path, locker status).
 		/// </summary>
 		private ValueTask FireResetAsync() => new(_workflowMachine.FireAsync(WorkflowTrigger.Reset));
+
+		/// <summary>
+		/// v4: zvuk klika na bilo koje dugme; prikaz ga poziva na klik (v2: WPF Button.ClickEvent handler na glavnom prozoru).
+		/// </summary>
+		public void OnButtonPressed()
+		{
+			if (_configuration.General.PlayButtonPressedSound) {
+				_audioPlayer.Play(Path.Combine("Resources", "button-press.mp3"));
+			}
+		}
 
 		/// <summary>Da li je sesija koju je OnEntry uhvatio i dalje aktivna (vidi <see cref="IWorkflowHost.CurrentSession"/>).</summary>
 		private bool IsSessionActive(KioskLease? session) => session != null && _coordinator.IsActive(session);
@@ -525,62 +477,10 @@ namespace TopPos.Client.WPF.ViewModels
 			_workflowMachine.OnEntry(WorkflowState.RecipientPayment, _recipientActivator.GoToRecipientPaymentPage);
 			_workflowMachine.OnEntry(WorkflowState.RecipientFiscalReceipt, _recipientActivator.GoToRecipientFiscalReceiptPage);
 			_workflowMachine.OnEntry(WorkflowState.RecipientPackagePickup, _recipientActivator.GoToRecipientPackagePickupPage);
-			// Preuzimanje na zahtev Agenta: proveru (RecipientRemoteValidating) i ishode registruje WorkflowRecipientPickupHost.
-			_workflowMachine.OnEntry(WorkflowState.RecipientRemoteConfirmation, _recipientActivator.GoToRecipientRemoteConfirmationPage);
 
-			// Faza 3 pod-korak 1 — courier login routing kroz machine.
-			// Barkod za manual login putuje uz parametrizovan trigger.
-			// Barkod u kontekst PRE prikaza ekrana (redosled registracije = redosled izvršavanja); ekran ga čita iz konteksta
-			// i pri povratku posle neuspele provere koda.
-			_workflowMachine.OnEntryFrom(WorkflowState.CourierManualLogin, _workflowMachine.CourierBarcodeScannedRequiringManualLogin,
-				barcode => {
-					_workflowContext.CourierLoginBarcode = barcode;
-					return ValueTask.CompletedTask;
-				});
-			_workflowMachine.OnEntry(WorkflowState.CourierManualLogin, _courierLoginActivator.GoToCourierManualLoginPage);
-			_workflowMachine.OnEntryFrom(WorkflowState.CourierManualAuthenticating, _workflowMachine.CourierManualCodeEntered, _courierLoginActivator.AuthenticateManualCourierAndRoute);
-			_workflowMachine.OnEntryFrom(WorkflowState.CourierAuthenticating, _workflowMachine.CourierBarcodeScanned, _courierLoginActivator.AuthenticateCourierAndRoute);
-			_workflowMachine.OnEntry(WorkflowState.CourierLockerBoxAvailability, _courierLoginActivator.GoToLockerBoxAvailabilityPage);
-			_workflowMachine.OnEntry(WorkflowState.CourierPickupConfirmation, _courierLoginActivator.GoToCourierPickupConfirmationPage);
-			_workflowMachine.OnEntry(WorkflowState.CourierFetchingExpiredPackages, _courierLoginActivator.FetchExpiredPackagesAndRoute);
-			// Pod-korak 2 — courier pickup kroz machine.
-			_workflowMachine.OnEntry(WorkflowState.CourierPickupPrompt, _courierPickupActivator.GoToCourierPickupPromptPage);
-			_workflowMachine.OnEntry(WorkflowState.CourierPackagePickup, _courierPickupActivator.GoToCourierPackagePickupPage);
-			_workflowMachine.OnEntry(WorkflowState.CourierPackagePickupBarcodeScan, _courierPickupActivator.GoToCourierPackagePickupBarcodeScanPage);
-
-			// Faza 4 — courier deposit interna kroz machine.
-			_workflowMachine.OnEntry(WorkflowState.CourierDepositPrompt, _courierDepositActivator.GoToCourierDepositPromptPage);
-			_workflowMachine.OnEntry(WorkflowState.CourierPackageDepositBarcodeScan, _courierDepositActivator.GoToCourierPackageDepositBarcodeScanPage);
-			// Skenirani barkod putuje uz parametrizovan trigger; dodela vrata na serveru je u virtuelnom stanju.
-			_workflowMachine.OnEntryFrom(WorkflowState.CourierDepositBarcodeValidating, _workflowMachine.DepositBarcodeScanned, _courierDepositActivator.RequestCourierDepositDoorAndRoute);
-			// barcode+doorNumber putuju uz parametrizovan trigger → upiši ih u kontekst PRE render OnEntry-ja.
-			_workflowMachine.OnEntryFrom(WorkflowState.CourierPackageDeposit, _workflowMachine.DepositBarcodeAccepted,
-				(barcode, doorNumber) => {
-					_workflowContext.DepositBarcode = barcode;
-					_workflowContext.DepositDoorNumber = doorNumber;
-					_workflowContext.Logger = _workflowContext.Logger.ForContext("PackageId", barcode);
-					return ValueTask.CompletedTask;
-				});
-			_workflowMachine.OnEntry(WorkflowState.CourierPackageDeposit, _courierDepositActivator.GoToCourierPackageDepositPage);
-			_workflowMachine.OnEntry(WorkflowState.CourierDepositConfirmation, _courierDepositActivator.GoToCourierDepositConfirmationPage);
-			// ishod neuspele potvrde putuje uz triger (ne kroz kontekst)
-			_workflowMachine.OnEntryFrom(WorkflowState.CourierDepositConfirmationFailed, _workflowMachine.DepositConfirmationFailed,
-										_depositConfirmationFailedActivator.GoToCourierDepositConfirmationFailedPage);
-
-			// Sender deposit (pošiljalac) — paralelan deposit tok, ulaz sa Start dugmeta.
-			_workflowMachine.OnEntry(WorkflowState.SenderDepositBarcodeScan, _senderDepositActivator.GoToSenderDepositBarcodeScanPage);
-			_workflowMachine.OnEntryFrom(WorkflowState.SenderDepositBarcodeValidating, _workflowMachine.SenderBarcodeScanned, _senderDepositActivator.RequestSenderDepositDoorAndRoute);
-			// barcode+doorNumber putuju uz parametrizovan trigger → upiši ih u kontekst PRE render OnEntry-ja.
-			_workflowMachine.OnEntryFrom(WorkflowState.SenderPackageDeposit, _workflowMachine.SenderBarcodeAccepted,
-				(barcode, doorNumber) => {
-					_workflowContext.DepositBarcode = barcode;
-					_workflowContext.DepositDoorNumber = doorNumber;
-					_workflowContext.Logger = _workflowContext.Logger.ForContext("PackageId", barcode);
-					return ValueTask.CompletedTask;
-				});
-			_workflowMachine.OnEntry(WorkflowState.SenderPackageDeposit, _senderDepositActivator.GoToSenderPackageDepositPage);
-			_workflowMachine.OnEntryFrom(WorkflowState.SenderDepositConfirmationFailed, _workflowMachine.SenderConfirmationFailed,
-										_depositConfirmationFailedActivator.GoToSenderDepositConfirmationFailedPage);
+			// v4: preuzimanje na zahtev Agenta (RecipientRemote*) dolazi u F2, kurirski tokovi i ostavljanje pošiljaoca u F1 —
+			// njihovi OnEntry handleri se tada prenose iz v2. Do tada se u ta stanja ne ulazi (TryHandleCourierOrServiceBarcode,
+			// IsPackageDepositionEnabled = false).
 
 			// Servis (tehničar) — servisni kod sa Start ekrana.
 			_workflowMachine.OnEntry(WorkflowState.ServiceDoorOpening, OpenServiceDoor);
@@ -632,10 +532,6 @@ namespace TopPos.Client.WPF.ViewModels
 				_configuration.General.ShowLockerIdQrCode ? _configuration.Locker.LockerId : string.Empty,
 				_languageManager, _logger);
 
-
-		private CourierBarcodeScanViewModel SetUpCourierBarcodeScanViewModel()
-			=> new(_languageManager, _logger);
-
 		private bool? _isLockerOperational;
 		public bool? IsLockerOperational {
 			get => _isLockerOperational;
@@ -683,26 +579,15 @@ namespace TopPos.Client.WPF.ViewModels
 			}
 		}
 
-		private DrawingGroup? _currentLanguageFlag;
-		public DrawingGroup? CurrentLanguageFlag {
+		private object? _currentLanguageFlag;
+		/// <summary>v4: slika iz prikaza (languageImageFinder); v2: WPF DrawingGroup.</summary>
+		public object? CurrentLanguageFlag {
 			get => _currentLanguageFlag;
 			set => SetProperty(ref _currentLanguageFlag, value);
 		}
 
 		private string MakeCurrentLanguagePath(string filename)
 			=> Path.Combine("Languages", _languageManager.CurrentLanguage!.LanguageId, filename);
-
-		public ICommand ScreenRotateCommand { get; }
-
-		public bool AllowScreenRotation {
-			get {
-#if DEBUG
-				return true;
-#else
-				return false;
-#endif
-			}
-		}
 
 		public bool IsDebugMode {
 			get {
@@ -743,9 +628,10 @@ namespace TopPos.Client.WPF.ViewModels
 			private set => SetProperty(ref _isPageChromeVisible, value);
 		}
 
-		private UserControl? _currentPage;
+		private IWorkflowViewModel? _currentPage;
 
-		public UserControl? CurrentPage {
+		/// <summary>v4: tekuća stranica je njen ViewModel; prikaz bira View po tipu (v2: WPF UserControl).</summary>
+		public IWorkflowViewModel? CurrentPage {
 			get { return _currentPage; }
 			set {
 				if (_currentPage != value) {
@@ -781,11 +667,12 @@ namespace TopPos.Client.WPF.ViewModels
 			}
 		}
 
-		private DrawingGroup? _messageImage;
-		public DrawingGroup? MessageImage {
-			get => _messageImage;
+		private MessageType? _messageKind;
+		/// <summary>v4: vrsta poruke; prikaz po njoj bira ikonu (v2: MessageImage, WPF DrawingGroup iz resursa).</summary>
+		public MessageType? MessageKind {
+			get => _messageKind;
 			set {
-				SetProperty(ref _messageImage, value);
+				SetProperty(ref _messageKind, value);
 			}
 		}
 
@@ -793,12 +680,7 @@ namespace TopPos.Client.WPF.ViewModels
 		{
 			UIThreadSwitcher.RunOnUiThread(() => {
 				this.Message = message;
-				this.MessageImage = (DrawingGroup?) Application.Current.TryFindResource(
-																			messageType switch {
-																				MessageType.Success => "Success",
-																				MessageType.Error => "Error",
-																				_ => "Information"
-																			});
+				this.MessageKind = messageType;
 				this.ShowMessage = true;
 			});
 			displayTimeInSeconds ??= _configuration.General.UserMessageDisplayTimeInSeconds;
@@ -815,7 +697,7 @@ namespace TopPos.Client.WPF.ViewModels
 			UIThreadSwitcher.RunOnUiThread(() => {
 				if (statusMessage != null && this.Message == statusMessage) {
 					this.Message = null;
-					this.MessageImage = null;
+					this.MessageKind = null;
 					this.ShowMessage = false;
 				}
 			});
@@ -825,17 +707,17 @@ namespace TopPos.Client.WPF.ViewModels
 		{
 			UIThreadSwitcher.RunOnUiThread(() => {
 				this.Message = null;
-				this.MessageImage = null;
+				this.MessageKind = null;
 				this.ShowMessage = false;
 			});
 		}
 
-		private void OnDeactivatingPage(UserControl? deactivatePage)
+		private void OnDeactivatingPage(IWorkflowViewModel? deactivatePage)
 		{
 			var pageName = deactivatePage?.GetType().Name ?? "<null>";
 			_logger?.LogInformation($"{nameof(MainWindowViewModel)}: deaktiviranje tekuće strane {pageName}.");
 			_operationCountdownTimer.Stop();
-			if (deactivatePage == _startPage) {
+			if (deactivatePage == _startViewModel) {
 				_ctsCheckDeviceStatus?.Cancel();
 			}
 			_audioPlayer.Reset();
@@ -848,22 +730,7 @@ namespace TopPos.Client.WPF.ViewModels
 		public KioskLease? TryBeginAgentOperation(string source)
 			=> _coordinator.TryBeginOperation(_workflowMachine, WorkflowStatusRules.AgentRole, source);
 
-		/// <summary>
-		/// Veza servisne sesije Agenta sa workflow-om i DoorWatcher-om. Registruje OnEntry za <see cref="WorkflowState.RemoteService"/>,
-		/// pa se pravi jednom, pri startu.
-		/// </summary>
-		public IRemoteServiceHost CreateRemoteServiceHost()
-			=> new WorkflowRemoteServiceHost(_workflowMachine, _coordinator, _doorWatcher.GetUnavailableModules, PauseDoorWatcherAsync, _logger,
-											 _remoteServiceActivator.GoToRemoteServicePage);
-
-		/// <summary>
-		/// Veza preuzimanja na zahtev Agenta sa workflow-om i serverom. Registruje OnEntry za
-		/// <see cref="WorkflowState.RecipientRemoteValidating"/>, pa se pravi jednom, pri startu.
-		/// </summary>
-		public IRecipientPickupHost CreateRecipientPickupHost()
-			=> new WorkflowRecipientPickupHost(_workflowMachine, _coordinator, _workflowContext,
-											   (phone, code) => _serviceClient.RecipientRequestPackagePickupDetailed(phone, code, CancellationToken.None).AsTask(),
-											   _recipientActivator.ShowRemotePickupNotice, _logger);
+		// v4: CreateRemoteServiceHost i CreateRecipientPickupHost (veza sa Agentom) dolaze u F2.
 
 		/// <summary>
 		/// Izlazak iz aplikacije: provera statusa vrata se zaustavlja pre zatvaranja veze sa kontrolerom, da neuspelo
@@ -904,27 +771,12 @@ namespace TopPos.Client.WPF.ViewModels
 			}
 		}
 
-		private void OnPageActivated(UserControl? activatedPage)
+		// v4: provera „strana je u prikazu" (v2 LogPageShown, WPF IsLoaded/IsVisible) pripada prikazu; ovde samo log.
+		private void OnPageActivated(IWorkflowViewModel? activatedPage)
 		{
 			var pageName = activatedPage?.GetType().Name ?? "<null>";
-			bool onUiThread = activatedPage?.Dispatcher.CheckAccess() ?? true;
+			bool onUiThread = UiThread.Dispatcher.CheckAccess();
 			_logger?.LogInformation($"{nameof(MainWindowViewModel)}: tekuća strana je sada {pageName}{(onUiThread ? "" : " (sa pozadinske niti)")}.");
-			// Dijagnostika: na probi 27.10.2026 ekran je ostao na servisnom meniju iako je log javio StartPage. UI nit, posle
-			// rasporeda i iscrtavanja, potvrđuje da je stranica u prikazu; ako nije, to je upozorenje.
-			activatedPage?.Dispatcher.InvokeAsync(() => LogPageShown(activatedPage, pageName), System.Windows.Threading.DispatcherPriority.ContextIdle);
-		}
-
-		private void LogPageShown(UserControl page, string pageName)
-		{
-			if (this.CurrentPage != page) {
-				return;     // u međuvremenu je prikazana druga stranica
-			}
-			if (page.IsLoaded && page.IsVisible) {
-				_logger?.LogDebug($"{nameof(MainWindowViewModel)}: strana {pageName} je u prikazu.");
-			}
-			else {
-				_logger?.LogWarning($"{nameof(MainWindowViewModel)}: strana {pageName} nije u prikazu (IsLoaded={page.IsLoaded}, IsVisible={page.IsVisible}).");
-			}
 		}
 
 		private ValueTask GoToStartPage()
@@ -932,7 +784,7 @@ namespace TopPos.Client.WPF.ViewModels
 			Task barcodeTrackerStopped = Task.CompletedTask;
 			Task doorTrackerStopped = Task.CompletedTask;
 			try {
-				if (this.CurrentPage == _startPage) {
+				if (this.CurrentPage == _startViewModel) {
 					// Start je ostao prikazan (virtuelna stanja, ili izuzetak u toku koji je krenuo sa Start-a pre promene stranice):
 					// prikaz se ne menja, ali takav tok je možda već deaktivirao StartViewModel (barkod handler) i pokrenuo tracker.
 					// Bez promene stranice OnDeactivatingPage ne zaustavlja ni opšti tajmer.
@@ -953,12 +805,11 @@ namespace TopPos.Client.WPF.ViewModels
 				// servisna vrata — klik tada odbija koordinator (kiosk ima vlasnika).
 				_startViewModel.BeginRecipientPickUpPackage = () => TryBeginSession(WorkflowState.RecipientCodeInput, "dugme Preuzmi paket",
 																					(guard, rejected) => _workflowMachine.FireGuardedAsync(guard, WorkflowTrigger.RecipientPickupRequested, rejected));
-				_startViewModel.IsPackageDepositionEnabled = _configuration.General.EnablePackageDeposition;
-				_startViewModel.BeginSenderDepositPackage = () => TryBeginSession(WorkflowState.SenderDepositBarcodeScan, "dugme Ostavi paket",
-																				(guard, rejected) => _workflowMachine.FireGuardedAsync(guard, WorkflowTrigger.SenderDepositRequested, rejected));
+				// v4: ostavljanje pošiljaoca dolazi u F1 (bez OnEntry handlera kiosk bi ostao u SenderDepositBarcodeScan).
+				_startViewModel.IsPackageDepositionEnabled = false;
 				_startViewModel.Activate();
 				_currentWorkflowViewModel = _startViewModel;
-				this.CurrentPage = _startPage;
+				this.CurrentPage = _startViewModel;
 				SetCurrentStep(0);
 
 				_ctsCheckDeviceStatus?.Cancel();
@@ -1013,17 +864,11 @@ namespace TopPos.Client.WPF.ViewModels
 				pending = TryBeginSession(WorkflowState.ServiceDoorOpening, "servisni barkod",
 										(guard, rejected) => _workflowMachine.FireGuardedAsync(guard, WorkflowTrigger.ServiceBarcodeScanned, rejected));
 			}
-			else if (_configuration.General.EnableCourierManualLogin) {
-				// In this mode, any scanned barcode is itself ignored and serves only as a trigger to display manual courier login page.
-				// Barkod putuje uz parametrizovan trigger u CourierManualLogin (u kontekst); provera koda je u CourierManualAuthenticating.
-				pending = TryBeginSession(WorkflowState.CourierManualLogin, "barkod kurira (ručna prijava)",
-										(guard, rejected) => _workflowMachine.FireGuardedAsync(guard, _workflowMachine.CourierBarcodeScannedRequiringManualLogin, barcode, rejected));
-			}
 			else {
-				// Scanned barcode is considered to be a courier code which should be validated as-is.
-				// Provera na serveru je u OnEntry stanja CourierAuthenticating (kiosk je za to vreme zauzet).
-				pending = TryBeginSession(WorkflowState.CourierAuthenticating, "barkod kurira",
-										(guard, rejected) => _workflowMachine.FireGuardedAsync(guard, _workflowMachine.CourierBarcodeScanned, barcode, rejected));
+				// v4: prijava kurira (CourierManualLogin / CourierAuthenticating) dolazi u F1 — bez OnEntry handlera kiosk bi ostao
+				// zaglavljen u stanju prijave.
+				_logger?.LogWarning($"Barkod {barcode} je ignorisan — prijava kurira u v4 još ne postoji.");
+				return new ValueTask<bool>(false);
 			}
 			if (pending == null) {
 				_logger?.LogWarning($"Barkod {barcode} je ignorisan — kiosk je zauzet.");

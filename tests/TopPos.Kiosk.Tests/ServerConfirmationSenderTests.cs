@@ -2,11 +2,11 @@ using System.IO;
 using System.Net;
 using System.Text.Json;
 using Microsoft.Extensions.Logging.Abstractions;
-using TopPos.Client.WPF;
+using TopPos.Kiosk;
 using TopPos.Service;
 using Xunit;
 
-namespace TopPos.Workflow.Tests
+namespace TopPos.Kiosk.Tests
 {
 	/// <summary>
 	/// <see cref="ServerConfirmationSender"/>: red potvrda preuzimanja koje nisu stigle do servera zbog prolazne greške.

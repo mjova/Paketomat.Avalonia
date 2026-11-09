@@ -2,14 +2,14 @@ using System.Collections.Concurrent;
 using System.IO;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
-using TopPos.Client.WPF;
-using TopPos.Client.WPF.Workflow;
+using TopPos.Kiosk;
+using TopPos.Kiosk.Workflow;
 using TopPos.LockController;
 using Xunit;
-using S = TopPos.Client.WPF.Workflow.WorkflowState;
-using T = TopPos.Client.WPF.Workflow.WorkflowTrigger;
+using S = TopPos.Kiosk.Workflow.WorkflowState;
+using T = TopPos.Kiosk.Workflow.WorkflowTrigger;
 
-namespace TopPos.Workflow.Tests
+namespace TopPos.Kiosk.Tests
 {
 	/// <summary>
 	/// Jedan vlasnik kioska (plan §6): rezervacija pre početka, zauzeto do kraja čišćenja i praćenih poslova, stari

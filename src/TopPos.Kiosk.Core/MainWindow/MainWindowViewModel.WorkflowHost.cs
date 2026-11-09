@@ -4,15 +4,13 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Windows.Controls;
-using TopPos.Client.WPF.Pages;
-using TopPos.Client.WPF.Workflow;
+using TopPos.Kiosk.Workflow;
 using TopPos.LockController;
 using TopPos.PenPosService;
 using Stateless;
 using TopPos.Service;
 
-namespace TopPos.Client.WPF.ViewModels
+namespace TopPos.Kiosk.ViewModels
 {
 	/// <summary>
 	/// <see cref="IWorkflowHost"/> implementacija — izlaže MWVM-ova polja/operacije activator klasama
@@ -29,7 +27,7 @@ namespace TopPos.Client.WPF.ViewModels
 		IPosClient? IWorkflowHost.PosClient => _posClient;
 		PenPosServiceClient? IWorkflowHost.PenPosServiceClient => _penPosServiceClient;
 		LanguageManager IWorkflowHost.LanguageManager => _languageManager;
-		AudioPlayer IWorkflowHost.AudioPlayer => _audioPlayer;
+		IAudioPlayer IWorkflowHost.AudioPlayer => _audioPlayer;
 		PaymentConfirmationSender IWorkflowHost.PaymentConfirmationSender => _paymentConfirmationSender;
 		ServerConfirmationSender IWorkflowHost.ServerConfirmationSender => _serverConfirmationSender;
 		BarcodeScanTracker IWorkflowHost.BarcodeScanTracker => _barcodeScanTracker;
@@ -38,14 +36,11 @@ namespace TopPos.Client.WPF.ViewModels
 		WorkflowMachine IWorkflowHost.WorkflowMachine => _workflowMachine;
 		ILogger? IWorkflowHost.Logger => _logger;
 
-		CourierBarcodeScanViewModel IWorkflowHost.CourierBarcodeScanViewModel => _courierBarcodeScanViewModel;
-		CourierBarcodeScanPage IWorkflowHost.CourierBarcodeScanPage => _courierBarcodeScanPage;
-
 		string IWorkflowHost.Localize(string key) => this[key];
 		ValueTask IWorkflowHost.DisplayMessage(string message, MessageType messageType, int? displayTimeInSeconds)
 			=> DisplayMessage(message, messageType, displayTimeInSeconds);
 		void IWorkflowHost.RemoveMessage() => RemoveMessage();
-		void IWorkflowHost.SetCurrentPage(UserControl page) => this.CurrentPage = page;
+		void IWorkflowHost.SetCurrentPage(IWorkflowViewModel page) => this.CurrentPage = page;
 		IWorkflowViewModel? IWorkflowHost.CurrentWorkflowViewModel
 		{
 			get => _currentWorkflowViewModel;

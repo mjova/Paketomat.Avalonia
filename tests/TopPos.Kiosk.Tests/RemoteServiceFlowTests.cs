@@ -1,11 +1,11 @@
 using System.IO;
 using System.Text.Json;
-using TopPos.Client.WPF.Workflow;
+using TopPos.Kiosk.Workflow;
 using Xunit;
-using S = TopPos.Client.WPF.Workflow.WorkflowState;
-using T = TopPos.Client.WPF.Workflow.WorkflowTrigger;
+using S = TopPos.Kiosk.Workflow.WorkflowState;
+using T = TopPos.Kiosk.Workflow.WorkflowTrigger;
 
-namespace TopPos.Workflow.Tests
+namespace TopPos.Kiosk.Tests
 {
 	/// <summary>
 	/// Servisna sesija Agenta (<see cref="S.RemoteService"/>): počinje samo sa slobodnog Start-a, a završava se samo kroz

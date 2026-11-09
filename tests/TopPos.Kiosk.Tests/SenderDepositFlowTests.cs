@@ -1,10 +1,10 @@
-using TopPos.Client.WPF.Workflow;
+using TopPos.Kiosk.Workflow;
 using TopPos.Service;
 using Xunit;
-using S = TopPos.Client.WPF.Workflow.WorkflowState;
-using T = TopPos.Client.WPF.Workflow.WorkflowTrigger;
+using S = TopPos.Kiosk.Workflow.WorkflowState;
+using T = TopPos.Kiosk.Workflow.WorkflowTrigger;
 
-namespace TopPos.Workflow.Tests
+namespace TopPos.Kiosk.Tests
 {
 	public class SenderDepositFlowTests
 	{

@@ -1,7 +1,7 @@
 using Serilog;
 using TopPos.Service;
 
-namespace TopPos.Client.WPF.Workflow
+namespace TopPos.Kiosk.Workflow
 {
 	/// <summary>
 	/// Mutable kontekst koji prati workflow kroz stanja. Zamenjuje closure-state-ove i

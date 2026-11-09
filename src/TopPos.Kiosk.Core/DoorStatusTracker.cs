@@ -1,7 +1,7 @@
 ﻿﻿using Microsoft.Extensions.Logging;
 using TopPos.LockController;
 
-namespace TopPos.Client.WPF
+namespace TopPos.Kiosk
 {
 	/// <summary>
 	/// Prati status jednih vrata dok ne dostignu ciljni status ili ne istekne rok, pa javlja ishod. Jedno praćenje u isto

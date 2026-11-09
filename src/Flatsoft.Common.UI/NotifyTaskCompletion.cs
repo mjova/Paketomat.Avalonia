@@ -31,13 +31,18 @@ namespace Flatsoft.Common.UI
 			}
 			catch {
 			}
+			UiThread.Raise(RaiseCompletionChanged);	// v4: na UI nit
+		}
+
+		private void RaiseCompletionChanged()
+		{
 			PropertyChanged?.Invoke(this, __statusArgs);
 			PropertyChanged?.Invoke(this, __isCompletedArgs);
 			PropertyChanged?.Invoke(this, __isNotCompletedArgs);
-			if (task.IsCanceled) {
+			if (Task.IsCanceled) {
 				PropertyChanged?.Invoke(this, __isCanceledArgs);
 			}
-			else if (task.IsFaulted) {
+			else if (Task.IsFaulted) {
 				PropertyChanged?.Invoke(this, __isFaultedArgs);
 				PropertyChanged?.Invoke(this, __exceptionArgs);
 				PropertyChanged?.Invoke(this, __innerExceptionArgs);

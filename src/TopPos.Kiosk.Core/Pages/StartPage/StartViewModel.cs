@@ -3,7 +3,7 @@ using Microsoft.Extensions.Logging;
 using Flatsoft.Common;
 using Flatsoft.Common.UI;
 
-namespace TopPos.Client.WPF.ViewModels
+namespace TopPos.Kiosk.ViewModels
 {
 	/// <summary>
 	/// Prihvaćen početak sesije: kiosk je već rezervisan. <see cref="StartAsync"/> predaje triger mašini, <see cref="Cancel"/>

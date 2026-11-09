@@ -73,7 +73,10 @@ platformu. Windows implementacije se uglavnom prenose iz v2.
    `AgentPipeConnection.cs` (provera identiteta klijenta, `:153`). Named pipe na Linuxu = Unix domain socket; nema
    `PipeSecurity`, SID-ova, `WindowsIdentity`, `advapi32`. Zamena: prava na socket fajlu + `SO_PEERCRED` (uid/pid).
    Agent proverava PID servera (`Tools/TopPos.AgentPipe.TestClient/Program.cs:458`). Dogovoriti: obostrani identitet,
-   vlasnik i lokacija socket-a, zauzeto/zastarelo ime, redosled starta i gašenja. Zahtev ide u
+   vlasnik i lokacija socket-a, zauzeto/zastarelo ime, redosled starta i gašenja. Identitet procesa u `status.lock`
+   (`ProcessStartUtc`): v4 ga na Linuxu računa iz `/proc` (`btime` + `starttime` / `CLK_TCK`, `LinuxProcessInfo`), ali
+   `btime` se menja posle skokovite korekcije sata — za stabilno povezivanje predložiti `boot_id` + sirovi `starttime`
+   (Codex review 9.11.2026). Zahtev ide u
    `doc/notes/Info/Ugovor pipe komandi/`. `AgentProtocol.Version` se ne menja.
 2. **Gašenje** — `App.xaml.cs` (`OnSessionEnding`), `LockControllerShutdown.cs` → SIGTERM od systemd-a
    (`PosixSignalRegistration`) + `TimeoutStopSec`. Logika „završni upis pa izlaz" se prenosi.

@@ -1,8 +1,8 @@
 ﻿using Microsoft.Extensions.Logging;
-using TopPos.Client.WPF.ViewModels;
+using TopPos.Kiosk.ViewModels;
 using Flatsoft.Common;
 
-namespace TopPos.Client.WPF
+namespace TopPos.Kiosk
 {
 	public class StepViewModel : ViewModelBase
 	{

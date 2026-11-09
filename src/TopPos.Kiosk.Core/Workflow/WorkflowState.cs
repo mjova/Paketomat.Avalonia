@@ -1,4 +1,4 @@
-namespace TopPos.Client.WPF.Workflow
+namespace TopPos.Kiosk.Workflow
 {
 	/// <summary>
 	/// Sva diskretna stanja workflow-a kioska. Svako stanje odgovara jednoj UI stranici

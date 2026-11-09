@@ -1,7 +1,7 @@
 // Konfiguracija simulatora — ISKLJUČIVO za dev/test. #if DEBUG garantuje da se NE kompajlira u Release
 // (nema je u produkcionom assembly-ju ni u produkcionoj konfiguraciji).
 #if DEBUG
-namespace TopPos.Client.WPF
+namespace TopPos.Kiosk
 {
 	/// <summary>
 	/// Sadržaj <c>app-configuration.Simulator.json</c> (čita ga <c>App.xaml.cs</c>, samo u Debug-u). Fajl ne postoji →

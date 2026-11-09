@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Logging;
 using TopPos.Agent.Contracts;
 
-namespace TopPos.Client.WPF.Workflow
+namespace TopPos.Kiosk.Workflow
 {
 	/// <summary>Nepromenljiv snapshot statusa kioska; <see cref="KioskStatusSource"/> pravi nov pri svakoj promeni.</summary>
 	public sealed record KioskStatusSnapshot(

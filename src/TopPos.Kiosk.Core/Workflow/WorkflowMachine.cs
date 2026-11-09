@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Logging;
 using Stateless;
 
-namespace TopPos.Client.WPF.Workflow
+namespace TopPos.Kiosk.Workflow
 {
 	/// <summary>
 	/// Centralna definicija celog kiosk workflow-a — recipient pickup, courier pickup, courier deposit.

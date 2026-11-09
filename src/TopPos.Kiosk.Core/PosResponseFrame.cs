@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace TopPos.Client.WPF
+namespace TopPos.Kiosk
 {
 	/// <summary>
 	/// Završni odgovor POS terminala (poruka <c>10</c>) iz sirovog okvira: <c>STX telo ETX LRC</c>. ECR ne proverava LRC i

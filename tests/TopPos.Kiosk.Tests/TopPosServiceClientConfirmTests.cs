@@ -6,7 +6,7 @@ using System.Text;
 using TopPos.Service;
 using Xunit;
 
-namespace TopPos.Workflow.Tests
+namespace TopPos.Kiosk.Tests
 {
 	/// <summary>
 	/// Klasifikacija neuspeha potvrda prema serveru. Potvrda preuzimanja (<c>recoverable</c>): samo 400 je konačno

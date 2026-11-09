@@ -1,10 +1,10 @@
 using System.IO;
 using Microsoft.Extensions.Logging.Abstractions;
-using TopPos.Client.WPF;
+using TopPos.Kiosk;
 using TopPos.Service;
 using Xunit;
 
-namespace TopPos.Workflow.Tests
+namespace TopPos.Kiosk.Tests
 {
 	/// <summary>
 	/// <see cref="PaymentConfirmationSender.AddPaymentConfirmation"/> mora da javi da li je potvrda uplate upisana na disk:
@@ -98,7 +98,7 @@ namespace TopPos.Workflow.Tests
 			Assert.Contains(Payment.TransactionNumber, json);
 		}
 
-		[Fact]
+		[WindowsFact("fajl otvoren bez FileShare.Delete ne može da se premesti (na Linuxu rename uspeva)")]
 		public async Task Corrupt_file_that_cannot_be_moved_is_not_overwritten()
 		{
 			// Oštećen fajl otvoren bez dozvole brisanja: čita se, ali ne može da se premesti → ostaje netaknut, upis zabranjen.

@@ -1,7 +1,7 @@
-using TopPos.Client.WPF.Workflow;
+using TopPos.Kiosk.Workflow;
 using TopPos.Service;
 
-namespace TopPos.Workflow.Tests
+namespace TopPos.Kiosk.Tests
 {
 	/// <summary>
 	/// Pomoćnici za Nivo-1 testove: konstrukcija <see cref="WorkflowMachine"/>-a (čista logika, bez UI/hardvera)

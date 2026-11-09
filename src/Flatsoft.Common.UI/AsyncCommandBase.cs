@@ -21,7 +21,7 @@ namespace Flatsoft.Common.UI
 
         public void RaiseCanExecuteChanged()
         {
-            CanExecuteChanged?.Invoke(this, EventArgs.Empty);
+            UiThread.Raise(() => CanExecuteChanged?.Invoke(this, EventArgs.Empty));	// v4: na UI nit
         }
     }
 }

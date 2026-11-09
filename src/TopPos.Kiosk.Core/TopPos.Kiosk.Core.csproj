@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+  Jezgro kioska bez UI biblioteke: workflow, activator-i, servisi i ViewModel-i iz v2 TopPos.Client.WPF (iste putanje).
+  Prikaz (TopPos.Kiosk.Avalonia) povezuje ViewModel-e sa View-ovima.
+  -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+    <PackageReference Include="Serilog" />
+    <PackageReference Include="Stateless" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Flatsoft.Common\Flatsoft.Common.csproj" />
+    <ProjectReference Include="..\Flatsoft.Common.UI\Flatsoft.Common.UI.csproj" />
+    <ProjectReference Include="..\TopPos.Agent.Contracts\TopPos.Agent.Contracts.csproj" />
+    <ProjectReference Include="..\TopPos.ECR\TopPos.ECR.csproj" />
+    <ProjectReference Include="..\TopPos.LockController\TopPos.LockController.csproj" />
+    <ProjectReference Include="..\TopPos.PenPosService\TopPos.PenPosService.csproj" />
+    <ProjectReference Include="..\TopPos.Platform\TopPos.Platform.csproj" />
+    <ProjectReference Include="..\TopPos.Service\TopPos.Service.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="TopPos.Kiosk.Tests" />
+  </ItemGroup>
+
+</Project>

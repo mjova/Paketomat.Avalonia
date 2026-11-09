@@ -1,5 +1,5 @@
 ﻿
-namespace TopPos.Client.WPF
+namespace TopPos.Kiosk
 {
 	public interface IWorkflowViewModel
 	{

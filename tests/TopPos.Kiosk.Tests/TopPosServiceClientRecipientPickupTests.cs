@@ -4,7 +4,7 @@ using TopPos.Service;
 using Xunit;
 using R = TopPos.Service.RecipientPickupLookupResult;
 
-namespace TopPos.Workflow.Tests
+namespace TopPos.Kiosk.Tests
 {
 	/// <summary>
 	/// Provera preuzimanja (<see cref="PrimaocPraznjenjePozicije"/>): <see cref="TopPosServiceClient.RecipientRequestPackagePickupDetailed"/>

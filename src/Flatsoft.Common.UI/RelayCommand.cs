@@ -23,10 +23,12 @@ namespace Flatsoft.Common.UI
 			_execute(parameter);
 		}
 
-		public event EventHandler? CanExecuteChanged
+		// v4: van WPF-a nema CommandManager.RequerySuggested; ko menja uslov poziva RaiseCanExecuteChanged.
+		public event EventHandler? CanExecuteChanged;
+
+		public void RaiseCanExecuteChanged()
 		{
-			add { CommandManager.RequerySuggested += value; }
-			remove { CommandManager.RequerySuggested -= value; }
+			UiThread.Raise(() => CanExecuteChanged?.Invoke(this, EventArgs.Empty));
 		}
 	}
 }

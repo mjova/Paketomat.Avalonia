@@ -5,11 +5,11 @@ using System.Globalization;
 using System.IO;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
-using TopPos.Client.WPF.Workflow;
+using TopPos.Kiosk.Workflow;
 using Xunit;
-using S = TopPos.Client.WPF.Workflow.WorkflowState;
+using S = TopPos.Kiosk.Workflow.WorkflowState;
 
-namespace TopPos.Workflow.Tests
+namespace TopPos.Kiosk.Tests
 {
 	/// <summary>
 	/// <see cref="StatusSemaphore"/>: evidencija urednog gašenja u status.lock (doc/notes/status-lock-uredno-gasenje-plan.md).
@@ -159,7 +159,7 @@ namespace TopPos.Workflow.Tests
 		}
 
 		/// <summary>Fajl zaključan bez deljenja: čitanje i početni upis ne uspevaju, oba su u logu, a start ne pada.</summary>
-		[Fact]
+		[WindowsFact("fajl otvoren bez FileShare.Delete ne može da se zameni (na Linuxu rename uspeva)")]
 		public void Locked_previous_file_is_logged_and_start_continues()
 		{
 			const string content = """{ "Busy": false, "State": "Start", "Time": "2026-10-19T14:35:00+02:00", "CleanShutdown": true }""";
@@ -258,7 +258,7 @@ namespace TopPos.Workflow.Tests
 		}
 
 		/// <summary>Zamena fajla pada (čitalac bez FileShare.Delete): upozorenje, bez loga uspeha, bez izuzetka; ostaje false.</summary>
-		[Fact]
+		[WindowsFact("fajl otvoren bez FileShare.Delete ne može da se zameni (na Linuxu rename uspeva)")]
 		public void Failed_clean_shutdown_write_is_logged_and_leaves_unconfirmed_file()
 		{
 			var semaphore = NewSemaphore();

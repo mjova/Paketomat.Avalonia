@@ -1,8 +1,8 @@
-using TopPos.Client.WPF;
+using TopPos.Kiosk;
 using TopPos.Service;
 using Xunit;
 
-namespace TopPos.Workflow.Tests
+namespace TopPos.Kiosk.Tests
 {
 	/// <summary>
 	/// <see cref="AppConfiguration.NormalizeAndValidate"/>: opcione sekcije sa konstantnim sadržajem dobijaju podrazumevane

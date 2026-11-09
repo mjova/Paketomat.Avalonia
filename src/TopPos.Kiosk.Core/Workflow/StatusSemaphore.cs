@@ -3,7 +3,7 @@ using System.IO;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 
-namespace TopPos.Client.WPF.Workflow
+namespace TopPos.Kiosk.Workflow
 {
 	/// <summary>
 	/// Semafor kojim spoljni servis (kontrola paketomata) zna da li aplikaciju trenutno

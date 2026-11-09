@@ -1,17 +1,17 @@
-﻿using System.Windows;
-
-namespace Flatsoft.Common.UI
+﻿namespace Flatsoft.Common.UI
 {
 	public static class UIThreadSwitcher
 	{
-        public static void RunOnUiThread(Action code)
-        {
-            if (Application.Current.Dispatcher.CheckAccess()) {
-                code();
-            }
-            else {
-                Application.Current.Dispatcher.Invoke(() =>	code());
-            }
-        }
+		// v4: preko UiThread.Dispatcher umesto WPF Application.Current.Dispatcher; isto ponašanje (odmah ili Invoke).
+		public static void RunOnUiThread(Action code)
+		{
+			var dispatcher = UiThread.Dispatcher;
+			if (dispatcher.CheckAccess()) {
+				code();
+			}
+			else {
+				dispatcher.Invoke(code);
+			}
+		}
 	}
 }

@@ -1,8 +1,8 @@
 using TopPos.Agent.Contracts;
-using TopPos.Client.WPF.AgentCommunication;
+using TopPos.Kiosk.AgentCommunication;
 using TopPos.LockController;
 
-namespace TopPos.Client.WPF.Workflow
+namespace TopPos.Kiosk.Workflow
 {
 	/// <summary>
 	/// Preuzimanje na zahtev Agenta, iz ugla stranica toka. Stranica potvrde (<see cref="WorkflowState.RecipientRemoteConfirmation"/>)

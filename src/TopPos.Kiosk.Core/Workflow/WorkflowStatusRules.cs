@@ -1,6 +1,6 @@
 using TopPos.Agent.Contracts;
 
-namespace TopPos.Client.WPF.Workflow
+namespace TopPos.Kiosk.Workflow
 {
 	/// <summary>
 	/// Pravila statusa izvedena iz workflow stanja — jedno mesto za „slobodan/zauzet“, ulogu i spremnost za OpenDoor

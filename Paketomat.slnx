@@ -1,14 +1,21 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/Flatsoft.Common/Flatsoft.Common.csproj" />
+    <Project Path="src/Flatsoft.Common.UI/Flatsoft.Common.UI.csproj" />
     <Project Path="src/TopPos.Agent.Contracts/TopPos.Agent.Contracts.csproj" />
     <Project Path="src/TopPos.ECR/TopPos.ECR.csproj" />
+    <Project Path="src/TopPos.Kiosk.Core/TopPos.Kiosk.Core.csproj" />
     <Project Path="src/TopPos.LockController.NCU16L/TopPos.LockController.NCU16L.csproj" />
     <Project Path="src/TopPos.LockController.NCU24L/TopPos.LockController.NCU24L.csproj" />
     <Project Path="src/TopPos.LockController.Serial/TopPos.LockController.Serial.csproj" />
+    <Project Path="src/TopPos.LockController.SerialDailyExpress/TopPos.LockController.SerialDailyExpress.csproj" />
     <Project Path="src/TopPos.LockController/TopPos.LockController.csproj" />
     <Project Path="src/TopPos.PenPosService/TopPos.PenPosService.csproj" />
+    <Project Path="src/TopPos.Platform/TopPos.Platform.csproj" />
     <Project Path="src/TopPos.Service/TopPos.Service.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/TopPos.Kiosk.Tests/TopPos.Kiosk.Tests.csproj" />
   </Folder>
   <Folder Name="/Solution Items/">
     <File Path="Directory.Build.props" />

@@ -2,7 +2,7 @@ using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
 using TopPos.Service;
 
-namespace TopPos.Client.WPF
+namespace TopPos.Kiosk
 {
 	public enum ServerConfirmationKind
 	{

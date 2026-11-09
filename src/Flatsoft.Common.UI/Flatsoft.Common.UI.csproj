@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- v4: neutralni deo v2 Flatsoft.Common.UI (bez WPF-a). Prikaz (Avalonia) postavlja UiThread.Dispatcher. -->
+  <ItemGroup>
+    <PackageReference Include="QRCoder" />
+  </ItemGroup>
+
+</Project>
