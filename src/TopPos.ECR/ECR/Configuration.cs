@@ -50,6 +50,14 @@ public class Configuration
 
 	public static bool isReadFRomFile;
 
+	/// <summary>
+	/// Folder za ECR logove (v4). Podrazumevano „Log“ uz program, kao v2; aplikacija ga postavlja kad program nema pravo
+	/// upisa u svoj folder (npr. /opt na Linuxu).
+	/// </summary>
+	public static string logDirectory = Path.Combine(AppContext.BaseDirectory, "Log");
+
+	// v4: AppContext.BaseDirectory i Path.Combine umesto Assembly.Location + "\\..." (prazan u single-file publish-u,
+	// obrnuta kosa crta na Linuxu, a ecr.cfg grana je bila bez separatora).
 	static Configuration()
 	{
 		deviceVendor = "Ingenico";
@@ -58,18 +66,17 @@ public class Configuration
 		waitForAckTimeout = 3000;
 		if (double.Parse(EcrPort.DLLVersion, CultureInfo.InvariantCulture) >= 2.1)
 		{
-			isReadFRomFile = readXmlConfiguration(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\ecrcfg.xml");
+			isReadFRomFile = readXmlConfiguration(Path.Combine(AppContext.BaseDirectory, "ecrcfg.xml"));
 		}
 		else
 		{
-			isReadFRomFile = readConfig(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "ecr.cfg");
+			isReadFRomFile = readConfig(Path.Combine(AppContext.BaseDirectory, "ecr.cfg"));
 		}
 	}
 
 	public static string GetExecutingDirectoryName()
 	{
-		Uri uri = new Uri(Assembly.GetEntryAssembly().GetName().CodeBase);
-		return new FileInfo(uri.AbsolutePath).Directory.FullName;
+		return AppContext.BaseDirectory;
 	}
 
 	private static bool readConfig(string cfgFileName)

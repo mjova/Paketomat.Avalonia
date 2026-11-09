@@ -666,15 +666,6 @@ public static class EcrPortV1
 		return 1;
 	}
 
-	private static string calculateProdKey()
-	{
-		string text = "ASSECO POS-ECR DLL";
-		string text2 = "";
-		string text3 = "";
-		text2 = text + hwid.getActCode();
-		return hwid.GetMD5(text2).Substring(11, 12).ToUpper();
-	}
-
 	private static string readDataFromXML(string filename, string singleNode)
 	{
 		try

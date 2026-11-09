@@ -1,22 +1,17 @@
 <Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Payten ECR biblioteka (izvorni kod). Stari stil koda: bez nullable anotacija i implicitnih using-a, C# 11. -->
   <PropertyGroup>
     <AssemblyName>ECR</AssemblyName>
-    <GenerateAssemblyInfo>False</GenerateAssemblyInfo>
-    <TargetFramework>net9.0</TargetFramework>
-  </PropertyGroup>
-  <PropertyGroup>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <LangVersion>11.0</LangVersion>
-    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>disable</Nullable>
   </PropertyGroup>
-  <PropertyGroup>
-    <ApplicationIcon>app.ico</ApplicationIcon>
-  </PropertyGroup>
+
   <ItemGroup>
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
-    <PackageReference Include="System.IO.Ports" Version="9.0.10" />
-    <PackageReference Include="System.Management" Version="9.0.10" />
+    <PackageReference Include="Newtonsoft.Json" />
+    <PackageReference Include="System.IO.Ports" />
   </ItemGroup>
-  <ItemGroup>
-    <Reference Include="Newtonsoft.Json" />
-  </ItemGroup>
+
 </Project>

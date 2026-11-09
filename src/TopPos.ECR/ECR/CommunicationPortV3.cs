@@ -18,6 +18,12 @@ internal class CommunicationPortV3 : SerialPort
 
 	internal string GetComPortNameFor(string VID, string PID)
 	{
+		// v4: pretraga po VID/PID čita Windows Registry; drugde port nije pronađen (Castles na Linuxu: /dev/serial/by-id).
+		if (!OperatingSystem.IsWindows())
+		{
+			EcrLog.Write("Pretraga porta po VID/PID postoji samo na Windows-u [ " + $"VID_{VID}.PID_{PID}" + " ]", directionSending: true, LogMessageType.MSG, "FALSE");
+			return "FALSE";
+		}
 		string pattern = $"^VID_{VID}.PID_{PID}";
 		Regex regex = new Regex(pattern, RegexOptions.IgnoreCase);
 		List<string> list = new List<string>();

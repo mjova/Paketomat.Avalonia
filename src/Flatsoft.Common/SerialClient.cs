@@ -224,10 +224,6 @@ namespace Flatsoft.Net.Serial
 							break;
 						}
 						await EnsureSerialPortOpen(_mainCancellation.Token).ConfigureAwait(false);
-						if (result.Buffer.Length != segment.Length) {
-							Debugger.Break();
-						}
-
 						await _serialPort!.WriteAsync(segment, _mainCancellation.Token).ConfigureAwait(false);
 						_logger?.LogDebug($"{nameof(SerialClient)}[{Port}]: {nameof(SendLoop)}: written {segment.Length} byte(s) to the serial port: {BitConverter.ToString(segment.ToArray())}");
 					}
@@ -560,7 +556,7 @@ namespace Flatsoft.Net.Serial
 				}
 			}
 			else {
-				await serialPort.WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
+				// v4: v2 je ovde prvo zvao serialPort.WriteAsync (ovu istu metodu — beskonačna rekurzija van Windows-a), pa upisivao dvaput.
 				await serialPort.BaseStream.WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
 			}
 		}

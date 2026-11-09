@@ -1,0 +1,10 @@
+<Project>
+
+  <!-- Zajednička podešavanja svih projekata. Projekat ih menja samo kad ima razlog (npr. TopPos.ECR). -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>
