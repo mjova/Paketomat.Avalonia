@@ -223,7 +223,8 @@ namespace TopPos.Kiosk.ViewModels
 				var rawDot = _workflowMachine.ToDotGraph();
 				var dot = BeautifyDotGraph(rawDot);
 
-				var dir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, @"..\..\..\..\doc\Workflow");
+				// v4: delovi putanje odvojeno (v2: @"..\..\..\..\doc\Workflow" — na Linuxu jedno ime foldera)
+				var dir = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "doc", "Workflow");
 				Directory.CreateDirectory(dir);
 				var dotPath = Path.Combine(dir, "workflow.dot");
 				var htmlPath = Path.Combine(dir, "workflow.html");
