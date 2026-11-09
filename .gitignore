@@ -1,0 +1,120 @@
+# Code signing private key (NEVER commit)
+signing.key
+
+# User-specific files
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# User-specific folders
+.vscode/
+.vscode/*
+.idea/
+*.sln.iml
+
+# Mono Auto Generated Files
+mono_crash.*
+
+# Build results
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+# Test results (run-e2e.cmd)
+[Tt]est[Rr]esults/
+
+# Privremeni fajlovi agenata
+/tmp/
+
+# Windows image file caches
+Thumbs.db
+ehthumbs.db
+
+# Folder config file
+Desktop.ini
+
+# Recycle Bin used on file shares
+$RECYCLE.BIN/
+
+# Windows Installer files
+*.cab
+*.msi
+*.msm
+*.msp
+
+# Windows shortcuts
+*.lnk
+
+# Visual Studio
+.vs/
+.vscode/
+*.vscode/*
+
+# Visual Studio auto-generated files
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Auto-generated files (e.g., files generated during build)
+*.appxbundle
+*.appxupload
+*.appxrecipe
+*.build.appxrecipe
+AppPackages/
+
+# Publish folder
+publish/
+
+# Publish output
+*.PublishProfiles/
+
+# Roslyn cache
+*.ide/
+
+# Rider / JetBrains
+.idea/
+
+# Optional: OS-specific directories
+.DS_Store
+*.swp
+
+# NuGet Packages
+*.nupkg
+*.snupkg
+.nuget/
+packages/
+project.lock.json
+project.fragment.lock.json
+.nuget/packages
+
+# DotNetCore/5/.NET 6 Intermediate outputs
+artifacts/
+
+# Paketomat v4
+app-configuration.json
+deploy/windows/release-info.json
+deploy/windows/*.exe
+deploy/linux/*.deb
+deploy/linux/*.tar.gz
+
+# Lokalno: pravila agenata, beleške i zadaci (kao u v2)
+/AGENTS.md
+/CLAUDE.md
+/.claude
+/tasks
+/doc/notes
+/doc/workflow-orchestration.md
