@@ -1,14 +1,14 @@
 using System.IO;
 using System.Text;
 using Serilog.Sinks.File;
-using TopPos.Client.WPF;
+using TopPos.Kiosk;
 using TopPos.LockController;
 
-namespace TopPos.Client.Logging
+namespace TopPos.Kiosk.Logging
 {
 	public static class SerilogHooks
     {
-		// Full name of this static instance (TopPos.Client.Logging.SerilogHooks.RollingFileHeaderWriter) is referenced from serilog.json
+		// Full name of this static instance (TopPos.Kiosk.Logging.SerilogHooks.RollingFileHeaderWriter) is referenced from serilog.json
         public static FileHeaderWriter RollingFileHeaderWriter { get; } = new();
     }
 

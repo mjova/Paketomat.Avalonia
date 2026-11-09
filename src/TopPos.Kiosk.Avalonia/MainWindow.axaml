@@ -1,0 +1,191 @@
+<!--
+Glavni prozor kioska: v2 MainWindow.xaml + MainWindowLandscapeLayout.xaml (Landscape Large, 1280×800) + Steps.xaml.
+F0 ima jedan layout; ostalih pet (v2 LayoutTemplateSelector) dolazi u F3.
+-->
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:TopPos.Kiosk.ViewModels"
+        xmlns:kiosk="using:TopPos.Kiosk"
+        xmlns:c="using:TopPos.Kiosk.UI.Controls"
+        x:Class="TopPos.Kiosk.UI.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Title="Paketomat"
+        Icon="/Resources/box-start.ico"
+        Width="1280" Height="800"
+        WindowStartupLocation="CenterScreen"
+        CanResize="False"
+        WindowDecorations="None"
+        Background="{DynamicResource ApplicationBackgroundColor}">
+
+	<Window.Styles>
+		<!-- v2 Steps.xaml: izabran korak ima žuti okvir sa senkom. -->
+		<Style Selector="Border.step">
+			<Setter Property="BorderThickness" Value="4"/>
+			<Setter Property="BorderBrush" Value="Transparent"/>
+			<Setter Property="CornerRadius" Value="10"/>
+			<Setter Property="Margin" Value="8"/>
+		</Style>
+		<Style Selector="Border.step.selected">
+			<Setter Property="BorderBrush" Value="Yellow"/>
+			<Setter Property="BoxShadow" Value="10 10 10 0 #E6000000"/>
+		</Style>
+		<Style Selector="Button.header">
+			<Setter Property="Padding" Value="0"/>
+			<Setter Property="Margin" Value="12"/>
+			<Setter Property="VerticalAlignment" Value="Center"/>
+		</Style>
+	</Window.Styles>
+
+	<Panel>
+		<!-- Dok se uređaji ne provere (v2: prozor se pojavljivao tek posle njih). -->
+		<TextBlock x:Name="StartupMessage"
+				   Text="Inicijalizacija…"
+				   FontSize="32"
+				   Foreground="WhiteSmoke"
+				   TextWrapping="Wrap"
+				   Margin="48"
+				   HorizontalAlignment="Center"
+				   VerticalAlignment="Center"/>
+
+		<!-- Kiosk (sadržaj i slojevi) se prikazuje tek sa ViewModel-om; ugašen je dok paketomat nije u funkciji (v2: ceo prozor). -->
+		<Panel x:Name="Kiosk"
+			   IsVisible="False"
+			   IsEnabled="{Binding IsLockerOperational, Converter={x:Static c:KioskConverters.IsTrue}}">
+		<Grid RowDefinitions="Auto,*,Auto">
+			<!-- Zaglavlje: logo, jezik, Home -->
+			<Grid Grid.Row="0" IsVisible="{Binding IsPageChromeVisible}">
+				<Image Source="{DynamicResource ApplicationLogo}" Width="200" Height="70"/>
+				<StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="12 6 32 4">
+					<Button Classes="header"
+							AutomationProperties.AutomationId="Header.Language"
+							Command="{Binding ShowLanguageSelectorCommand}">
+						<Image Width="40" Source="{Binding CurrentLanguageFlag}"/>
+					</Button>
+					<Button Classes="header"
+							IsEnabled="{Binding IsHomeButtonEnabled}"
+							AutomationProperties.AutomationId="Header.Home"
+							c:PressBehavior.ShortPressCommand="{Binding GoToStartPageCommand}"
+							c:PressBehavior.LongPressThreshold="3000"
+							c:PressBehavior.LongPressCommand="{Binding DisplayDeviceStatusCommand}">
+						<Image Source="/Resources/home.png" Width="40" Height="40"/>
+					</Button>
+				</StackPanel>
+			</Grid>
+
+			<!-- Koraci i tekuća stranica -->
+			<DockPanel Grid.Row="1">
+				<Border DockPanel.Dock="Top"
+						IsVisible="{Binding IsPageChromeVisible}"
+						Background="{DynamicResource StepsBackgroundColor}"
+						CornerRadius="10"
+						Margin="16">
+					<ItemsControl ItemsSource="{Binding Steps}" Height="80">
+						<ItemsControl.ItemsPanel>
+							<ItemsPanelTemplate>
+								<UniformGrid Rows="1" Columns="4"/>
+							</ItemsPanelTemplate>
+						</ItemsControl.ItemsPanel>
+						<ItemsControl.ItemTemplate>
+							<DataTemplate x:DataType="kiosk:StepViewModel">
+								<Border Classes="step" Classes.selected="{Binding IsSelected}">
+									<TextBlock Text="{Binding Name}"
+											   FontSize="20"
+											   Foreground="WhiteSmoke"
+											   HorizontalAlignment="Center"
+											   VerticalAlignment="Center"/>
+								</Border>
+							</DataTemplate>
+						</ItemsControl.ItemTemplate>
+					</ItemsControl>
+				</Border>
+				<ContentControl Content="{Binding CurrentPage}"/>
+			</DockPanel>
+
+			<!-- Podnožje -->
+			<Grid Grid.Row="2" ColumnDefinitions="*,*,*" IsVisible="{Binding IsPageChromeVisible}">
+				<TextBlock Grid.Column="0"
+						   Text="{Binding TechnicalSupportContact}"
+						   Foreground="#AAFFFFFF"
+						   FontSize="16"
+						   Padding="32 8 8 8"
+						   VerticalAlignment="Center"/>
+				<Image Grid.Column="1"
+					   Source="/Resources/powered-by-top-pos.png"
+					   Stretch="None"
+					   HorizontalAlignment="Center"
+					   VerticalAlignment="Center"
+					   Margin="32"/>
+			</Grid>
+		</Grid>
+
+		<!-- Poruka preko celog ekrana (v2 MessageControl) -->
+		<Border Background="Black" Opacity="0.3" IsVisible="{Binding ShowMessage}"/>
+		<Border IsVisible="{Binding ShowMessage}"
+				Background="{DynamicResource PopupMessageBackgroundColor}"
+				BoxShadow="{StaticResource DefaultBoxShadow}"
+				HorizontalAlignment="Center"
+				VerticalAlignment="Center"
+				Margin="32">
+			<DockPanel>
+				<Image DockPanel.Dock="Left"
+					   Margin="32 8 8 8"
+					   Width="90"
+					   VerticalAlignment="Center"
+					   Source="{Binding MessageKind, Converter={x:Static c:KioskConverters.MessageIcon}}"/>
+				<TextBlock Text="{Binding Message}"
+						   FontSize="32"
+						   Foreground="{DynamicResource PopupMessageForegroundColor}"
+						   TextWrapping="Wrap"
+						   VerticalAlignment="Center"
+						   Padding="32 96 48 96"/>
+			</DockPanel>
+		</Border>
+
+		<!-- Izbor jezika (v2 LanguageSelector) -->
+		<Border IsVisible="{Binding ShowLanguageSelector}"
+				Background="#88000000">
+			<ItemsControl ItemsSource="{Binding LanguageSelectorViewModel.Languages}"
+						  HorizontalAlignment="Center"
+						  VerticalAlignment="Center">
+				<ItemsControl.ItemTemplate>
+					<DataTemplate x:DataType="vm:LanguageSelectorItem">
+						<Button Classes="animated"
+								Margin="12"
+								HorizontalAlignment="Stretch"
+								AutomationProperties.AutomationId="{Binding LanguageData.LanguageId, StringFormat=Language.{0}}"
+								Command="{Binding SelectLanguageCommand}"
+								CommandParameter="{Binding LanguageData.LanguageId}">
+							<Grid ColumnDefinitions="Auto,*">
+								<Image Grid.Column="0" Width="64" VerticalAlignment="Center" Source="{Binding LanguageImage}"/>
+								<TextBlock Grid.Column="1"
+										   Text="{Binding LanguageData.LanguageDisplayName}"
+										   FontWeight="SemiBold"
+										   FontSize="48"
+										   Margin="24 8"
+										   VerticalAlignment="Center"/>
+							</Grid>
+						</Button>
+					</DataTemplate>
+				</ItemsControl.ItemTemplate>
+			</ItemsControl>
+		</Border>
+
+		<ProgressBar IsIndeterminate="True"
+					 Height="8"
+					 MinHeight="8"
+					 Foreground="Orange"
+					 VerticalAlignment="Bottom"
+					 IsVisible="{Binding ShowProgressBar}"/>
+
+		<TextBlock HorizontalAlignment="Right"
+				   VerticalAlignment="Bottom"
+				   Background="Black"
+				   Foreground="White"
+				   FontSize="12"
+				   Padding="6,2"
+				   Margin="0,0,0,10"
+				   Text="{Binding CurrentPageName}"
+				   IsVisible="{Binding IsDebugMode}"/>
+		</Panel>
+	</Panel>
+</Window>

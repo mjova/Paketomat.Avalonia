@@ -1,0 +1,19 @@
+<!-- v2 Pages/RecipientPackagePIckupPage/RecipientPackagePickupPageLandscapeLayout.xaml -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:TopPos.Kiosk.ViewModels"
+             x:Class="TopPos.Kiosk.UI.Views.RecipientPackagePickupView"
+             x:DataType="vm:RecipientPackagePickupViewModel">
+	<Panel>
+		<Image Classes="zoom"
+			   Source="/Resources/recipient-package-pickup.png"
+			   Stretch="UniformToFill"
+			   HorizontalAlignment="Center"
+			   VerticalAlignment="Center"/>
+		<Border Classes="info" HorizontalAlignment="Center" VerticalAlignment="Center" Padding="64">
+			<TextBlock Text="{Binding PickupInstructions}"
+					   FontSize="32"
+					   Foreground="{DynamicResource InformationForegroundColor}"/>
+		</Border>
+	</Panel>
+</UserControl>

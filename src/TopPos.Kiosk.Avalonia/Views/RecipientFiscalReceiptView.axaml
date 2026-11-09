@@ -1,0 +1,46 @@
+<!-- v2 Pages/RecipientFiscalReceiptPage/RecipientFiscalReceiptPageLandscapeLayout.xaml -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:TopPos.Kiosk.ViewModels"
+             xmlns:c="using:TopPos.Kiosk.UI.Controls"
+             x:Class="TopPos.Kiosk.UI.Views.RecipientFiscalReceiptView"
+             x:DataType="vm:RecipientFiscalReceiptViewModel">
+	<Grid RowDefinitions="*,Auto" ColumnDefinitions="*,*">
+		<!-- Gore levo: stanje računa i uputstvo -->
+		<Border Grid.Row="0" Grid.Column="0" Classes="info"
+				HorizontalAlignment="Center" VerticalAlignment="Stretch"
+				Padding="24" Margin="24">
+			<StackPanel>
+				<TextBlock Classes="title" Text="{Binding StatusMessage}" TextWrapping="Wrap"/>
+				<TextBlock Classes="text" FontSize="24" Text="{Binding HintMessage}" HorizontalAlignment="Center" Margin="16"/>
+			</StackPanel>
+		</Border>
+		<!-- Gore desno: QR fiskalnog računa, dok ne stigne spinner -->
+		<Border Grid.Row="0" Grid.Column="1" Classes="info"
+				HorizontalAlignment="Center" VerticalAlignment="Center"
+				Padding="16" Margin="12 24">
+			<Panel>
+				<Image Stretch="Uniform"
+					   AutomationProperties.AutomationId="RecipientFiscalReceiptPage.QrCode"
+					   Source="{Binding FiscalReceiptImage, Converter={x:Static c:KioskConverters.PngToBitmap}}"
+					   IsVisible="{Binding FiscalReceiptImage, Converter={x:Static ObjectConverters.IsNotNull}}"/>
+				<!-- v2 Flatsoft.Common.UI Spinner -->
+				<Panel Width="128" Height="128"
+					   IsVisible="{Binding FiscalReceiptImage, Converter={x:Static ObjectConverters.IsNull}}">
+					<Ellipse Stroke="#FF0078D7" StrokeThickness="8" Opacity="0.3"/>
+					<Ellipse Classes="spinner" Stroke="#FF0078D7" StrokeThickness="8" StrokeDashArray="4,8" StrokeLineCap="Round"/>
+				</Panel>
+			</Panel>
+		</Border>
+		<!-- Dole: Završi (sa odbrojavanjem) -->
+		<Button Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
+				Classes="animated"
+				Content="{Binding NextCountdown}"
+				HorizontalAlignment="Center"
+				VerticalAlignment="Center"
+				MinWidth="200"
+				AutomationProperties.AutomationId="RecipientFiscalReceiptPage.Complete"
+				Command="{Binding CompleteCommand}"
+				Margin="4 48 4 16"/>
+	</Grid>
+</UserControl>

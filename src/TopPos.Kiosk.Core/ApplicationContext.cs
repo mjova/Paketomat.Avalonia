@@ -10,9 +10,9 @@ namespace TopPos.Kiosk
 		public string? ApplicationVersion { get; set; }
 		public string? GitHash { get; set; }
 		public string? NetFrameworkDescription { get; set; }
-		public LockerConfiguration LockerConfiguration { get; internal set; }
-		public TopPosServiceConfiguration TopPosServiceConfiguration { get; internal set; }
-		public PosTerminalConfiguration PosClientConfiguration { get; internal set; }
-		public BarcodeScannerConfiguration BarcodeScannerConfiguration { get; internal set; }
+		public LockerConfiguration LockerConfiguration { get; set; }
+		public TopPosServiceConfiguration TopPosServiceConfiguration { get; set; }
+		public PosTerminalConfiguration PosClientConfiguration { get; set; }
+		public BarcodeScannerConfiguration BarcodeScannerConfiguration { get; set; }
 	}
 }

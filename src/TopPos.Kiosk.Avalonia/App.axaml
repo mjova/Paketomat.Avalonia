@@ -1,0 +1,45 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:TopPos.Kiosk.ViewModels"
+             xmlns:views="using:TopPos.Kiosk.UI.Views"
+             x:Class="TopPos.Kiosk.UI.App"
+             RequestedThemeVariant="Light">
+
+	<Application.Resources>
+		<ResourceDictionary>
+			<ResourceDictionary.MergedDictionaries>
+				<ResourceInclude Source="/Resources/error.axaml"/>
+				<ResourceInclude Source="/Resources/success.axaml"/>
+				<ResourceInclude Source="/Resources/information.axaml"/>
+				<ResourceInclude Source="/Resources/toppos-rs-qrcode-sample.axaml"/>
+				<ResourceInclude Source="/Languages/sr/sr.axaml"/>
+				<ResourceInclude Source="/Languages/en/en.axaml"/>
+			</ResourceDictionary.MergedDictionaries>
+
+			<!-- Podrazumevane boje brenda; prave dolaze iz Brands/<Brand>/theme.xaml (BrandTheme) pre prikaza. -->
+			<SolidColorBrush x:Key="ApplicationBackgroundColor" Color="#474f58"/>
+			<SolidColorBrush x:Key="StepsBackgroundColor" Color="#a03338"/>
+			<SolidColorBrush x:Key="PopupMessageBackgroundColor" Color="#EF333333"/>
+			<SolidColorBrush x:Key="PopupMessageForegroundColor" Color="WhiteSmoke"/>
+			<SolidColorBrush x:Key="InformationBackgroundColor" Color="#DD6D6D6D"/>
+			<SolidColorBrush x:Key="InformationForegroundColor" Color="WhiteSmoke"/>
+			<SolidColorBrush x:Key="AccentedForegroundColor1" Color="LightSalmon"/>
+			<SolidColorBrush x:Key="AccentedForegroundColor2" Color="Yellow"/>
+		</ResourceDictionary>
+	</Application.Resources>
+
+	<!-- Stranica je ViewModel (MainWindowViewModel.CurrentPage); prikaz se bira po tipu. -->
+	<Application.DataTemplates>
+		<DataTemplate DataType="vm:StartViewModel"><views:StartView/></DataTemplate>
+		<DataTemplate DataType="vm:RecipientCodeInputViewModel"><views:RecipientCodeInputView/></DataTemplate>
+		<DataTemplate DataType="vm:RecipientPhoneInputViewModel"><views:RecipientPhoneInputView/></DataTemplate>
+		<DataTemplate DataType="vm:RecipientPaymentViewModel"><views:RecipientPaymentView/></DataTemplate>
+		<DataTemplate DataType="vm:RecipientFiscalReceiptViewModel"><views:RecipientFiscalReceiptView/></DataTemplate>
+		<DataTemplate DataType="vm:RecipientPackagePickupViewModel"><views:RecipientPackagePickupView/></DataTemplate>
+	</Application.DataTemplates>
+
+	<Application.Styles>
+		<FluentTheme/>
+		<StyleInclude Source="/Styles/Kiosk.axaml"/>
+	</Application.Styles>
+</Application>

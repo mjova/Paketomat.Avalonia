@@ -1,0 +1,124 @@
+<!--
+Stilovi kioska (v2 Resources/Common.xaml i Styles.xaml). WPF Storyboard/EventTrigger → Avalonia animacije u stilu: rade dok je
+kontrola u prikazu i staju kad se skine (v2 je to radio ručno, Loaded/Unloaded). DropShadowEffect → BoxShadow.
+-->
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+	<Styles.Resources>
+		<!-- v2 DefaultDropShadowEffect: crna, BlurRadius 3, ShadowDepth 8, Opacity 0.2 -->
+		<BoxShadows x:Key="DefaultBoxShadow">0 8 3 0 #33000000</BoxShadows>
+		<StreamGeometry x:Key="DownArrowGeometry">M 0,20 L 10,5 L 5,5 L 5,-10 L -5,-10 L -5,5 L -10,5 Z</StreamGeometry>
+	</Styles.Resources>
+
+	<!-- v2 AnimatedButtonStyle: zaobljeno dugme sa senkom; na pritisak se uveća (v2: na klik, 0.1 s). -->
+	<Style Selector="Button.animated">
+		<Setter Property="FontSize" Value="32"/>
+		<Setter Property="Background" Value="WhiteSmoke"/>
+		<Setter Property="Foreground" Value="Black"/>
+		<Setter Property="Padding" Value="24"/>
+		<Setter Property="RenderTransform" Value="scale(1)"/>
+		<Setter Property="Transitions">
+			<Transitions>
+				<TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.1"/>
+			</Transitions>
+		</Setter>
+		<Setter Property="Template">
+			<ControlTemplate>
+				<Border Name="bd"
+						Background="{TemplateBinding Background}"
+						CornerRadius="10"
+						BoxShadow="{StaticResource DefaultBoxShadow}">
+					<ContentPresenter Content="{TemplateBinding Content}"
+									  ContentTemplate="{TemplateBinding ContentTemplate}"
+									  Foreground="{TemplateBinding Foreground}"
+									  Margin="{TemplateBinding Padding}"
+									  HorizontalAlignment="Center"
+									  VerticalAlignment="Center"/>
+				</Border>
+			</ControlTemplate>
+		</Setter>
+	</Style>
+	<Style Selector="Button.animated:pressed">
+		<Setter Property="RenderTransform" Value="scale(1.2)"/>
+	</Style>
+	<Style Selector="Button.animated:disabled /template/ Border#bd">
+		<Setter Property="Opacity" Value="0.5"/>
+	</Style>
+
+	<!-- Okvir sa uputstvom (InformationBackgroundColor + senka), na svim stranicama toka. -->
+	<Style Selector="Border.info">
+		<Setter Property="Background" Value="{DynamicResource InformationBackgroundColor}"/>
+		<Setter Property="BoxShadow" Value="{StaticResource DefaultBoxShadow}"/>
+	</Style>
+	<Style Selector="TextBlock.title">
+		<Setter Property="FontSize" Value="32"/>
+		<Setter Property="Foreground" Value="{DynamicResource AccentedForegroundColor1}"/>
+		<Setter Property="HorizontalAlignment" Value="Center"/>
+		<Setter Property="Margin" Value="4"/>
+	</Style>
+	<Style Selector="TextBlock.text">
+		<Setter Property="FontSize" Value="20"/>
+		<Setter Property="Foreground" Value="{DynamicResource InformationForegroundColor}"/>
+		<Setter Property="TextWrapping" Value="Wrap"/>
+		<Setter Property="Margin" Value="4"/>
+	</Style>
+
+	<!-- v2 UpDownBouncingPathStyle: strelica gore-dole, 1 s, beskonačno. -->
+	<Style Selector="Path.bounce">
+		<Setter Property="RenderTransform">
+			<TranslateTransform/>
+		</Setter>
+		<Style.Animations>
+			<Animation Duration="0:0:1" IterationCount="Infinite" PlaybackDirection="Alternate">
+				<KeyFrame Cue="0%"><Setter Property="TranslateTransform.Y" Value="0"/></KeyFrame>
+				<KeyFrame Cue="100%"><Setter Property="TranslateTransform.Y" Value="72"/></KeyFrame>
+			</Animation>
+		</Style.Animations>
+	</Style>
+
+	<!-- v2 ZoomingImageStyle: 1 → 1.1 za 10 s, tamo-nazad. -->
+	<Style Selector="Image.zoom">
+		<Setter Property="RenderTransform">
+			<ScaleTransform/>
+		</Setter>
+		<Style.Animations>
+			<Animation Duration="0:0:10" IterationCount="Infinite" PlaybackDirection="Alternate">
+				<KeyFrame Cue="0%">
+					<Setter Property="ScaleTransform.ScaleX" Value="1"/>
+					<Setter Property="ScaleTransform.ScaleY" Value="1"/>
+				</KeyFrame>
+				<KeyFrame Cue="100%">
+					<Setter Property="ScaleTransform.ScaleX" Value="1.1"/>
+					<Setter Property="ScaleTransform.ScaleY" Value="1.1"/>
+				</KeyFrame>
+			</Animation>
+		</Style.Animations>
+	</Style>
+
+	<!-- v2 Flatsoft.Common.UI Spinner: isprekidan krug koji se okreće (3 s). -->
+	<Style Selector="Ellipse.spinner">
+		<Setter Property="RenderTransform">
+			<RotateTransform/>
+		</Setter>
+		<Style.Animations>
+			<Animation Duration="0:0:3" IterationCount="Infinite">
+				<KeyFrame Cue="0%"><Setter Property="RotateTransform.Angle" Value="0"/></KeyFrame>
+				<KeyFrame Cue="100%"><Setter Property="RotateTransform.Angle" Value="360"/></KeyFrame>
+			</Animation>
+		</Style.Animations>
+	</Style>
+
+	<!-- v2 QRCode: crvena linija skenira uzorak QR koda (2 s, tamo-nazad). -->
+	<Style Selector="Rectangle.scanline">
+		<Setter Property="RenderTransform">
+			<TranslateTransform/>
+		</Setter>
+		<Style.Animations>
+			<Animation Duration="0:0:2" IterationCount="Infinite" PlaybackDirection="Alternate">
+				<KeyFrame Cue="0%"><Setter Property="TranslateTransform.Y" Value="0"/></KeyFrame>
+				<KeyFrame Cue="100%"><Setter Property="TranslateTransform.Y" Value="137"/></KeyFrame>
+			</Animation>
+		</Style.Animations>
+	</Style>
+</Styles>

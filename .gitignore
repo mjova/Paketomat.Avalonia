@@ -105,7 +105,8 @@ project.fragment.lock.json
 artifacts/
 
 # Paketomat v4
-app-configuration.json
+# Lokalna konfiguracija (kredencijali, adrese, podešavanja mašine); primeri su *.sample
+app-configuration*.json
 deploy/windows/release-info.json
 deploy/windows/*.exe
 deploy/linux/*.deb

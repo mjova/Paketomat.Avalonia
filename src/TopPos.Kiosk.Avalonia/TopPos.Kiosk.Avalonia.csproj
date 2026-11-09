@@ -1,0 +1,97 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+  Kiosk paketomata na Avalonia UI (v2 TopPos.Client.WPF): prikaz, kompozicija i životni ciklus. Logika toka je u
+  TopPos.Kiosk.Core, razlike platformi u TopPos.Platform.
+  -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <RootNamespace>TopPos.Kiosk.UI</RootNamespace>
+    <AssemblyName>TopPos.Kiosk</AssemblyName>
+    <ApplicationIcon>Resources\box-start.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <VersionTimestamp>1.0.$([System.DateTime]::UtcNow.ToString(MMdd)).$([System.DateTime]::UtcNow.ToString(HHmm))</VersionTimestamp>
+    <AssemblyVersion>$(VersionTimestamp)</AssemblyVersion>
+    <Version>$(VersionTimestamp)</Version>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" />
+    <PackageReference Include="Avalonia.Desktop" />
+    <PackageReference Include="Avalonia.Fonts.Inter" />
+    <PackageReference Include="Avalonia.Themes.Fluent" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" />
+    <PackageReference Include="Serilog" />
+    <PackageReference Include="Serilog.Extensions.Logging" />
+    <PackageReference Include="Serilog.Formatting.Compact" />
+    <PackageReference Include="Serilog.Settings.Configuration" />
+    <PackageReference Include="Serilog.Sinks.File" />
+    <PackageReference Include="Serilog.Sinks.Seq" />
+  </ItemGroup>
+
+  <!-- LibVLC uz program samo za Windows; na Linuxu je sistemska biblioteka (libvlc5, vlc-plugin-base). -->
+  <ItemGroup Condition="('$(RuntimeIdentifier)' == '' And $([MSBuild]::IsOSPlatform('Windows'))) Or $(RuntimeIdentifier.StartsWith('win'))">
+    <PackageReference Include="VideoLAN.LibVLC.Windows" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TopPos.Kiosk.Core\TopPos.Kiosk.Core.csproj" />
+    <ProjectReference Include="..\TopPos.LockController.NCU16L\TopPos.LockController.NCU16L.csproj" />
+    <ProjectReference Include="..\TopPos.LockController.NCU24L\TopPos.LockController.NCU24L.csproj" />
+    <ProjectReference Include="..\TopPos.LockController.Serial\TopPos.LockController.Serial.csproj" />
+    <ProjectReference Include="..\TopPos.LockController.SerialDailyExpress\TopPos.LockController.SerialDailyExpress.csproj" />
+    <ProjectReference Include="..\TopPos.Platform\TopPos.Platform.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="TopPos.Kiosk.UI.Tests" />
+  </ItemGroup>
+
+  <!-- Slike u sklopu; jezici (tekst, zvuk), brendovi, zvuk klika i konfiguracija uz program (kao v2). -->
+  <ItemGroup>
+    <AvaloniaResource Include="Resources\**\*.png;Resources\box-start.ico" />
+    <Content Include="Languages\**\*" Exclude="Languages\**\*.axaml" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Brands\**\*" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Resources\**\*.mp3" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="serilog.json" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="app-configuration.json" Condition="Exists('app-configuration.json')" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <!-- Simulatori (samo Debug): fajl postoji → uključeni (Core: Simulators/SimulatorConfiguration.cs). -->
+  <ItemGroup Condition="'$(Configuration)' == 'Debug' And Exists('app-configuration.Simulator.json')">
+    <Content Include="app-configuration.Simulator.json" CopyToOutputDirectory="Always" />
+  </ItemGroup>
+  <Target Name="RemoveStaleSimulatorConfiguration" AfterTargets="Build" Condition="!Exists('app-configuration.Simulator.json')">
+    <Delete Files="$(OutDir)app-configuration.Simulator.json" />
+  </Target>
+
+  <!-- Razvoj (samo Debug): prozor zadate veličine umesto celog ekrana. -->
+  <ItemGroup Condition="'$(Configuration)' == 'Debug' And Exists('app-configuration.ScreenResolution.json')">
+    <Content Include="app-configuration.ScreenResolution.json" CopyToOutputDirectory="Always" />
+  </ItemGroup>
+  <Target Name="RemoveStaleScreenResolution" AfterTargets="Build" Condition="!Exists('app-configuration.ScreenResolution.json')">
+    <Delete Files="$(OutDir)app-configuration.ScreenResolution.json" />
+  </Target>
+
+  <!-- Git hash u sklopu (Flatsoft.Common.GitHashAttribute), kao v2; „git“ bez .exe, radi i na Linuxu. -->
+  <Target Name="SetSourceRevisionId" BeforeTargets="InitializeSourceControlInformation">
+    <Exec Command="git describe --long --always --dirty --exclude=&quot;*&quot; --abbrev=40" ConsoleToMSBuild="True" IgnoreExitCode="True" StandardErrorImportance="low">
+      <Output PropertyName="SourceRevisionId" TaskParameter="ConsoleOutput" />
+    </Exec>
+    <PropertyGroup>
+      <SourceRevisionId Condition="'$(SourceRevisionId)' == ''">unknown</SourceRevisionId>
+    </PropertyGroup>
+  </Target>
+  <Target Name="SetHash" AfterTargets="InitializeSourceControlInformation">
+    <ItemGroup>
+      <AssemblyAttribute Include="Flatsoft.Common.GitHashAttribute">
+        <_Parameter1>$(SourceRevisionId)</_Parameter1>
+      </AssemblyAttribute>
+    </ItemGroup>
+  </Target>
+
+</Project>

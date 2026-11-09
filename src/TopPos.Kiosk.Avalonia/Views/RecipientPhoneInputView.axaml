@@ -1,0 +1,32 @@
+<!-- v2 Pages/RecipientPhoneInputPage/RecipientPhoneInputPageLandscapeLayout.xaml -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:TopPos.Kiosk.ViewModels"
+             xmlns:c="using:TopPos.Kiosk.UI.Controls"
+             x:Class="TopPos.Kiosk.UI.Views.RecipientPhoneInputView"
+             x:DataType="vm:RecipientPhoneInputViewModel">
+	<Grid ColumnDefinitions="2*,2*,*">
+		<!-- Levo: uputstvo -->
+		<Border Grid.Column="0" Classes="info"
+				HorizontalAlignment="Center" VerticalAlignment="Top"
+				Padding="24" Margin="32 32 4 4">
+			<StackPanel>
+				<TextBlock Classes="title" Text="{Binding [RecipientPhoneInputPage.InstructionsTitle]}"/>
+				<TextBlock Classes="text" FontSize="24" Text="{Binding [RecipientPhoneInputPage.EnterPhoneNumberInstruction]}" Margin="4 16"/>
+				<TextBlock Classes="text" FontSize="24" Text="{Binding [RecipientPhoneInputPage.PhoneNumberExampleTitle]}"/>
+				<TextBlock Text="{Binding [RecipientPhoneInputPage.PhoneNumberExample]}"
+						   FontSize="28"
+						   HorizontalAlignment="Center"
+						   Foreground="{DynamicResource AccentedForegroundColor2}"
+						   Background="DarkGray"
+						   Padding="8"
+						   Margin="4 12 4 4"/>
+			</StackPanel>
+		</Border>
+		<!-- Sredina: numerička tastatura; desno prazno -->
+		<c:NumericKeypad Grid.Column="1"
+						 DataContext="{Binding Keypad}"
+						 VerticalAlignment="Top"
+						 Margin="32"/>
+	</Grid>
+</UserControl>

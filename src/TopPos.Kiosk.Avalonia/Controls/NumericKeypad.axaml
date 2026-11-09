@@ -1,0 +1,78 @@
+<!-- v2 Controls/NumericKeypad (RegularNumericKeypadStyle: 350×450, FontSize 24); grafički tasteri ✕/✓ uvek (UseGraphicalKeys). -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:TopPos.Kiosk.ViewModels"
+             x:Class="TopPos.Kiosk.UI.Controls.NumericKeypad"
+             x:DataType="vm:NumericKeypadViewModel"
+             Width="350" Height="450" FontSize="24">
+
+	<UserControl.Styles>
+		<!-- Okvir tastera (R=8) baca senku; lice tastera (R=6) se na pritisak spusti 2 px, ugašeno je providno. -->
+		<Style Selector="Border.key">
+			<Setter Property="BorderBrush" Value="#333333"/>
+			<Setter Property="BorderThickness" Value="1"/>
+			<Setter Property="Background" Value="#33ffffff"/>
+			<Setter Property="CornerRadius" Value="8"/>
+			<Setter Property="BoxShadow" Value="{StaticResource DefaultBoxShadow}"/>
+			<Setter Property="Margin" Value="2"/>
+			<Setter Property="Padding" Value="4"/>
+		</Style>
+		<Style Selector="Button.key">
+			<Setter Property="Background" Value="WhiteSmoke"/>
+			<Setter Property="Foreground" Value="Black"/>
+			<Setter Property="Padding" Value="8"/>
+			<Setter Property="HorizontalAlignment" Value="Stretch"/>
+			<Setter Property="VerticalAlignment" Value="Stretch"/>
+			<Setter Property="RenderTransform" Value="translate(0px, 0px)"/>
+			<Setter Property="Template">
+				<ControlTemplate>
+					<Border Name="bd" Background="{TemplateBinding Background}" CornerRadius="6">
+						<ContentPresenter Content="{TemplateBinding Content}"
+										  Foreground="{TemplateBinding Foreground}"
+										  Margin="{TemplateBinding Padding}"
+										  HorizontalAlignment="Center"
+										  VerticalAlignment="Center"/>
+					</Border>
+				</ControlTemplate>
+			</Setter>
+		</Style>
+		<Style Selector="Button.key:pressed">
+			<Setter Property="RenderTransform" Value="translate(0px, 2px)"/>
+		</Style>
+		<Style Selector="Button.key:disabled /template/ Border#bd">
+			<Setter Property="Opacity" Value="0.5"/>
+		</Style>
+	</UserControl.Styles>
+
+	<Grid RowDefinitions="Auto,*">
+		<TextBlock Text="{Binding Code}"
+				   Background="#66ffffff"
+				   FontStyle="Italic"
+				   FontWeight="SemiBold"
+				   Padding="16"
+				   Margin="10"
+				   TextAlignment="Right"/>
+
+		<UniformGrid Grid.Row="1" Rows="4" Columns="3">
+			<Border Classes="key"><Button Classes="key" Command="{Binding KeyInputCommand}" Content="1" CommandParameter="1" AutomationProperties.AutomationId="Keypad.1"/></Border>
+			<Border Classes="key"><Button Classes="key" Command="{Binding KeyInputCommand}" Content="2" CommandParameter="2" AutomationProperties.AutomationId="Keypad.2"/></Border>
+			<Border Classes="key"><Button Classes="key" Command="{Binding KeyInputCommand}" Content="3" CommandParameter="3" AutomationProperties.AutomationId="Keypad.3"/></Border>
+			<Border Classes="key"><Button Classes="key" Command="{Binding KeyInputCommand}" Content="4" CommandParameter="4" AutomationProperties.AutomationId="Keypad.4"/></Border>
+			<Border Classes="key"><Button Classes="key" Command="{Binding KeyInputCommand}" Content="5" CommandParameter="5" AutomationProperties.AutomationId="Keypad.5"/></Border>
+			<Border Classes="key"><Button Classes="key" Command="{Binding KeyInputCommand}" Content="6" CommandParameter="6" AutomationProperties.AutomationId="Keypad.6"/></Border>
+			<Border Classes="key"><Button Classes="key" Command="{Binding KeyInputCommand}" Content="7" CommandParameter="7" AutomationProperties.AutomationId="Keypad.7"/></Border>
+			<Border Classes="key"><Button Classes="key" Command="{Binding KeyInputCommand}" Content="8" CommandParameter="8" AutomationProperties.AutomationId="Keypad.8"/></Border>
+			<Border Classes="key"><Button Classes="key" Command="{Binding KeyInputCommand}" Content="9" CommandParameter="9" AutomationProperties.AutomationId="Keypad.9"/></Border>
+			<Border Classes="key">
+				<Button Classes="key" Command="{Binding KeyInputCommand}" Content="{Binding [NumericKeypad.Clear]}" Background="LightCoral"
+						CommandParameter="clear" AutomationProperties.AutomationId="Keypad.Clear"/>
+			</Border>
+			<Border Classes="key"><Button Classes="key" Command="{Binding KeyInputCommand}" Content="0" CommandParameter="0" AutomationProperties.AutomationId="Keypad.0"/></Border>
+			<Border Classes="key">
+				<Button Classes="key" Command="{Binding KeyInputCommand}" Content="{Binding [NumericKeypad.Confirm]}" Background="LightGreen"
+						IsEnabled="{Binding CanConfirm}"
+						CommandParameter="confirm" AutomationProperties.AutomationId="Keypad.Confirm"/>
+			</Border>
+		</UniformGrid>
+	</Grid>
+</UserControl>

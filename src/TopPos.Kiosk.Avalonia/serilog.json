@@ -12,12 +12,12 @@
       {
         "Name": "File",
         "Args": {
-          "path": "Logs/log-%TOPPOS_LOGFILE_TAG%-.txt",
+          "path": "%TOPPOS_LOG_DIR%/log-%TOPPOS_LOGFILE_TAG%-.txt",
           "rollingInterval": "Day",
           "retainedFileCountLimit": 7,
           "restrictedToMinimumLevel": "Debug",
           "outputTemplate": "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff} {Level:u3}] {Message:lj} {Properties}{NewLine}{Exception}",
-          "hooks": "TopPos.Client.Logging.SerilogHooks::RollingFileHeaderWriter, TopPos.Client.WPF"
+          "hooks": "TopPos.Kiosk.Logging.SerilogHooks::RollingFileHeaderWriter, TopPos.Kiosk"
         }
       }
     ]

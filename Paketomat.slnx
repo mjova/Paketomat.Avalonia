@@ -4,6 +4,7 @@
     <Project Path="src/Flatsoft.Common.UI/Flatsoft.Common.UI.csproj" />
     <Project Path="src/TopPos.Agent.Contracts/TopPos.Agent.Contracts.csproj" />
     <Project Path="src/TopPos.ECR/TopPos.ECR.csproj" />
+    <Project Path="src/TopPos.Kiosk.Avalonia/TopPos.Kiosk.Avalonia.csproj" />
     <Project Path="src/TopPos.Kiosk.Core/TopPos.Kiosk.Core.csproj" />
     <Project Path="src/TopPos.LockController.NCU16L/TopPos.LockController.NCU16L.csproj" />
     <Project Path="src/TopPos.LockController.NCU24L/TopPos.LockController.NCU24L.csproj" />
@@ -16,6 +17,7 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/TopPos.Kiosk.Tests/TopPos.Kiosk.Tests.csproj" />
+    <Project Path="tests/TopPos.Kiosk.UI.Tests/TopPos.Kiosk.UI.Tests.csproj" />
   </Folder>
   <Folder Name="/Solution Items/">
     <File Path="Directory.Build.props" />
