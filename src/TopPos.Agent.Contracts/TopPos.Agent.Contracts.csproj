@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+  Ugovor lokalnog kanala Agent↔kiosk (doc/notes/agent-client-komunikacija-i-komande-plan.md, §3 i §5).
+  Bez zavisnosti od WPF-a i kioska: Agent (net10.0-windows) preuzima izvorne fajlove ovog projekta kopiranjem.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>
