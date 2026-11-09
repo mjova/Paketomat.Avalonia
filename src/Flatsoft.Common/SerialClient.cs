@@ -197,7 +197,14 @@ namespace Flatsoft.Net.Serial
 				_serialPort ??= new SerialPort(Port, BaudRate, Parity, DataBits, StopBits);
 				//_serialPort.DtrEnable = false;
 				//_serialPort.RtsEnable = false;
-				_serialPort.Open();
+				try {
+					_serialPort.Open();
+				}
+				catch (UnauthorizedAccessException ex) when (Path.IsPathRooted(Port) && !File.Exists(Port)) {
+					// v4: .NET na Linuxu za svaki neuspeh otvaranja baca UnauthorizedAccessException; uređaj (/dev/...) koji ne
+					// postoji je isto što i nepostojeći COM port na Windows-u (FileNotFoundException → petlje se završavaju).
+					throw new FileNotFoundException($"Serijski port {Port} ne postoji.", Port, ex);
+				}
 				_serialPort.ReadTimeout = _receiveTimeout.HasValue ? (int) _receiveTimeout.Value.TotalMilliseconds : SerialPort.InfiniteTimeout;
 				_serialPort.WriteTimeout = _sendTimeout.HasValue ? (int) _sendTimeout.Value.TotalMilliseconds : SerialPort.InfiniteTimeout;
 				_serialPort.ReceivedBytesThreshold = _receivedBytesThreshold;
@@ -246,11 +253,15 @@ namespace Flatsoft.Net.Serial
 					// ovo se dešava samo kada je povezan USB-serial adapter
 					_logger?.LogDebug($"{nameof(SerialClient)}[{Port}]: {nameof(SendLoop)}: send operation aborted (I/O cancelled).");
 					_sendPipe.Reader.CancelPendingRead();
+					if (!IsConnected) {
+						await DelayBeforeRetry().ConfigureAwait(false);     // v4: neuspelo otvaranje, ne prekinut upis
+					}
 				}
 				catch (Exception ex) {
 					_logger?.LogError($"{nameof(SerialClient)}[{Port}]: {nameof(SendLoop)}: send operation failed. Details: {ex.Message}");
 					_sendPipe.Reader.CancelPendingRead();
 					_logger?.LogDebug($"{nameof(SerialClient)}[{Port}]: {nameof(SendLoop)}: cancelled pending read on the send pipe reader");
+					await DelayBeforeRetry().ConfigureAwait(false);
 				}
 			}
 			_logger?.LogInformation($"{nameof(SerialClient)}[{Port}]: {nameof(SendLoop)}: exiting send loop.");
@@ -313,14 +324,33 @@ namespace Flatsoft.Net.Serial
 					// zato ne logujemo
 					// _logger?.LogDebug($"{nameof(SerialClient)}[{Port}]: {nameof(ReceiveLoop)}: receive operation aborted (I/O cancelled).");
 					// _receivePipe.Writer.CancelPendingFlush();
+					if (!IsConnected) {
+						// v4: port nije otvoren — greška otvaranja koja se ponavlja (drajver) bi vrtela petlju; prekinuto čitanje
+						// na otvorenom portu se i dalje ponavlja odmah, kao u v2.
+						await DelayBeforeRetry().ConfigureAwait(false);
+					}
 				}
 				catch (Exception ex) {
 					_logger?.LogError($"{nameof(SerialClient)}[{Port}]: {nameof(ReceiveLoop)}: receive operation failed. Details: {ex.Message}");
 					_receivePipe.Writer.CancelPendingFlush();
 					_logger?.LogDebug($"{nameof(SerialClient)}[{Port}]: {nameof(ReceiveLoop)}: cancelled pending flush on the receive pipe");
+					await DelayBeforeRetry().ConfigureAwait(false);
 				}
 			}
 			_logger?.LogInformation($"{nameof(SerialClient)}[{Port}]: {nameof(ReceiveLoop)}: exiting receive loop.");
+		}
+
+		// v4: pauza posle neočekivane greške u petlji. Bez nje greška koja se ponavlja (zauzet port, nema prava, uređaj koji se ne
+		// otvara) vrti petlju bez prestanka i puni log (Debian 9.11.2026: 94 MB za 4 s).
+		private static readonly TimeSpan __retryDelay = TimeSpan.FromSeconds(1);
+
+		private async Task DelayBeforeRetry()
+		{
+			try {
+				await Task.Delay(__retryDelay, _mainCancellation.Token).ConfigureAwait(false);
+			}
+			catch (OperationCanceledException) {
+			}
 		}
 
 		public async ValueTask Write(ReadOnlyMemory<byte> data, TimeSpan? writeTimeout, CancellationToken cancellationToken)

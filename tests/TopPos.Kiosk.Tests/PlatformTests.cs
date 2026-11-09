@@ -150,7 +150,8 @@ namespace TopPos.Kiosk.Tests
 				return;
 			}
 			var log = new KioskOperationCoordinatorTests.ListLogger();
-			using var player = new VlcAudioPlayer(Path.GetDirectoryName(file)!, log);
+			// Kroz PlatformServices, kao kiosk (na Linuxu i resolver za libvlc.so.5).
+			using var player = Assert.IsType<VlcAudioPlayer>(PlatformServices.CreateAudioPlayer(Path.GetDirectoryName(file)!, log));
 
 			player.Play(Path.GetFileName(file));
 			player.Play(Path.GetFileName(file));
@@ -167,7 +168,7 @@ namespace TopPos.Kiosk.Tests
 			if (string.IsNullOrEmpty(file)) {
 				return;
 			}
-			using var player = new VlcAudioPlayer(Path.GetDirectoryName(file)!, logger: null);
+			using var player = Assert.IsType<VlcAudioPlayer>(PlatformServices.CreateAudioPlayer(Path.GetDirectoryName(file)!, logger: null));
 
 			player.Play(Path.GetFileName(file));
 			player.Play(Path.GetFileName(file));

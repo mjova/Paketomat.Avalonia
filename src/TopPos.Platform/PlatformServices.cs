@@ -21,6 +21,9 @@ namespace TopPos.Platform
 		public static IAudioPlayer CreateAudioPlayer(string basePath, ILogger? logger)
 		{
 			try {
+				if (OperatingSystem.IsLinux()) {
+					LinuxLibVlc.RegisterResolver();     // libvlc.so.5 iz paketa libvlc5 (bez libvlc-dev)
+				}
 				return new VlcAudioPlayer(basePath, logger);
 			}
 			catch (Exception ex) {
