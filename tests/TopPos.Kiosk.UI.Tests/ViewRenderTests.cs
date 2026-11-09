@@ -60,7 +60,7 @@ namespace TopPos.Kiosk.UI.Tests
 			var folder = Environment.GetEnvironmentVariable("TOPPOS_UI_SNAPSHOTS");
 			if (!string.IsNullOrEmpty(folder)) {
 				Directory.CreateDirectory(folder);
-				frame!.Save(Path.Combine(folder, $"{page}.png"));
+				frame!.Save(Path.Combine(folder, $"{page}.png"), new Avalonia.Media.Imaging.PngBitmapEncoderOptions());
 			}
 		}
 	}

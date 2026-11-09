@@ -4,6 +4,8 @@
   <PropertyGroup>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
+    <!-- Testovi namerno pozivaju Windows i Linux implementacije platformskog sloja (zaštićene sa WindowsFact/LinuxFact). -->
+    <NoWarn>$(NoWarn);CA1416</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
