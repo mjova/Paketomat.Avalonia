@@ -129,6 +129,9 @@ namespace TopPos.LockerSimulator
 					}
 
 				}
+				catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
+					break;	// v4: gašenje simulatora nije greška
+				}
 				catch (FileNotFoundException fex) {
 					_logger?.LogError($"{nameof(ProcessIncomingScannerCommands)}[{_serialClient.Port}]: port opening failed. Details: {fex.Message}");
 					return;
