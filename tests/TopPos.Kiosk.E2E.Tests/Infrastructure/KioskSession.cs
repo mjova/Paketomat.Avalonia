@@ -104,14 +104,47 @@ namespace TopPos.E2E.Tests.Infrastructure
 		public static async Task RunAsync(string testName, ITestOutputHelper output, KioskOptions? options, Func<KioskSession, Task> scenario)
 		{
 			E2ESettings.RequireEnabled();
-			await using var kiosk = await StartAsync(testName, output, options).ConfigureAwait(false);
+			var kiosk = await StartAsync(testName, output, options).ConfigureAwait(false);
+			bool passed = false;
 			try {
-				await scenario(kiosk).ConfigureAwait(false);
-				await kiosk.AssertOwnershipInvariantsAsync().ConfigureAwait(false);
+				try {
+					await scenario(kiosk).ConfigureAwait(false);
+					await kiosk.AssertOwnershipInvariantsAsync().ConfigureAwait(false);
+					passed = true;
+				}
+				catch {
+					kiosk.DumpDiagnostics();
+					throw;
+				}
 			}
-			catch {
-				kiosk.DumpDiagnostics();
-				throw;
+			finally {
+				await kiosk.DisposeAsync().ConfigureAwait(false);
+				// v4: sandbox nosi kopije bin-a kioska i simulatora (~0,6 GB) — prošao test ga ne čuva (VM disk 40 GB se
+				// napunio za jedan dan, 10.11.2026); pao ili preskočen ostaje za pregled, kao i svi uz TOPPOS_E2E_KEEP=1.
+				if (passed && !E2ESettings.KeepSandboxes) {
+					kiosk.DeleteSandbox();
+				}
+			}
+		}
+
+		/// <summary>Briše sandbox posle gašenja procesa; fajl koji OS još drži (Windows, odmah posle izlaska) — nekoliko pokušaja.</summary>
+		private void DeleteSandbox()
+		{
+			for (int attempt = 1; attempt <= 5; attempt++) {
+				try {
+					System.IO.Directory.Delete(Directory, recursive: true);
+					return;
+				}
+				catch (DirectoryNotFoundException) {
+					return;
+				}
+				catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) {
+					if (attempt == 5) {
+						_output.WriteLine($"Sandbox {Directory} nije obrisan: {ex.Message}");
+						return;
+					}
+					Thread.Sleep(500);
+				}
 			}
 		}
 

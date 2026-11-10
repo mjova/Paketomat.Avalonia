@@ -20,6 +20,9 @@ namespace TopPos.E2E.Tests.Infrastructure
 		/// <summary>Prvi red svakog [SkippableFact] E2E testa: preskače test kad E2E nije uključen.</summary>
 		public static void RequireEnabled() => Skip.IfNot(IsEnabled, SkipReason);
 
+		/// <summary>v4: TOPPOS_E2E_KEEP=1 čuva sandbox i testova koji su prošli (inače se briše odmah, ~0,6 GB po testu).</summary>
+		public static bool KeepSandboxes => Environment.GetEnvironmentVariable("TOPPOS_E2E_KEEP") == "1";
+
 		/// <summary>Preskače test koji traži Debug-only kod klijenta (npr. SimulatedPosClient) kad se E2E gradi u Release-u.</summary>
 		public static void RequireDebugClient(string feature)
 			=> Skip.If(Current.BuildConfiguration != "Debug", $"{feature} postoji samo u Debug build-u klijenta (E2E je u {Current.BuildConfiguration}).");
