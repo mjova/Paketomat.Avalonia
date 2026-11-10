@@ -9,7 +9,7 @@ setlocal
 cd /d "%~dp0"
 
 REM Prvo testovi jezgra kioska (bez UI-ja i hardvera): ako padnu, E2E se ne pokrece. Dodatni argumenti idu samo u E2E.
-dotnet test tests\TopPos.Kiosk.Tests\TopPos.Kiosk.Tests.csproj -c Debug --logger "console;verbosity=minimal"
+dotnet test tests\TopPos.Kiosk.Tests\TopPos.Kiosk.Tests.csproj -c Debug --disable-build-servers --logger "console;verbosity=minimal"
 if errorlevel 1 (
 	echo Testovi jezgra nisu prosli, E2E se ne pokrece.
 	exit /b 1
@@ -29,13 +29,14 @@ if errorlevel 1 (
 	if not errorlevel 1 exit /b 1
 )
 
-REM Build celog resenja: E2E pokrece izlaze kioska i simulatora iz njihovih bin foldera.
-dotnet build Paketomat.slnx -c Debug
+REM Build celog resenja: E2E pokrece izlaze kioska i simulatora iz njihovih bin foldera. Bez build servera: posle
+REM skripte ne ostaju MSBuild procesi.
+dotnet build Paketomat.slnx -c Debug --disable-build-servers
 if errorlevel 1 exit /b %errorlevel%
 
 REM Izvestaj (HTML za browser, TRX za Visual Studio) ide u TestResults\E2E pored ove skripte.
 for /f %%t in ('powershell -NoProfile -Command "Get-Date -Format yyyyMMdd-HHmmss"') do set STAMP=%%t
 
 set TOPPOS_E2E=1
-dotnet test tests\TopPos.Kiosk.E2E.Tests\TopPos.Kiosk.E2E.Tests.csproj -c Debug --no-build --logger "console;verbosity=normal" --logger "html;LogFileName=e2e-%STAMP%.html" --logger "trx;LogFileName=e2e-%STAMP%.trx" --results-directory "%~dp0TestResults\E2E" %*
+dotnet test tests\TopPos.Kiosk.E2E.Tests\TopPos.Kiosk.E2E.Tests.csproj -c Debug --no-build --disable-build-servers --logger "console;verbosity=normal" --logger "html;LogFileName=e2e-%STAMP%.html" --logger "trx;LogFileName=e2e-%STAMP%.trx" --results-directory "%~dp0TestResults\E2E" %*
 exit /b %errorlevel%

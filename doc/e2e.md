@@ -32,6 +32,7 @@ izveštajem u `TestResults/E2E` (HTML i TRX). Dodatni argumenti idu u `dotnet te
   jezika) pomeraju miš.
 
 **Linux**
+- .NET 10 SDK na PATH-u; ako je instaliran u `~/.dotnet` (dotnet-install), `run-e2e.sh` ga sam koristi.
 - Grafička sesija (X11 ili Wayland) i D-Bus sesija; testovi se puštaju iz terminala te sesije. Harness pri prvom startu
   kioska uključuje pristupačnost u sesiji (`org.a11y.Status.IsEnabled`) i ona ostaje uključena.
 - Serijski uređaji idu preko pty parova koje pravi simulator (`KioskPortName`, putanje u `/tmp/toppos-e2e/dev`) —

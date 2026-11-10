@@ -7,6 +7,16 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
+# .NET SDK: sa PATH-a, inače iz ~/.dotnet (instalacija skriptom dotnet-install)
+if ! command -v dotnet > /dev/null; then
+	if [ -x "$HOME/.dotnet/dotnet" ]; then
+		export DOTNET_ROOT="$HOME/.dotnet" PATH="$HOME/.dotnet:$PATH"
+	else
+		echo ".NET SDK (dotnet) nije na PATH-u ni u ~/.dotnet." >&2
+		exit 1
+	fi
+fi
+
 if [ -z "${WAYLAND_DISPLAY:-}" ] && [ -z "${DISPLAY:-}" ]; then
 	echo "Nema grafičke sesije (DISPLAY/WAYLAND_DISPLAY) — pokrenuti iz terminala u desktop sesiji." >&2
 	exit 1
@@ -22,16 +32,17 @@ if [ "$free_mb" -lt 2048 ]; then
 fi
 
 # Prvo testovi jezgra kioska (bez UI-ja i hardvera): ako padnu, E2E se ne pokreće. Dodatni argumenti idu samo u E2E.
-if ! dotnet test tests/TopPos.Kiosk.Tests/TopPos.Kiosk.Tests.csproj -c Debug --logger "console;verbosity=minimal"; then
+if ! dotnet test tests/TopPos.Kiosk.Tests/TopPos.Kiosk.Tests.csproj -c Debug --disable-build-servers --logger "console;verbosity=minimal"; then
 	echo "Testovi jezgra nisu prošli, E2E se ne pokreće." >&2
 	exit 1
 fi
 
-# Build celog rešenja: E2E pokreće izlaze kioska i simulatora iz njihovih bin foldera.
-dotnet build Paketomat.slnx -c Debug
+# Build celog rešenja: E2E pokreće izlaze kioska i simulatora iz njihovih bin foldera. Bez build servera: posle skripte
+# ne ostaju MSBuild procesi.
+dotnet build Paketomat.slnx -c Debug --disable-build-servers
 
 # Izveštaj (HTML za browser, TRX za alate) ide u TestResults/E2E pored ove skripte.
 stamp=$(date +%Y%m%d-%H%M%S)
-TOPPOS_E2E=1 exec dotnet test tests/TopPos.Kiosk.E2E.Tests/TopPos.Kiosk.E2E.Tests.csproj -c Debug --no-build \
+TOPPOS_E2E=1 exec dotnet test tests/TopPos.Kiosk.E2E.Tests/TopPos.Kiosk.E2E.Tests.csproj -c Debug --no-build --disable-build-servers \
 	--logger "console;verbosity=normal" --logger "html;LogFileName=e2e-$stamp.html" --logger "trx;LogFileName=e2e-$stamp.trx" \
 	--results-directory "$PWD/TestResults/E2E" "$@"
