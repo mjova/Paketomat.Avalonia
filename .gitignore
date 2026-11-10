@@ -119,3 +119,6 @@ deploy/linux/*.tar.gz
 /tasks
 /doc/notes
 /doc/workflow-orchestration.md
+
+# Izveštaji testova (run-e2e)
+[Tt]est[Rr]esults/

@@ -17,3 +17,4 @@ Status: početak — faza F0 (proba na Linuxu). Plan, odluke i procena su u [`do
 | `doc/` | Plan i dokumentacija |
 
 Šta je preneto iz v2 i iz kog commit-a: [`PORTED_FROM.md`](PORTED_FROM.md).
+E2E testovi (Windows i Linux): [`doc/e2e.md`](doc/e2e.md).

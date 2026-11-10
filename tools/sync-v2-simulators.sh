@@ -69,6 +69,7 @@ mapped=(
 	"Tests/TopPos.LockerSimulator.Tests/PosRequestTests.cs|tests/TopPos.Simulators.Tests/PosRequestTests.cs"
 	"Tests/TopPos.LockerSimulator.Tests/PosTerminalEngineTests.cs|tests/TopPos.Simulators.Tests/PosTerminalEngineTests.cs"
 	# E2E (v4 tests/TopPos.Kiosk.E2E.Tests; v2 KioskUi je UiaKioskUi)
+	"Tests/TopPos.E2E.Tests/check-screen.ps1|tests/TopPos.Kiosk.E2E.Tests/check-screen.ps1"
 	"Tests/TopPos.E2E.Tests/Config/client.app-configuration.json|tests/TopPos.Kiosk.E2E.Tests/Config/client.app-configuration.json"
 	"Tests/TopPos.E2E.Tests/Config/locker.app-configuration.json|tests/TopPos.Kiosk.E2E.Tests/Config/locker.app-configuration.json"
 	"Tests/TopPos.E2E.Tests/Config/server.app-configuration.json|tests/TopPos.Kiosk.E2E.Tests/Config/server.app-configuration.json"
