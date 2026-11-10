@@ -30,4 +30,6 @@ jobs:
         run: dotnet build Paketomat.slnx -c Release --no-restore
 
       - name: Test
-        run: dotnet test Paketomat.slnx -c Release --no-build
+        # Test projekti jedan za drugim (-m:1): ECR kioska čeka odgovor u petlji bez pauze i za vreme POS E2E testova drži
+        # jedno jezgro, pa bi paralelni projekti sa kratkim timeout-ima (HTTP 1 s, NCU24L) na CI mašini padali.
+        run: dotnet test Paketomat.slnx -c Release --no-build -m:1
