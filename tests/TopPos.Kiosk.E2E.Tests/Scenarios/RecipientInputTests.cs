@@ -1,4 +1,4 @@
-using TopPos.Client.WPF.Workflow;
+using TopPos.Kiosk.Workflow;
 using TopPos.E2E.Tests.Infrastructure;
 using Xunit;
 using Xunit.Abstractions;
@@ -110,7 +110,7 @@ namespace TopPos.E2E.Tests.Scenarios
 			});
 
 		/// <summary>K14: Home na unosu koda ili telefona → Reset → Start, bez poziva serveru.</summary>
-		[SkippableTheory]
+		[RealMouseTheory]	// v4
 		[InlineData(false)]
 		[InlineData(true)]
 		public Task HomeOnInput_ReturnsToStart(bool onPhone)

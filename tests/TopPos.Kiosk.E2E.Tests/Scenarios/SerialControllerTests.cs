@@ -17,7 +17,7 @@ namespace TopPos.E2E.Tests.Scenarios
 		public Task NoPayment_DoorOpens_ClosingDoorReturnsToStart()
 			=> RunAsync(nameof(NoPayment_DoorOpens_ClosingDoorReturnsToStart), RecipientPickupTests.NoPaymentPickupAsync);
 
-		[SkippableFact]
+		[PendingFlow("kurir")]	// v4
 		public Task CourierDeposit_ScanOpenCloseConfirm_ServerStoresPosition()
 			=> RunAsync(nameof(CourierDeposit_ScanOpenCloseConfirm_ServerStoresPosition), CourierTests.DepositAsync);
 

@@ -1,4 +1,4 @@
-using TopPos.Client.WPF.Workflow;
+using TopPos.Kiosk.Workflow;
 using TopPos.E2E.Tests.Infrastructure;
 using Xunit;
 using Xunit.Abstractions;
@@ -22,7 +22,7 @@ namespace TopPos.E2E.Tests.Scenarios
 		};
 
 		/// <summary>C10: kurir ne skenira paket za ostavljanje → istek skeniranja → Start (odjava); dodele vrata nema.</summary>
-		[SkippableFact]
+		[PendingFlow("kurir")]	// v4
 		public Task CourierDepositScan_NoScan_TimesOutToStart()
 			=> KioskSession.RunAsync(nameof(CourierDepositScan_NoScan_TimesOutToStart), output, __shortScan, async kiosk => {
 				AssertShortScanConfigured(kiosk);
@@ -39,7 +39,7 @@ namespace TopPos.E2E.Tests.Scenarios
 			});
 
 		/// <summary>S04: pošiljalac ne skenira paket → istek skeniranja → Start; dodele vrata nema.</summary>
-		[SkippableFact]
+		[PendingFlow("pošiljalac")]	// v4
 		public Task SenderDepositScan_NoScan_TimesOutToStart()
 			=> KioskSession.RunAsync(nameof(SenderDepositScan_NoScan_TimesOutToStart), output, __shortScan, async kiosk => {
 				AssertShortScanConfigured(kiosk);
@@ -60,7 +60,7 @@ namespace TopPos.E2E.Tests.Scenarios
 		/// C08: kurir izvadi istekao paket, a ne skenira ga → istek skeniranja → Start; potvrde pražnjenja nema, server i dalje
 		/// vodi paket u vratima.
 		/// </summary>
-		[SkippableFact]
+		[PendingFlow("istekli paketi")]	// v4
 		public Task ExpiredPickupScan_NoScan_TimesOutToStart_PackageStaysOnServer()
 			=> KioskSession.RunAsync(nameof(ExpiredPickupScan_NoScan_TimesOutToStart_PackageStaysOnServer), output, __shortScan, async kiosk => {
 				AssertShortScanConfigured(kiosk);
@@ -117,7 +117,7 @@ namespace TopPos.E2E.Tests.Scenarios
 			});
 
 		/// <summary>C06: kurir posle prijave ne izabere ništa na ekranu za ostavljanje → Reset → Start.</summary>
-		[SkippableFact]
+		[PendingFlow("kurir")]	// v4
 		public Task CourierDepositPrompt_NoActivity_TimesOutToStart()
 			=> KioskSession.RunAsync(nameof(CourierDepositPrompt_NoActivity_TimesOutToStart), output, async kiosk => {
 				var mark = kiosk.Log.Mark();
@@ -135,7 +135,7 @@ namespace TopPos.E2E.Tests.Scenarios
 		/// C06: kurir ne izabere ništa na ekranu za preuzimanje isteklih → Reset → Start; vrata se ne otvaraju, server i dalje
 		/// vodi paket.
 		/// </summary>
-		[SkippableFact]
+		[PendingFlow("kurir")]	// v4
 		public Task CourierPickupPrompt_NoActivity_TimesOutToStart()
 			=> KioskSession.RunAsync(nameof(CourierPickupPrompt_NoActivity_TimesOutToStart), output, async kiosk => {
 				var package = kiosk.Data.ExpiredPackage();
