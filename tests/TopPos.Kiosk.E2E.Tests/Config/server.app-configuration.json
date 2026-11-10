@@ -1,0 +1,12 @@
+{
+  "Server": {
+    "Port": {{ServerPort}},
+    "PathPrefix": "/Api",
+    "BindAddress": "localhost",
+    "EnableControlApi": true
+  },
+  "DefaultCourierCode": "K001",
+  "CourierQrCodes": [ "{{CourierQrCode}}" ],
+  "PaketomatId": "{{LockerId}}",
+  "DoorCount": 48
+}
