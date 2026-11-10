@@ -1,4 +1,4 @@
-using TopPos.Client.WPF.Workflow;
+using TopPos.Kiosk.Workflow;
 
 namespace TopPos.E2E.Tests.Infrastructure
 {

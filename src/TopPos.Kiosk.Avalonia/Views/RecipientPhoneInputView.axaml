@@ -4,6 +4,7 @@
              xmlns:vm="using:TopPos.Kiosk.ViewModels"
              xmlns:c="using:TopPos.Kiosk.UI.Controls"
              x:Class="TopPos.Kiosk.UI.Views.RecipientPhoneInputView"
+             AutomationProperties.AutomationId="Page.RecipientPhoneInputPage"
              x:DataType="vm:RecipientPhoneInputViewModel">
 	<Grid ColumnDefinitions="2*,2*,*">
 		<!-- Levo: uputstvo -->

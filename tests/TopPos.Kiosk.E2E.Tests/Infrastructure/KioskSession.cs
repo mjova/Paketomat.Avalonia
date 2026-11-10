@@ -1,56 +1,63 @@
 using System.Diagnostics;
+using System.Runtime.InteropServices;
+using System.Text.Json;
 using System.Text.Json.Nodes;
-using TopPos.Client.WPF.Workflow;
+using TopPos.Kiosk.Workflow;
 using Xunit.Abstractions;
 
 namespace TopPos.E2E.Tests.Infrastructure
 {
 	/// <summary>
-	/// Jedan E2E test = jedna sesija: nova kopija sandbox-a i restart sva tri procesa (ServerSimulator →
-	/// LockerSimulator → klijent), na kraju gašenje sva tri i čekanje izlaska pre ponovne upotrebe portova.
-	/// Simulatori nose stanje koje reset ne čisti pouzdano (POS podešavanja i kvarovi, blokirana vrata, zahtevi u
-	/// toku), pa je restart jedina pouzdana granica izolacije (doc/plan-e2e-ui-testing.md, sekcija 3.7).
+	/// Jedan E2E test = jedna sesija: nova kopija sandbox-a i restart svih procesa (simulatori → klijent), na kraju gašenje
+	/// i čekanje izlaska. Simulatori nose stanje koje reset ne čisti pouzdano (POS podešavanja i kvarovi, blokirana vrata,
+	/// zahtevi u toku), pa je restart jedina pouzdana granica izolacije (doc/plan-e2e-ui-testing.md u v2, sekcija 3.7).
+	/// v4: server i paketomat su jedan proces <c>TopPos.Simulators both</c> na slobodnim portovima (READY red ih javlja), pa
+	/// se konfiguracija klijenta piše tek kad simulatori rade; uz <c>--parent-pid</c> simulatori ne nadžive test proces.
 	/// </summary>
 	public sealed class KioskSession : IAsyncDisposable
 	{
-		private static readonly TimeSpan __simulatorStartTimeout = TimeSpan.FromSeconds(20);
+		private static readonly TimeSpan __simulatorStartTimeout = TimeSpan.FromSeconds(30);
 		private static readonly TimeSpan __clientStartTimeout = TimeSpan.FromSeconds(60);
 		private static readonly TimeSpan __exitTimeout = TimeSpan.FromSeconds(15);
 		private static readonly TimeSpan __sessionLockTimeout = TimeSpan.FromMinutes(5);
 
-		private static readonly string[] __singleInstanceMutexes = [
-			"TopPos.Client.WPF.SingleInstance",
-			"TopPos.ServerSimulator.SingleInstance",
-			"TopPos.LockerSimulator.SingleInstance",
-		];
+		private const string KioskProcess = "TopPos.Kiosk";
+		private const string SimulatorsProcess = "TopPos.Simulators";
+		/// <summary>Windows: isti mutex kao v2 klijent (WindowsSingleInstanceGuard.V2MutexName).</summary>
+		private const string KioskMutex = "TopPos.Client.WPF.SingleInstance";
+		/// <summary>Linux: LinuxSingleInstanceGuard (/run/lock, inače /tmp).</summary>
+		private static readonly string __kioskLockFile = Path.Combine(System.IO.Directory.Exists("/run/lock") ? "/run/lock" : "/tmp", "toppos-kiosk.lock");
 
 		private readonly ITestOutputHelper _output;
 		// Process objekti iz Start-a, do kraja sesije: preko njih se gasi i oni se Dispose-uju. Neoslobođena ručka drži završen
 		// proces u spisku procesa, pa ga je sledeći test video kao zaostali (lažna uzbuna, 2026-10-08).
 		private readonly List<(Process Process, string Name)> _processes = [];
+		private readonly KioskOptions? _options;
 		private Process? _client;
+		private Process? _simulators;
+		private StreamWriter? _simulatorsLog;
 		private bool _disposed;
 		private FileStream? _sessionLock;
 
-		private KioskSession(E2ESettings settings, string directory, LockerLayout layout, ITestOutputHelper output)
+		private KioskSession(E2ESettings settings, string directory, KioskOptions? options, ITestOutputHelper output)
 		{
 			Settings = settings;
 			Directory = directory;
+			_options = options;
 			_output = output;
-			Server = new ServerSim(settings.ServerPort);
-			Locker = new LockerSim(settings.LockerApiPort);
 			Log = new ClientLog(ClientDirectory);
-			Data = new TestData(settings, layout);
+			Data = new TestData(settings, options?.Layout ?? LockerLayout.Ncu24L);
 		}
 
 		public E2ESettings Settings { get; }
 		public string Directory { get; }
-		public string ServerDirectory => Path.Combine(Directory, "server");
-		public string LockerDirectory => Path.Combine(Directory, "locker");
+		public string SimulatorsDirectory => Path.Combine(Directory, "simulators");
 		public string ClientDirectory => Path.Combine(Directory, "client");
 
-		public ServerSim Server { get; }
-		public LockerSim Locker { get; }
+		/// <summary>Kontrolni API simulatora servera; postoji kad simulatori jave da su spremni.</summary>
+		public ServerSim Server { get; private set; } = default!;
+		/// <summary>Kontrolni API simulatora paketomata; postoji kad simulatori jave da su spremni.</summary>
+		public LockerSim Locker { get; private set; } = default!;
 		public ClientLog Log { get; }
 		public KioskUi Ui { get; private set; } = default!;
 		public TestData Data { get; }
@@ -97,7 +104,6 @@ namespace TopPos.E2E.Tests.Infrastructure
 		public static async Task RunAsync(string testName, ITestOutputHelper output, KioskOptions? options, Func<KioskSession, Task> scenario)
 		{
 			E2ESettings.RequireEnabled();
-			ScreenCheck.EnsureClientWindowFits();
 			await using var kiosk = await StartAsync(testName, output, options).ConfigureAwait(false);
 			try {
 				await scenario(kiosk).ConfigureAwait(false);
@@ -163,7 +169,7 @@ namespace TopPos.E2E.Tests.Infrastructure
 
 				Sandbox.DeleteStaleRuns(settings.SandboxRoot);
 				var directory = Path.Combine(settings.SandboxRoot, $"{DateTime.Now:yyyyMMdd-HHmmss}-{testName}");
-				session = new KioskSession(settings, directory, options?.Layout ?? LockerLayout.Ncu24L, output) { _sessionLock = sessionLock };
+				session = new KioskSession(settings, directory, options, output) { _sessionLock = sessionLock };
 			}
 			catch {
 				sessionLock.Dispose();
@@ -172,9 +178,9 @@ namespace TopPos.E2E.Tests.Infrastructure
 			// Od ovde bravu drži sesija: svaki izlaz kroz izuzetak mora proći kroz DisposeAsync.
 			try {
 				output.WriteLine($"Sandbox: {session.Directory}");
-				session.PrepareSandbox(options);
+				session.PrepareSandbox();
 				session.Trace("sandbox spreman");
-				await session.StartProcessesAsync(options).ConfigureAwait(false);
+				await session.StartProcessesAsync().ConfigureAwait(false);
 			}
 			catch (Exception ex) {
 				try {
@@ -219,21 +225,22 @@ namespace TopPos.E2E.Tests.Infrastructure
 		}
 
 		/// <summary>
-		/// Gasi procese klijenta i simulatora čiji je exe ispod <paramref name="directory"/>: pri startu u celom sandbox korenu
-		/// (zaostali iz prekinutog pokretanja — prekinut test proces ne stigne do DisposeAsync), na kraju sesije u sandbox-u
-		/// testa (ono što gašenje nije ugasilo). Razvojnu instancu van sandbox-a ne dira; nju odbija
+		/// Gasi procese klijenta i simulatora čiji je program ispod <paramref name="directory"/>: pri startu u celom sandbox
+		/// korenu (zaostali iz prekinutog pokretanja — prekinut test proces ne stigne do DisposeAsync), na kraju sesije u
+		/// sandbox-u testa (ono što gašenje nije ugasilo). Razvojnu instancu van sandbox-a ne dira; nju odbija
 		/// <see cref="EnsureNothingRunningAsync"/>.
 		/// </summary>
 		private static async Task KillProcessesUnderAsync(string directory, Action<string> report)
 		{
 			var root = Path.GetFullPath(directory) + Path.DirectorySeparatorChar;
-			foreach (var name in new[] { "TopPos.Client.WPF", "TopPos.LockerSimulator", "TopPos.ServerSimulator" }) {
+			var comparison = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+			foreach (var name in new[] { KioskProcess, SimulatorsProcess }) {
 				foreach (var process in Process.GetProcessesByName(name)) {
 					using (process) {
 						try {
 							// Izašao proces ostaje u spisku dok neko drži ručku na njega — nije zaostao i ne prijavljuje se.
 							if (!process.HasExited
-								&& process.MainModule?.FileName is { } path && path.StartsWith(root, StringComparison.OrdinalIgnoreCase)) {
+								&& process.MainModule?.FileName is { } path && path.StartsWith(root, comparison)) {
 								report($"{path} (pid {process.Id})");
 								process.Kill(entireProcessTree: true);
 								using var cts = new CancellationTokenSource(__exitTimeout);
@@ -254,114 +261,190 @@ namespace TopPos.E2E.Tests.Infrastructure
 		}
 
 		/// <summary>
-		/// Single-instance mutex-i ne smeju postojati (inače se novi proces tiho ugasi). Kratko se čeka, jer mutex
-		/// upravo ugašenog procesa (zaostali ili prethodni test) ne nestaje istog trenutka.
+		/// Zaštita od druge instance kioska ne sme biti zauzeta (inače se novi proces tiho ugasi). Kratko se čeka, jer
+		/// zaštita upravo ugašenog procesa (zaostali ili prethodni test) ne nestaje istog trenutka.
 		/// </summary>
 		private static async Task EnsureNothingRunningAsync()
 		{
-			string? held = null;
 			try {
-				await Poll.UntilAsync(() => (held = __singleInstanceMutexes.FirstOrDefault(IsMutexHeld)) == null,
-										TimeSpan.FromSeconds(5), "oslobađanje single-instance mutex-a").ConfigureAwait(false);
+				await Poll.UntilAsync(() => !IsKioskInstanceHeld(), TimeSpan.FromSeconds(5), "oslobađanje zaštite od druge instance kioska").ConfigureAwait(false);
 			}
 			catch (E2ETimeoutException) {
-				throw new E2EException($"Već radi proces sa mutex-om {held} — zatvoriti razvojnu instancu pre E2E testova.");
+				throw new E2EException($"Već radi kiosk ({(OperatingSystem.IsWindows() ? KioskMutex : __kioskLockFile)}) — zatvoriti razvojnu instancu pre E2E testova.");
 			}
 		}
 
-		private static bool IsMutexHeld(string name)
+		private static bool IsKioskInstanceHeld()
 		{
-			if (!Mutex.TryOpenExisting(name, out var mutex)) {
+			if (OperatingSystem.IsWindows()) {
+				if (!Mutex.TryOpenExisting(KioskMutex, out var mutex)) {
+					return false;
+				}
+				mutex.Dispose();
+				return true;
+			}
+			try {
+				// LinuxSingleInstanceGuard drži fajl otvoren ekskluzivno; fajl bez vlasnika ostaje posle izlaska
+				using var probe = new FileStream(__kioskLockFile, FileMode.Open, FileAccess.Read, FileShare.None);
 				return false;
 			}
-			mutex.Dispose();
-			return true;
+			catch (FileNotFoundException) {
+				return false;
+			}
+			catch (IOException) {
+				return true;
+			}
+			catch (UnauthorizedAccessException) {
+				return false;	// tuđ fajl bez prava čitanja — kiosk ga otvara sam i javlja grešku
+			}
 		}
 
-		/// <summary>Vrednosti za {{...}} u šablonima iz Config\.</summary>
-		public static Dictionary<string, string> ConfigurationTokens(E2ESettings settings)
+		/// <summary>
+		/// Vrednosti za {{...}} u šablonima iz Config\. Portovi servera i NCU24L simulatora poznati su tek iz READY reda
+		/// (<see cref="StartProcessesAsync"/>); bez njih (0) šablon klijenta se može upisati samo za proveru rasporeda.
+		/// </summary>
+		public static Dictionary<string, string> ConfigurationTokens(E2ESettings settings, int serverPort = 0, int lockerTcpPort = 0)
 			=> new() {
-				["ServerPort"] = settings.ServerPort.ToString(),
-				["LockerTcpPort"] = settings.LockerTcpPort.ToString(),
-				["LockerApiPort"] = settings.LockerApiPort.ToString(),
+				["ServerPort"] = serverPort.ToString(),
+				["LockerTcpPort"] = lockerTcpPort.ToString(),
 				["ScannerClientPort"] = settings.ScannerClientPort,
 				["ScannerSimulatorPort"] = settings.ScannerSimulatorPort,
 				["PosClientPort"] = settings.PosClientPort,
 				["PosSimulatorPort"] = settings.PosSimulatorPort,
+				// Linux: simulator pravi pty par i symlink na putanji koju otvara klijent; Windows: com0com, polje prazno
+				["ScannerKioskPort"] = settings.UsesVirtualSerialPairs ? settings.ScannerClientPort : "",
+				["PosKioskPort"] = settings.UsesVirtualSerialPairs ? settings.PosClientPort : "",
+				["LockerKioskPort"] = settings.UsesVirtualSerialPairs ? settings.LockerClientPort : "",
 				["LockerId"] = settings.LockerId,
 				["CourierQrCode"] = settings.CourierQrCode,
 			};
 
-		private void PrepareSandbox(KioskOptions? options)
+		public string ServerConfigurationPath => Path.Combine(SimulatorsDirectory, "server.app-configuration.json");
+		public string LockerConfigurationPath => Path.Combine(SimulatorsDirectory, "locker.app-configuration.json");
+
+		private void PrepareSandbox()
 		{
 			var tokens = ConfigurationTokens(Settings);
-			foreach (var (project, directory, template, configure) in new (string, string, string, Action<JsonObject>?)[] {
-						("TopPos.ServerSimulator", ServerDirectory, "server.app-configuration.json", options?.ConfigureServer),
-						("TopPos.LockerSimulator", LockerDirectory, "locker.app-configuration.json", options?.ConfigureLocker),
-						("TopPos.Client.WPF", ClientDirectory, "client.app-configuration.json", options?.ConfigureClient) }) {
-				Sandbox.CopyBinaries(Settings.ProjectOutput(project), directory);
-				Sandbox.AssertClean(directory);
-				Sandbox.WriteConfiguration(template, Path.Combine(directory, "app-configuration.json"), tokens, configure);
-			}
-			// Posle AssertClean: priprema sme da upiše i runtime fajlove koje provera inače odbija.
-			options?.PrepareClientDirectory?.Invoke(ClientDirectory);
+			Sandbox.CopyBinaries(Settings.SimulatorsOutput, SimulatorsDirectory);
+			Sandbox.AssertClean(SimulatorsDirectory);
+			Sandbox.WriteConfiguration("server.app-configuration.json", ServerConfigurationPath, tokens, _options?.ConfigureServer);
+			Sandbox.WriteConfiguration("locker.app-configuration.json", LockerConfigurationPath, tokens, _options?.ConfigureLocker);
+
+			Sandbox.CopyBinaries(Settings.KioskOutput, ClientDirectory);
+			Sandbox.AssertClean(ClientDirectory);
+			// Konfiguraciju klijenta i pripremu foldera radi StartProcessesAsync (portovi simulatora).
 		}
 
-		private async Task StartProcessesAsync(KioskOptions? options)
+		private async Task StartProcessesAsync()
 		{
-			Start(ServerDirectory, "TopPos.ServerSimulator.exe");
-			await Poll.UntilAsync(Server.IsUpAsync, __simulatorStartTimeout, "ServerSimulator /_sim/health").ConfigureAwait(false);
-			Trace("ServerSimulator gore");
+			var ready = await StartSimulatorsAsync().ConfigureAwait(false);
+			int serverPort = ready.GetProperty("server").GetProperty("port").GetInt32();
+			var locker = ready.GetProperty("locker");
+			int lockerTcpPort = locker.GetProperty("tcpPort").ValueKind == JsonValueKind.Number ? locker.GetProperty("tcpPort").GetInt32() : 0;
+			Server = new ServerSim(serverPort);
+			Locker = new LockerSim(locker.GetProperty("controlApiPort").GetInt32());
+			Trace($"simulatori gore: {ready.GetRawText()}");
 
-			Start(LockerDirectory, "TopPos.LockerSimulator.exe");
-			await Poll.UntilAsync(Locker.IsUpAsync, __simulatorStartTimeout, "LockerSimulator /_sim/health").ConfigureAwait(false);
-			Trace("LockerSimulator gore");
+			Sandbox.WriteConfiguration("client.app-configuration.json", Path.Combine(ClientDirectory, "app-configuration.json"),
+										ConfigurationTokens(Settings, serverPort, lockerTcpPort), _options?.ConfigureClient);
+			// Posle AssertClean i upisa konfiguracije: priprema sme da upiše i runtime fajlove koje provera inače odbija.
+			_options?.PrepareClientDirectory?.Invoke(ClientDirectory);
 
-			if (options?.BeforeClientStartAsync is { } beforeClientStart) {
+			if (_options?.BeforeClientStartAsync is { } beforeClientStart) {
 				await beforeClientStart(this).ConfigureAwait(false);
 				Trace("priprema pre starta klijenta završena");
 			}
-			await StartClientAsync(options?.StartsOutOfOrder == true).ConfigureAwait(false);
+			await StartClientAsync(_options?.StartsOutOfOrder == true).ConfigureAwait(false);
 		}
 
 		/// <summary>
-		/// Kraj Windows sesije kao pri odjavi: <c>WM_QUERYENDSESSION</c>, pa <c>WM_ENDSESSION</c> svim top-level prozorima
-		/// klijenta (<see cref="WindowsSessionEnd"/>), a odmah posle toga Kill — posle <c>WM_ENDSESSION</c> Windows sme da ugasi
-		/// proces u svakom trenutku. Vraća odgovore na <c>WM_QUERYENDSESSION</c>; klijent posle ovoga više ne radi.
+		/// <c>TopPos.Simulators both</c>; čeka READY red (portovi, serijski portovi klijenta). Izlaz simulatora ide u
+		/// simulators.log u sandbox-u (stderr je njihov log).
 		/// </summary>
-		public async Task<IReadOnlyList<bool>> EndWindowsSessionAsync()
+		private async Task<JsonElement> StartSimulatorsAsync()
 		{
-			var client = _client ?? throw new E2EException("Klijent nije pokrenut.");
-			Trace($"kraj Windows sesije (odjava), pid {client.Id}");
-			var answers = WindowsSessionEnd.Send(client.Id, __exitTimeout, Trace);
-			bool exitedAlone = client.HasExited;
-			if (!exitedAlone) {
-				client.Kill(entireProcessTree: true);
+			var info = new ProcessStartInfo(Executable(SimulatorsDirectory, SimulatorsProcess)) {
+				WorkingDirectory = SimulatorsDirectory,
+				UseShellExecute = false,
+				RedirectStandardOutput = true,
+				RedirectStandardError = true,
+			};
+			foreach (var arg in new[] { "both", "--server-config", ServerConfigurationPath, "--locker-config", LockerConfigurationPath,
+										"--parent-pid", Environment.ProcessId.ToString() }) {
+				info.ArgumentList.Add(arg);
 			}
+			var readyLine = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+			var recent = new Queue<string>();	// za poruku kad start ne uspe (fajl je samo uz to)
+			_simulatorsLog = TryOpenLog(Path.Combine(Directory, "simulators.log"));
+			// Poziva se sa ThreadPool niti procesa: izuzetak odavde bi oborio testhost (i preskočio gašenje) — ne sme da baci.
+			void Append(string? line, bool stdout)
+			{
+				if (line == null) {
+					return;
+				}
+				if (stdout && line.StartsWith("READY ", StringComparison.Ordinal)) {
+					readyLine.TrySetResult(line["READY ".Length..]);
+				}
+				lock (recent) {
+					recent.Enqueue(line);
+					if (recent.Count > 200) {
+						recent.Dequeue();
+					}
+					try {
+						_simulatorsLog?.WriteLine(line);
+					}
+					catch (Exception) {
+						// pun disk i slično: log simulatora je dijagnostika, ne uslov testa
+					}
+				}
+			}
+			var process = new Process { StartInfo = info };
+			process.OutputDataReceived += (_, e) => Append(e.Data, stdout: true);
+			process.ErrorDataReceived += (_, e) => Append(e.Data, stdout: false);
+			if (!process.Start()) {
+				throw new E2EException($"Pokretanje {SimulatorsProcess} nije uspelo");
+			}
+			_simulators = process;
+			_processes.Add((process, SimulatorsProcess));
+			process.BeginOutputReadLine();
+			process.BeginErrorReadLine();
+
+			var exited = process.WaitForExitAsync();
+			var done = await Task.WhenAny(readyLine.Task, exited, Task.Delay(__simulatorStartTimeout)).ConfigureAwait(false);
+			if (done != readyLine.Task) {
+				string log;
+				lock (recent) {
+					log = string.Join(Environment.NewLine, recent);
+				}
+				throw new E2EException(done == exited
+					? $"Simulatori su izašli pre READY (exit code {process.ExitCode}):{Environment.NewLine}{log}"
+					: $"Simulatori nisu javili READY za {__simulatorStartTimeout.TotalSeconds:0} s:{Environment.NewLine}{log}");
+			}
+			return JsonDocument.Parse(await readyLine.Task.ConfigureAwait(false)).RootElement.Clone();
+		}
+
+		/// <summary>simulators.log u sandbox-u; deljen za čitanje dok testovi rade. Null ako ne može da se otvori.</summary>
+		private static StreamWriter? TryOpenLog(string path)
+		{
 			try {
-				using var cts = new CancellationTokenSource(__exitTimeout);
-				await client.WaitForExitAsync(cts.Token).ConfigureAwait(false);
+				return new StreamWriter(new FileStream(path, FileMode.Append, FileAccess.Write, FileShare.ReadWrite | FileShare.Delete)) { AutoFlush = true };
 			}
-			catch (OperationCanceledException) {
-				throw new E2EException($"Klijent (pid {client.Id}) nije izašao za {__exitTimeout.TotalSeconds:0} s posle Kill-a.");
+			catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) {
+				return null;
 			}
-			Trace(exitedAlone ? "klijent je izašao pre Kill-a" : "klijent ugašen Kill-om posle WM_ENDSESSION");
-			return answers;
 		}
 
 		/// <summary>
 		/// Restart samo klijenta u istom sandbox-u — simulatori rade dalje, fajlovi stanja klijenta ostaju.
-		/// <paramref name="hard"/> = Kill (glumi pad programa ili nestanak struje); inače uredno gašenje zatvaranjem glavnog
-		/// prozora (WM_CLOSE → Application.Shutdown → OnExit). Ne Esc: taster stiže samo prozoru u prvom planu, a Windows
-		/// procesu testa ne dozvoljava uvek SetForeground. Na VM-u 20.10.2026 (prvi test pokretanja, bez klika mišem pre toga)
-		/// klijent posle Esc-a nije ni ušao u OnExit — verovatno je taster otišao drugom prozoru. Posle restarta <see cref="Ui"/> je nova veza;
-		/// log se nastavlja u istom dnevnom fajlu, pa kursori uzeti pre restarta ostaju važeći.
+		/// <paramref name="hard"/> = Kill (glumi pad programa ili nestanak struje); inače uredno gašenje
+		/// (<see cref="CloseClientWindow"/>). Posle restarta <see cref="Ui"/> je nova veza; log se nastavlja u istom dnevnom
+		/// fajlu, pa kursori uzeti pre restarta ostaju važeći.
 		/// </summary>
 		/// <param name="afterExit">Poziva se posle izlaska starog procesa, pre starta novog (npr. čitanje fajlova koje novi menja).</param>
 		public async Task RestartClientAsync(bool hard, Action? afterExit = null)
 		{
 			var old = _client ?? throw new E2EException("Klijent nije pokrenut.");
-			Trace($"restart klijenta: {(hard ? "kill" : "uredno gašenje (WM_CLOSE)")}, pid {old.Id}");
+			Trace($"restart klijenta: {(hard ? "kill" : "uredno gašenje")}, pid {old.Id}");
 			if (hard) {
 				old.Kill(entireProcessTree: true);
 			}
@@ -373,7 +456,7 @@ namespace TopPos.E2E.Tests.Infrastructure
 				await old.WaitForExitAsync(cts.Token).ConfigureAwait(false);
 			}
 			catch (OperationCanceledException) {
-				throw new E2EException($"Klijent (pid {old.Id}) nije izašao za {__exitTimeout.TotalSeconds:0} s posle {(hard ? "Kill-a" : "zatvaranja prozora")}.");
+				throw new E2EException($"Klijent (pid {old.Id}) nije izašao za {__exitTimeout.TotalSeconds:0} s posle {(hard ? "Kill-a" : "zahteva za gašenje")}.");
 			}
 			Ui.Dispose();
 			_processes.RemoveAll(p => ReferenceEquals(p.Process, old));
@@ -382,10 +465,17 @@ namespace TopPos.E2E.Tests.Infrastructure
 			await StartClientAsync().ConfigureAwait(false);
 		}
 
-		/// <summary>Počinje uredno gašenje (WM_CLOSE glavnom prozoru); ne čeka izlazak procesa.</summary>
+		/// <summary>
+		/// Počinje uredno gašenje klijenta; ne čeka izlazak procesa. Windows: WM_CLOSE glavnom prozoru (v2; ne Esc — taster
+		/// stiže samo prozoru u prvom planu). v4, Linux: SIGTERM, kao systemd.
+		/// </summary>
 		public void CloseClientWindow()
 		{
 			var client = _client ?? throw new E2EException("Klijent nije pokrenut.");
+			if (!OperatingSystem.IsWindows()) {
+				Terminate(client);
+				return;
+			}
 			client.Refresh();	// MainWindowHandle se kešira; prozor je nastao posle Start-a
 			if (!client.CloseMainWindow()) {
 				throw new E2EException($"Klijent (pid {client.Id}) nema glavni prozor za zatvaranje.");
@@ -396,7 +486,11 @@ namespace TopPos.E2E.Tests.Infrastructure
 		private async Task StartClientAsync(bool outOfOrder = false)
 		{
 			int logMark = Log.Mark();
-			_client = Start(ClientDirectory, "TopPos.Client.WPF.exe");
+			_client = Process.Start(new ProcessStartInfo(Executable(ClientDirectory, KioskProcess)) {
+				WorkingDirectory = ClientDirectory,
+				UseShellExecute = false,
+			}) ?? throw new E2EException($"Pokretanje {KioskProcess} nije uspelo");
+			_processes.Add((_client, KioskProcess));
 			Trace($"klijent pokrenut (pid {_client.Id})");
 			Ui = await KioskUi.AttachAsync(_client, __clientStartTimeout, EnsureClientAlive, Trace).ConfigureAwait(false);
 			if (outOfOrder) {
@@ -414,14 +508,16 @@ namespace TopPos.E2E.Tests.Infrastructure
 			Trace("klijent spreman (inicijalizacija završena)");
 		}
 
-		private Process Start(string directory, string exe)
+		/// <summary>Program iz build izlaza (apphost): <c>X.exe</c> na Windows-u, <c>X</c> na Linuxu.</summary>
+		private static string Executable(string directory, string name)
+			=> Path.Combine(directory, OperatingSystem.IsWindows() ? name + ".exe" : name);
+
+		/// <summary>Linux: SIGTERM (uredno gašenje, kao systemd).</summary>
+		private static void Terminate(Process process)
 		{
-			var process = Process.Start(new ProcessStartInfo(Path.Combine(directory, exe)) {
-				WorkingDirectory = directory,	// klijent i simulatori čitaju konfiguraciju iz tekućeg direktorijuma
-				UseShellExecute = false,
-			}) ?? throw new E2EException($"Pokretanje {exe} nije uspelo");
-			_processes.Add((process, exe));
-			return process;
+			if (kill(process.Id, __sigterm) != 0) {
+				throw new E2EException($"SIGTERM procesu {process.Id} nije uspeo (errno {Marshal.GetLastPInvokeError()}).");
+			}
 		}
 
 		/// <summary>Čeka prelaz u stanje posle kursora, uz proveru da je klijent živ.</summary>
@@ -453,7 +549,7 @@ namespace TopPos.E2E.Tests.Infrastructure
 			}
 		}
 
-		/// <summary>Gasi sva tri procesa i čeka da izađu. Ne baca (poziva se i iz catch-a pri neuspelom startu).</summary>
+		/// <summary>Gasi sve procese i čeka da izađu. Ne baca (poziva se i iz catch-a pri neuspelom startu).</summary>
 		public async ValueTask DisposeAsync()
 		{
 			if (_disposed) {
@@ -465,14 +561,27 @@ namespace TopPos.E2E.Tests.Infrastructure
 					Ui?.Dispose();
 				}
 				catch (Exception ex) {
-					Trace($"zatvaranje UIA nije uspelo: {ex.Message}");
+					Trace($"zatvaranje UI veze nije uspelo: {ex.Message}");
 				}
 				// Obrnutim redom: klijent prvo (da ne prijavljuje greške dok simulatori nestaju).
 				foreach (var (process, name) in Enumerable.Reverse(_processes)) {
 					int id = process.Id;
 					try {
 						if (!process.HasExited) {
-							process.Kill(entireProcessTree: true);
+							// v4, Linux: simulatori uredno (SIGTERM), da obrišu symlink-ove pty parova; ako ne izađu — Kill
+							if (!OperatingSystem.IsWindows() && ReferenceEquals(process, _simulators)) {
+								Terminate(process);
+								using var graceful = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+								try {
+									await process.WaitForExitAsync(graceful.Token).ConfigureAwait(false);
+								}
+								catch (OperationCanceledException) {
+									Trace($"{name} (pid {id}) nije izašao posle SIGTERM — Kill");
+								}
+							}
+							if (!process.HasExited) {
+								process.Kill(entireProcessTree: true);
+							}
 						}
 						using var cts = new CancellationTokenSource(__exitTimeout);
 						await process.WaitForExitAsync(cts.Token).ConfigureAwait(false);
@@ -494,10 +603,28 @@ namespace TopPos.E2E.Tests.Infrastructure
 				Trace("procesi ugašeni");
 			}
 			finally {
-				Server.Dispose();
-				Locker.Dispose();
-				_sessionLock?.Dispose();	// tek posle gašenja procesa: sledeća sesija zatiče slobodne portove i mutex-e
+				Server?.Dispose();
+				Locker?.Dispose();
+				DisposeSimulatorsLog();
+				_sessionLock?.Dispose();	// tek posle gašenja procesa: sledeća sesija zatiče slobodnu zaštitu kioska
 			}
 		}
+
+
+		private void DisposeSimulatorsLog()
+		{
+			// procesi su ugašeni; zakasneli callback izlaza dobija ObjectDisposedException, koji Append guta
+			try {
+				_simulatorsLog?.Dispose();
+			}
+			catch (Exception) {
+			}
+			_simulatorsLog = null;
+		}
+
+		private const int __sigterm = 15;
+
+		[DllImport("libc", SetLastError = true)]
+		private static extern int kill(int pid, int sig);
 	}
 }

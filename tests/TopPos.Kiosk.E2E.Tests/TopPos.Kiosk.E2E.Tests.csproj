@@ -1,0 +1,48 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- E2E testovi kioska (v2 Tests/TopPos.E2E.Tests): pravi kiosk, simulatori (TopPos.Simulators) i UI preko pristupačnosti —
+       Windows UI Automation (FlaUI), Linux AT-SPI. Rade samo uz TOPPOS_E2E=1 i otključan desktop; inače se preskaču.
+       Namespace-i kao u v2, da izmene scenarija iz v2 prolaze. -->
+  <PropertyGroup>
+    <RootNamespace>TopPos.E2E.Tests</RootNamespace>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <!-- FlaUI (Windows UI Automation) traži Windows Desktop TFM; na Linuxu se gradi bez njega (UI preko AT-SPI). -->
+  <PropertyGroup Condition="'$(OS)' == 'Windows_NT'">
+    <TargetFramework>net10.0-windows</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(OS)' == 'Windows_NT'">
+    <PackageReference Include="FlaUI.UIA3" />
+    <!-- FlaUI vuče 5.0.2 (poznata ranjivost) -->
+    <PackageReference Include="System.Drawing.Common" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(OS)' != 'Windows_NT'">
+    <Compile Remove="Infrastructure\UiaKioskUi.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="Xunit.SkippableFact" />
+    <PackageReference Include="xunit.runner.visualstudio">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- WorkflowState i log prelaza mašine stanja -->
+    <ProjectReference Include="..\..\src\TopPos.Kiosk.Core\TopPos.Kiosk.Core.csproj" />
+    <!-- Samo redosled build-a: testovi pokreću izlaze ovih projekata iz njihovih bin foldera -->
+    <ProjectReference Include="..\..\src\TopPos.Kiosk.Avalonia\TopPos.Kiosk.Avalonia.csproj" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\..\tools\TopPos.Simulators\TopPos.Simulators.csproj" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="Config\*.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

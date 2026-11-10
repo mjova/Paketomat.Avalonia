@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:TopPos.Kiosk.ViewModels"
              x:Class="TopPos.Kiosk.UI.Views.RecipientPaymentView"
+             AutomationProperties.AutomationId="Page.RecipientPaymentPage"
              x:DataType="vm:RecipientPaymentViewModel">
 	<Grid RowDefinitions="3*,4*">
 		<!-- Gore: tok plaćanja i iznos -->

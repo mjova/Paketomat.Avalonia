@@ -54,14 +54,15 @@ namespace TopPos.E2E.Tests.Harness
 		{
 			Directory.CreateDirectory(_root);
 			var target = Path.Combine(_root, "app-configuration.json");
-			var tokens = new Dictionary<string, string> { ["ServerPort"] = "5191", ["LockerId"] = "111", ["CourierQrCode"] = "KURIR-E2E-1" };
+			var tokens = new Dictionary<string, string> { ["LockerId"] = "111", ["CourierQrCode"] = "KURIR-E2E-1" };
 
 			Sandbox.WriteConfiguration("server.app-configuration.json", target, tokens,
 										c => c["CourierQrCodes"]!.AsArray().Add("QR-M1;4321"));
 
 			var written = JsonNode.Parse(File.ReadAllText(target))!;
 			Assert.Equal(["KURIR-E2E-1", "QR-M1;4321"], written["CourierQrCodes"]!.AsArray().Select(n => n!.GetValue<string>()));
-			Assert.Equal(5191, written["Server"]!["Port"]!.GetValue<int>());
+			// v4: port servera nije token (0 = slobodan port, simulator ga javlja u READY redu)
+			Assert.Equal("111", written["PaketomatId"]!.GetValue<string>());
 		}
 
 		public void Dispose()

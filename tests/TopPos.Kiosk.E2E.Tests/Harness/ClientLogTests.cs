@@ -1,5 +1,5 @@
 using System.Text;
-using TopPos.Client.WPF.Workflow;
+using TopPos.Kiosk.Workflow;
 using TopPos.E2E.Tests.Infrastructure;
 using Xunit;
 

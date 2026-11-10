@@ -4,6 +4,7 @@
              xmlns:vm="using:TopPos.Kiosk.ViewModels"
              xmlns:c="using:TopPos.Kiosk.UI.Controls"
              x:Class="TopPos.Kiosk.UI.Views.RecipientCodeInputView"
+             AutomationProperties.AutomationId="Page.RecipientCodeInputPage"
              x:DataType="vm:RecipientCodeInputViewModel">
 	<Grid ColumnDefinitions="2*,*,2*">
 		<!-- Levo: uputstvo i animacija skeniranja QR koda -->

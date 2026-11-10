@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:TopPos.Kiosk.ViewModels"
              x:Class="TopPos.Kiosk.UI.Views.RecipientPackagePickupView"
+             AutomationProperties.AutomationId="Page.RecipientPackagePickupPage"
              x:DataType="vm:RecipientPackagePickupViewModel">
 	<Panel>
 		<Image Classes="zoom"

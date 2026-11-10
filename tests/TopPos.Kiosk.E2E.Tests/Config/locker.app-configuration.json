@@ -6,21 +6,24 @@
   "LockController": {
     "Type": "NCU24L",
     "ComPort": { "PortName": "COM255", "BaudRate": 115200, "DataBits": 8, "Parity": "None" },
-    "TcpController": { "IpAddress": "127.0.0.1", "Port": {{LockerTcpPort}} },
+    "TcpController": { "IpAddress": "127.0.0.1", "Port": 0 },
+    "KioskPortName": "{{LockerKioskPort}}",
     "ListenAddress": "127.0.0.1"
   },
   "BarcodeScanner": {
     "ComPort": { "PortName": "{{ScannerSimulatorPort}}", "BaudRate": 9600, "DataBits": 8, "Parity": "None" },
+    "KioskPortName": "{{ScannerKioskPort}}",
     "CarriageReturnBarcodeTermination": true
   },
   "PosTerminal": {
     "ComPort": { "PortName": "{{PosSimulatorPort}}", "BaudRate": 9600, "DataBits": 8, "Parity": "None" },
+    "KioskPortName": "{{PosKioskPort}}",
     "Pin": "1234",
     "Tid": "SIMT0001",
     "CardWaitTimeoutSeconds": 30,
     "SpeedFactor": 0.5
   },
   "ControlApi": {
-    "Port": {{LockerApiPort}}
+    "Port": 0
   }
 }

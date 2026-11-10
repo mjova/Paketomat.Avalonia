@@ -3,15 +3,17 @@ using Xunit;
 namespace TopPos.E2E.Tests.Infrastructure
 {
 	/// <summary>
-	/// Podešavanja E2E okruženja. Testovi rade samo kad je TOPPOS_E2E=1; portovi se mogu pregaziti env promenljivama
-	/// (mašine se razlikuju). Podrazumevani com0com parovi: skener COM18 (klijent) ↔ COM19 (simulator),
-	/// POS COM20 (klijent) ↔ COM21 (simulator), kontroler vrata Serial COM22 (klijent) ↔ COM23 (simulator; samo testovi sa
-	/// <see cref="KioskOptions.SerialController"/>). Vidi doc/plan-e2e-ui-testing.md, sekcija 3.8.
+	/// Podešavanja E2E okruženja. Testovi rade samo kad je TOPPOS_E2E=1.
+	/// v4: TCP portovi nisu fiksni — simulatori rade na slobodnim portovima i javljaju ih u READY redu.
+	/// Serijski uređaji (skener, POS, kontroler Serial): Windows — com0com parovi kao u v2 (skener COM18 (klijent) ↔ COM19
+	/// (simulator), POS COM20 ↔ COM21, kontroler COM22 ↔ COM23, menjaju se env promenljivama); Linux — simulator sam pravi
+	/// pty par i symlink koji otvara kiosk (<c>KioskPortName</c>), u folderu <c>dev</c> u sandbox korenu.
 	/// </summary>
 	public sealed class E2ESettings
 	{
 		public const string EnableVariable = "TOPPOS_E2E";
-		public const string SkipReason = $"E2E testovi su isključeni; postaviti {EnableVariable}=1 (traži com0com parove i otključan desktop).";
+
+		public const string SkipReason = $"E2E testovi su isključeni; postaviti {EnableVariable}=1 (traži otključan desktop; na Windows-u com0com parove).";
 
 		public static bool IsEnabled => Environment.GetEnvironmentVariable(EnableVariable) == "1";
 
@@ -26,9 +28,13 @@ namespace TopPos.E2E.Tests.Infrastructure
 
 		/// <summary>
 		/// Preskače test sa kontrolerom Serial kad com0com par za kontroler ne postoji — treći par nije uslov za ostatak paketa.
+		/// v4, Linux: par pravi simulator, uvek postoji.
 		/// </summary>
 		public static void RequireLockerSerialPorts()
 		{
+			if (Current.UsesVirtualSerialPairs) {
+				return;
+			}
 			var ports = System.IO.Ports.SerialPort.GetPortNames();
 			var missing = new[] { Current.LockerClientPort, Current.LockerSimulatorPort }
 							.Where(port => !ports.Contains(port, StringComparer.OrdinalIgnoreCase)).ToList();
@@ -39,30 +45,44 @@ namespace TopPos.E2E.Tests.Infrastructure
 		public static E2ESettings Current { get; } = Load();
 
 		public required string RepositoryRoot { get; init; }
+
 		public required string BuildConfiguration { get; init; }
+
 		public required string SandboxRoot { get; init; }
 
-		public required int ServerPort { get; init; }
-		public required int LockerTcpPort { get; init; }
-		public required int LockerApiPort { get; init; }
+		/// <summary>v4, Linux: serijske parove pravi simulator (pty); strana simulatora se ne zadaje (prazno ime).</summary>
+		public bool UsesVirtualSerialPairs => OperatingSystem.IsLinux();
+
 		public required string ScannerClientPort { get; init; }
+
 		public required string ScannerSimulatorPort { get; init; }
+
 		public required string PosClientPort { get; init; }
+
 		public required string PosSimulatorPort { get; init; }
+
 		public required string LockerClientPort { get; init; }
+
 		public required string LockerSimulatorPort { get; init; }
 
 		public string LockerId => "111";
+
 		public string CourierQrCode => "KURIR-E2E-1";
 
-		public string ProjectOutput(string projectName)
-			=> Path.Combine(RepositoryRoot, projectName, "bin", BuildConfiguration, "net9.0-windows");
+		/// <summary>Build izlaz kioska (<c>TopPos.Kiosk</c>).</summary>
+		public string KioskOutput => Path.Combine(RepositoryRoot, "src", "TopPos.Kiosk.Avalonia", "bin", BuildConfiguration, "net10.0");
+
+		/// <summary>Build izlaz simulatora servera i paketomata (<c>TopPos.Simulators</c>).</summary>
+		public string SimulatorsOutput => Path.Combine(RepositoryRoot, "tools", "TopPos.Simulators", "bin", BuildConfiguration, "net10.0");
 
 		private static E2ESettings Load()
 		{
-			var (scannerClient, scannerSimulator) = PortPair("TOPPOS_E2E_SCANNER_PORTS", "COM18", "COM19");
-			var (posClient, posSimulator) = PortPair("TOPPOS_E2E_POS_PORTS", "COM20", "COM21");
-			var (lockerClient, lockerSimulator) = PortPair(LockerPortsVariable, "COM22", "COM23");
+			string sandboxRoot = Path.Combine(Path.GetTempPath(), "toppos-e2e");
+			// Linux: kiosk otvara symlink pty para koji simulator napravi (jedna sesija u isto vreme — session.lock)
+			string Pty(string name) => Path.Combine(sandboxRoot, "dev", name);
+			var (scannerClient, scannerSimulator) = OperatingSystem.IsLinux() ? (Pty("ttySCAN"), "") : PortPair("TOPPOS_E2E_SCANNER_PORTS", "COM18", "COM19");
+			var (posClient, posSimulator) = OperatingSystem.IsLinux() ? (Pty("ttyPOS"), "") : PortPair("TOPPOS_E2E_POS_PORTS", "COM20", "COM21");
+			var (lockerClient, lockerSimulator) = OperatingSystem.IsLinux() ? (Pty("ttyLOCK"), "") : PortPair(LockerPortsVariable, "COM22", "COM23");
 			return new E2ESettings {
 				RepositoryRoot = FindRepositoryRoot(),
 #if DEBUG
@@ -70,10 +90,7 @@ namespace TopPos.E2E.Tests.Infrastructure
 #else
 				BuildConfiguration = "Release",
 #endif
-				SandboxRoot = Path.Combine(Path.GetTempPath(), "toppos-e2e"),
-				ServerPort = IntVariable("TOPPOS_E2E_SERVER_PORT", 5191),
-				LockerTcpPort = IntVariable("TOPPOS_E2E_LOCKER_TCP_PORT", 4091),
-				LockerApiPort = IntVariable("TOPPOS_E2E_LOCKER_API_PORT", 5291),
+				SandboxRoot = sandboxRoot,
 				ScannerClientPort = scannerClient,
 				ScannerSimulatorPort = scannerSimulator,
 				PosClientPort = posClient,
@@ -86,15 +103,12 @@ namespace TopPos.E2E.Tests.Infrastructure
 		private static string FindRepositoryRoot()
 		{
 			for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir != null; dir = dir.Parent) {
-				if (File.Exists(Path.Combine(dir.FullName, "TopPos.sln"))) {
+				if (File.Exists(Path.Combine(dir.FullName, "Paketomat.slnx"))) {
 					return dir.FullName;
 				}
 			}
-			throw new InvalidOperationException($"TopPos.sln nije pronađen iznad {AppContext.BaseDirectory}");
+			throw new InvalidOperationException($"Paketomat.slnx nije pronađen iznad {AppContext.BaseDirectory}");
 		}
-
-		private static int IntVariable(string name, int defaultValue)
-			=> int.TryParse(Environment.GetEnvironmentVariable(name), out var value) ? value : defaultValue;
 
 		private static (string Client, string Simulator) PortPair(string name, string defaultClient, string defaultSimulator)
 		{

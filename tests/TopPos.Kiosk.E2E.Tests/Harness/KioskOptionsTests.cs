@@ -37,7 +37,7 @@ namespace TopPos.E2E.Tests.Harness
 				// Klijent je pročitao izmenjenu konfiguraciju (tajmer se pravi iz General.OperationTimeout).
 				Assert.NotEmpty(kiosk.Log.LinesAfter(0, "OperationCountdownTimer inicijalizovan, period: 21 s."));
 
-				var server = JsonNode.Parse(File.ReadAllText(Path.Combine(kiosk.ServerDirectory, "app-configuration.json")))!;
+				var server = JsonNode.Parse(File.ReadAllText(kiosk.ServerConfigurationPath))!;
 				Assert.Equal([kiosk.Settings.CourierQrCode, "QR-SELFTEST;1"], server["CourierQrCodes"]!.AsArray().Select(n => n!.GetValue<string>()));
 				return Task.CompletedTask;
 			});
@@ -46,7 +46,7 @@ namespace TopPos.E2E.Tests.Harness
 		private static bool IsClientRunningFrom(string directory)
 		{
 			var root = Path.GetFullPath(directory) + Path.DirectorySeparatorChar;
-			foreach (var process in Process.GetProcessesByName("TopPos.Client.WPF")) {
+			foreach (var process in Process.GetProcessesByName("TopPos.Kiosk")) {
 				using (process) {
 					try {
 						if (process.MainModule?.FileName?.StartsWith(root, StringComparison.OrdinalIgnoreCase) == true) {

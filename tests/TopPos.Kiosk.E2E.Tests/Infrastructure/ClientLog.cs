@@ -1,7 +1,7 @@
 using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
-using TopPos.Client.WPF.Workflow;
+using TopPos.Kiosk.Workflow;
 
 namespace TopPos.E2E.Tests.Infrastructure
 {

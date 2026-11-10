@@ -4,6 +4,7 @@
              xmlns:vm="using:TopPos.Kiosk.ViewModels"
              xmlns:c="using:TopPos.Kiosk.UI.Controls"
              x:Class="TopPos.Kiosk.UI.Views.RecipientFiscalReceiptView"
+             AutomationProperties.AutomationId="Page.RecipientFiscalReceiptPage"
              x:DataType="vm:RecipientFiscalReceiptViewModel">
 	<Grid RowDefinitions="*,Auto" ColumnDefinitions="*,*">
 		<!-- Gore levo: stanje računa i uputstvo -->

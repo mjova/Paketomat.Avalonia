@@ -1,6 +1,6 @@
 {
   "Server": {
-    "Port": {{ServerPort}},
+    "Port": 0,
     "PathPrefix": "/Api",
     "BindAddress": "localhost",
     "EnableControlApi": true

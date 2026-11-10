@@ -4,6 +4,7 @@
              xmlns:vm="using:TopPos.Kiosk.ViewModels"
              xmlns:c="using:TopPos.Kiosk.UI.Controls"
              x:Class="TopPos.Kiosk.UI.Views.StartView"
+             AutomationProperties.AutomationId="Page.StartPage"
              x:DataType="vm:StartViewModel">
 	<Panel>
 		<DockPanel>

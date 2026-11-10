@@ -21,6 +21,7 @@
     <Project Path="tools/TopPos.Simulators/TopPos.Simulators.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/TopPos.Kiosk.E2E.Tests/TopPos.Kiosk.E2E.Tests.csproj" />
     <Project Path="tests/TopPos.Kiosk.Tests/TopPos.Kiosk.Tests.csproj" />
     <Project Path="tests/TopPos.Kiosk.UI.Tests/TopPos.Kiosk.UI.Tests.csproj" />
     <Project Path="tests/TopPos.Simulators.Tests/TopPos.Simulators.Tests.csproj" />
