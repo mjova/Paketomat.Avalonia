@@ -174,6 +174,8 @@ namespace TopPos.ServerSimulator
 			var response = context.Response;
 			var path = request.Url?.AbsolutePath ?? "";
 			var method = request.HttpMethod;
+			// v4: vremenski trag prijema i čitanja tela — zahtev harness-a jednom je stigao do obrade 14 s kasnije (E2E, 10.11.2026)
+			_logger.LogDebug($"Primljen {method} {path} (Content-Length {request.Headers["Content-Length"] ?? "-"}, Transfer-Encoding {request.Headers["Transfer-Encoding"] ?? "-"})");
 
 			if (IsBodyLengthMissing(request))
 			{
@@ -188,6 +190,7 @@ namespace TopPos.ServerSimulator
 			{
 				using var reader = new System.IO.StreamReader(request.InputStream, request.ContentEncoding);
 				requestBody = await reader.ReadToEndAsync().ConfigureAwait(false);
+				_logger.LogDebug($"Pročitano telo {method} {path} ({requestBody.Length} znakova)");
 			}
 
 			if (_config.Server.EnableControlApi && path.StartsWith(ControlApiPrefix, StringComparison.OrdinalIgnoreCase))
