@@ -150,6 +150,14 @@ namespace TopPos.ServerSimulator
 			var path = request.Url?.AbsolutePath ?? "";
 			var method = request.HttpMethod;
 
+			if (IsBodyLengthMissing(request))
+			{
+				// v4: POST bez Content-Length (curl -X POST bez -d). Windows (HTTP.sys) ga sam odbija sa 411; managed HttpListener
+				// na Linuxu odgovori 411, ali zahtev ipak preda ovde — ne sme da promeni stanje dok klijent vidi grešku.
+				RejectLengthRequired(response);
+				return;
+			}
+
 			string requestBody = "";
 			if (request.HasEntityBody)
 			{
@@ -277,6 +285,22 @@ namespace TopPos.ServerSimulator
 				// klijent je odustao (npr. timeout posle zadatog kašnjenja) — odgovor nema kome da ode
 				_logger.LogWarning($"{endpoint}: odgovor nije poslat ({ex.Message})");
 			}
+		}
+
+		private static bool IsBodyLengthMissing(HttpListenerRequest request)
+			=> request.HttpMethod is "POST" or "PUT"
+				&& request.Headers["Content-Length"] == null
+				&& request.Headers["Transfer-Encoding"] == null;
+
+		/// <summary>411; na Linuxu je odgovor već poslao HttpListener, pa upis ne uspeva — to je očekivano.</summary>
+		private static void RejectLengthRequired(HttpListenerResponse response)
+		{
+			try
+			{
+				response.StatusCode = 411;
+				response.Close();
+			}
+			catch (Exception ex) when (ex is ObjectDisposedException or HttpListenerException or InvalidOperationException) { }
 		}
 
 		private string GetLogDetail(string endpoint, string requestBody, string responseBody)
