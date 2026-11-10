@@ -64,6 +64,10 @@ Povratak: `sudo systemctl stop toppos-kiosk`, `sudo chvt 1`, `sudo rm -r /run/sy
 `sudo systemctl daemon-reload`, `sudo systemctl unmask --runtime getty@tty2.service autovt@tty2.service`. Pošto cage ne
 dozvoljava prelazak na drugi VT, skripta probe mora sama da vrati ekran (trap i vremenska granica).
 
+Na Debian VM-u (VMware, `vmwgfx`) KDE posle povratka ostaje crn. KWin javlja „Page flip failed: No space left on device“:
+cage je prikaz držao preko seatd-a, a KWin se vraća preko logind-a. Pomaže prelazak na drugi VT i nazad, odjava ili
+restart. Na uređaju desktop ne radi pored kioska, pa ovo važi samo za probu pored desktopa.
+
 Vraćanje na prethodno izdanje: `sudo ln -sfn /opt/toppos-kiosk/releases/<staro> /opt/toppos-kiosk/current` i
 `sudo systemctl restart toppos-kiosk`. Čuvanje stanja pri nadogradnji i potpis paketa dolaze u F5.
 
@@ -110,6 +114,20 @@ Kad kiosk padne, cage izlazi i servis se ponovo pokreće posle 2 s (`Restart=alw
 - `KillMode` i SIGKILL posle `TimeoutStopSec` nisu pogađali procese u scope-u.
 
 Sa seatd-om svi procesi ostaju u cgroup-u servisa. Kiosk od tada SIGHUP obrađuje kao zahtev za gašenje.
+
+Proba sa seatd-om na istom VM-u, 10.11.2026 (`844c542`):
+
+| Slučaj | Ishod |
+|---|---|
+| Start | Start stranica za ~7 s |
+| `stop` | ~1 s, uredno (`CleanShutdown=true`) |
+| `restart` | ~1 s, uredno |
+| `stop` servisa i seatd-a jednom komandom, 3 puta | uredno svaki put; seatd staje tek posle kioska |
+| Zamrznut kiosk | SIGKILL svim procesima posle 30 s, nijedan ne preživi |
+| `kill -9` kioska | novi Start za ~10 s |
+
+Bez korisničke sesije nema D-Bus-a, pa Avalonia beleži da AT-SPI i D-Bus nisu dostupni; kiosku to ne smeta. AT-SPI za
+E2E radi u desktop sesiji (`doc/e2e.md`).
 
 ## Otvoreno (uređaj)
 
