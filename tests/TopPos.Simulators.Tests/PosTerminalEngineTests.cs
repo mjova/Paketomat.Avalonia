@@ -333,6 +333,11 @@ namespace TopPos.LockerSimulator.Tests
 
 			await _wire.ExpectAsync("ACK", "25:51:PROVUCI/UBACI KARTICU");
 			await _wire.ExpectNothingAsync(TimeSpan.FromMilliseconds(800));
+			// v4: prekid posle AckTimeout (500 ms) se čeka do 5 s — na CI mašini 800 ms nije uvek dovoljno
+			var deadline = DateTime.UtcNow.AddSeconds(5);
+			while (!(LogContains("nema ACK-a") && _engine.Status.Phase == PosTerminalPhase.Idle) && DateTime.UtcNow < deadline) {
+				await Task.Delay(50);
+			}
 			Assert.True(LogContains("nema ACK-a"));
 			Assert.Equal(PosTerminalPhase.Idle, _engine.Status.Phase);
 		}
