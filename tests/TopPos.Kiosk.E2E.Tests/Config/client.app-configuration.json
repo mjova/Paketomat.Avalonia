@@ -78,8 +78,8 @@
   },
   "PenPosService": {
     "IsEnabled": false,
-    "BaseManagementUrl": "http://127.0.0.1:1/esir/v3",
-    "BaseInvoiceUrl": "http://127.0.0.1:1/api",
+    "BaseManagementUrl": "http://localhost:{{ServerPort}}/esir/v3",
+    "BaseInvoiceUrl": "http://localhost:{{ServerPort}}/api",
     "Pin": "0000",
     "ItemName": "1",
     "TaxCategory": "A",

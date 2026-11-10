@@ -1,4 +1,4 @@
-using TopPos.Client.WPF.Workflow;
+using TopPos.Kiosk.Workflow;
 using TopPos.E2E.Tests.Infrastructure;
 using Xunit;
 using Xunit.Abstractions;
@@ -60,10 +60,8 @@ namespace TopPos.E2E.Tests.Scenarios
 		private static KioskOptions PenPosOptions() => new() {
 			ConfigureClient = c => {
 				var penPos = c["PenPosService"]!;
-				var server = $"http://localhost:{E2ESettings.Current.ServerPort}";
+				// v4: adrese ServerSimulator-a su već u šablonu ({{ServerPort}} — port je poznat tek iz READY reda)
 				penPos["IsEnabled"] = true;
-				penPos["BaseManagementUrl"] = $"{server}/esir/v3";
-				penPos["BaseInvoiceUrl"] = $"{server}/api";
 				penPos["RequestTimeout"] = 30000;	// duže od kašnjenja u scenariju 4, inače klijent sam odustane i meri se druga grana
 			},
 		};

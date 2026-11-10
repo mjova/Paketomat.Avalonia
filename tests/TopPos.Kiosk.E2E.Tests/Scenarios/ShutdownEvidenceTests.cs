@@ -63,7 +63,7 @@ namespace TopPos.E2E.Tests.Scenarios
 		/// posle WM_ENDSESSION Windows proces gasi bez čekanja. Ranije je gašenje počinjalo tek posle odgovora i prekidalo se:
 		/// ostajali su status.lock.tmp i status.lock bez CleanShutdown (KIOSK1, odjave msi 24.10.2026).
 		/// </summary>
-		[SkippableFact]
+		[PendingFlow("kraj Windows sesije", "F7")]	// v4
 		public Task WindowsSessionEnd_CompletesShutdownBeforeAnswering()
 			=> KioskSession.RunAsync(nameof(WindowsSessionEnd_CompletesShutdownBeforeAnswering), output, async kiosk => {
 				int processId = kiosk.ClientProcessId;
@@ -93,7 +93,7 @@ namespace TopPos.E2E.Tests.Scenarios
 		/// Kontroler odgovara za 900 ms (rok klijenta je 1 s), a provera vrata radi često: zatvaranje prozora odmah posle slanja
 		/// komande zatiče je u toku, pa čekanje traje dovoljno da poruka stigne usred njega.
 		/// </summary>
-		[SkippableFact]
+		[PendingFlow("kraj Windows sesije", "F7")]	// v4
 		public Task WindowsSessionEndDuringExit_AnswersAfterCleanShutdown()
 			=> KioskSession.RunAsync(nameof(WindowsSessionEndDuringExit_AnswersAfterCleanShutdown), output, SlowController, async kiosk => {
 				int processId = kiosk.ClientProcessId;
@@ -135,7 +135,7 @@ namespace TopPos.E2E.Tests.Scenarios
 			=> KioskSession.RunAsync(nameof(SecondInstance_DoesNotTouchStatusLock), output, async kiosk => {
 				var before = ReadStatusBytes(kiosk);
 
-				using var second = Process.Start(new ProcessStartInfo(Path.Combine(kiosk.ClientDirectory, "TopPos.Client.WPF.exe")) {
+				using var second = Process.Start(new ProcessStartInfo(kiosk.ClientExecutable) {
 										WorkingDirectory = kiosk.ClientDirectory,
 										UseShellExecute = false,
 									}) ?? throw new E2EException("Pokretanje druge instance nije uspelo");

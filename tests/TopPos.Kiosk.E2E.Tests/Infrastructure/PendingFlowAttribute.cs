@@ -9,9 +9,9 @@ namespace TopPos.E2E.Tests.Infrastructure
 	/// </summary>
 	public sealed class PendingFlowAttribute : FactAttribute
 	{
-		public PendingFlowAttribute(string flow)
+		public PendingFlowAttribute(string flow, string phase = "F3")
 		{
-			Skip = $"Tok \"{flow}\" još nije u v4 kiosku (F3).";
+			Skip = $"Tok \"{flow}\" još nije u v4 kiosku ({phase}).";
 		}
 	}
 }

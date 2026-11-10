@@ -513,6 +513,9 @@ namespace TopPos.E2E.Tests.Infrastructure
 			Trace("klijent spreman (inicijalizacija završena)");
 		}
 
+		/// <summary>Program klijenta u sandbox-u (npr. za drugu instancu).</summary>
+		public string ClientExecutable => Executable(ClientDirectory, KioskProcess);
+
 		/// <summary>Program iz build izlaza (apphost): <c>X.exe</c> na Windows-u, <c>X</c> na Linuxu.</summary>
 		private static string Executable(string directory, string name)
 			=> Path.Combine(directory, OperatingSystem.IsWindows() ? name + ".exe" : name);

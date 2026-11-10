@@ -18,6 +18,13 @@ namespace TopPos.E2E.Tests.Scenarios
 		private static InvalidOperationException Pending() => new("Tok kurira još nije u v4 kiosku (F3).");
 	}
 
+	internal static class PendingKioskSession
+	{
+		/// <summary>Kraj Windows sesije (WM_QUERYENDSESSION) — v4 ga još ne obrađuje (F7); v2 WindowsSessionEnd nije prenet.</summary>
+		internal static Task<IReadOnlyList<bool>> EndWindowsSessionAsync(this KioskSession kiosk)
+			=> throw new InvalidOperationException("Kraj Windows sesije još nije u v4 kiosku (F7).");
+	}
+
 	internal static class ExpiredPickupTests
 	{
 		internal static Task<(SimPackage Package, long ServerMark)> PickUpUntilScanAsync(KioskSession kiosk)

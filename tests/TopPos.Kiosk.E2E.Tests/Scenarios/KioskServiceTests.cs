@@ -1,4 +1,4 @@
-using TopPos.Client.WPF.Workflow;
+using TopPos.Kiosk.Workflow;
 using TopPos.E2E.Tests.Infrastructure;
 using Xunit;
 using Xunit.Abstractions;
@@ -68,7 +68,7 @@ namespace TopPos.E2E.Tests.Scenarios
 		/// T03: Home držan duže od 3 s → prozor statusa uređaja (modalni, iznad Start-a) → „Zatvori" → nazad na Start; kratak
 		/// pritisak (GoToStartPageCommand) se pri tome ne okida.
 		/// </summary>
-		[SkippableFact]
+		[RealMouseFact]	// v4
 		public Task HomeLongPress_ShowsDeviceStatus_CloseReturnsToStart()
 			=> KioskSession.RunAsync(nameof(HomeLongPress_ShowsDeviceStatus_CloseReturnsToStart), output, async kiosk => {
 				var mark = kiosk.Log.Mark();
@@ -127,7 +127,7 @@ namespace TopPos.E2E.Tests.Scenarios
 		/// Z02: promena jezika (Header.Language → Language.en) menja i kontakt podrške u podnožju (DailyExpress); jezik ostaje
 		/// izabran i posle povratka na Start, a vraća se izborom srpskog.
 		/// </summary>
-		[SkippableFact]
+		[RealMouseFact]	// v4
 		public Task LanguageSwitch_SupportContactFollowsLanguage()
 			=> KioskSession.RunAsync(nameof(LanguageSwitch_SupportContactFollowsLanguage), output, async kiosk => {
 				var serbian = await kiosk.Ui.WaitForTextAsync("Tehnička podrška: 011/405-1811");
