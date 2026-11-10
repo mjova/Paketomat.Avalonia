@@ -12,4 +12,15 @@ namespace TopPos.Kiosk.Tests
 			}
 		}
 	}
+
+	/// <summary>v4: kao <see cref="LinuxFactAttribute"/>, za testove sa podacima.</summary>
+	public sealed class LinuxTheoryAttribute : TheoryAttribute
+	{
+		public LinuxTheoryAttribute()
+		{
+			if (!OperatingSystem.IsLinux()) {
+				Skip = "Samo Linux";
+			}
+		}
+	}
 }

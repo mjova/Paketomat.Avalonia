@@ -1,37 +1,39 @@
-# Kiosk paketomata: cage (Wayland kiosk kompozitor, kiosk kroz XWayland) na tty1, kao korisnik toppos sa logind sesijom
-# (PAMName → pristup ekranu, touch-u i zvuku). Folderi: /etc/toppos-kiosk (konfiguracija, samo za čitanje),
-# /var/lib/toppos-kiosk (stanje: status.lock, redovi potvrda), /var/log/toppos-kiosk (logovi). doc/deploy-linux.md
+# Kiosk paketomata: cage (Wayland kiosk kompozitor, kiosk kroz XWayland) kao korisnik toppos. Ekran i ulaz (touch) daje
+# seatd, ne logind sesija: sa PAMName bi logind premestio sve procese u svoj session scope, koji pri gašenju šalje
+# SIGTERM i SIGHUP svima odjednom (VM 10.11.2026: kiosk nije stigao do završnog upisa), a KillMode i SIGKILL posle
+# TimeoutStopSec servisa ne bi pogađali kiosk. Ovako su svi procesi u cgroup-u servisa.
+# Folderi: /etc/toppos-kiosk (konfiguracija, samo za čitanje), /var/lib/toppos-kiosk (stanje: status.lock, redovi
+# potvrda), /var/log/toppos-kiosk (logovi). doc/deploy-linux.md
 [Unit]
 Description=TopPos kiosk paketomata
-After=systemd-user-sessions.service plymouth-quit-wait.service network-online.target
+# Pri gašenju sistema servis staje pre seatd-a (obrnut redosled od starta), pa cage ne gubi ekran dok kiosk završava.
+Requires=seatd.service
+After=seatd.service systemd-user-sessions.service plymouth-quit-wait.service network-online.target
 Wants=network-online.target
-Wants=dbus.socket systemd-logind.service
-After=dbus.socket systemd-logind.service
+# seatd daje klijentu VT koji je aktivan kad se klijent poveže, pa servis pre starta sam prelazi na tty1 (ExecStartPre) i
+# gasi getty baš tog VT-a. Drugi VT (npr. proba pored desktopa): drop-in menja oba (Conflicts i chvt).
 Conflicts=getty@tty1.service
 After=getty@tty1.service
-ConditionPathExists=/dev/tty1
 
 [Service]
 Type=simple
 User=toppos
-PAMName=toppos-kiosk
-TTYPath=/dev/tty1
-TTYReset=yes
-TTYVHangup=yes
-TTYVTDisallocate=yes
-StandardInput=tty-fail
 StandardOutput=journal
 StandardError=journal
-UtmpIdentifier=tty1
-UtmpMode=user
+
+Environment=LIBSEAT_BACKEND=seatd
+# Wayland i XWayland soketi (bez logind sesije nema /run/user/<uid>).
+RuntimeDirectory=toppos-kiosk
+RuntimeDirectoryMode=0700
+Environment=XDG_RUNTIME_DIR=/run/toppos-kiosk
 
 ConfigurationDirectory=toppos-kiosk
 StateDirectory=toppos-kiosk
 LogsDirectory=toppos-kiosk
 
 # cage -d (bez dekoracija, bez -s: prelazak na drugi VT je isključen) sa kioskom; skripta je glavni proces i jedina dobija
-# SIGTERM (KillMode=mixed), pa kiosk završava pre nego što cage ugasi prikaz. Bez ExecStop: TTY podešavanja iznad važe i
-# za ExecStop (TTYVHangup bi prekinuo sesiju pre gašenja kioska).
+# SIGTERM (KillMode=mixed), pa kiosk završava pre nego što cage ugasi prikaz. Posle TimeoutStopSec SIGKILL svima.
+ExecStartPre=+/usr/bin/chvt 1
 ExecStart=/opt/toppos-kiosk/current/kiosk-session.sh
 KillMode=mixed
 TimeoutStopSec=30

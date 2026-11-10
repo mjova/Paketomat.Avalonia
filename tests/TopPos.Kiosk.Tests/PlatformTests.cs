@@ -120,18 +120,24 @@ namespace TopPos.Kiosk.Tests
 			first.Dispose();
 		}
 
-		/// <summary>SIGTERM (systemd stop) stiže kao zahtev za gašenje, a proces ne prekida runtime — uredan izlazak radi kiosk.</summary>
-		[LinuxFact]
-		public void Sigterm_is_reported_and_does_not_end_the_process()
+		/// <summary>
+		/// SIGTERM (systemd stop) i SIGHUP (prekid terminala ili sesije) stižu kao zahtev za gašenje, a proces ne prekida
+		/// runtime — uredan izlazak radi kiosk. Bez obrade SIGHUP-a proces odmah umire (VM 10.11.2026: logind scope šalje
+		/// SIGTERM i SIGHUP zajedno, kiosk nije stigao do završnog upisa).
+		/// </summary>
+		[LinuxTheory]
+		[InlineData("TERM", System.Runtime.InteropServices.PosixSignal.SIGTERM)]
+		[InlineData("HUP", System.Runtime.InteropServices.PosixSignal.SIGHUP)]
+		public void Shutdown_signal_is_reported_and_does_not_end_the_process(string name, System.Runtime.InteropServices.PosixSignal expected)
 		{
 			using var received = new ManualResetEventSlim();
 			System.Runtime.InteropServices.PosixSignal? signal = null;
 			using (new ShutdownSignal(s => { signal = s; received.Set(); })) {
-				using var kill = System.Diagnostics.Process.Start("kill", $"-TERM {Environment.ProcessId}");
+				using var kill = System.Diagnostics.Process.Start("kill", $"-{name} {Environment.ProcessId}");
 				kill.WaitForExit();
-				Assert.True(received.Wait(TimeSpan.FromSeconds(10)), "SIGTERM nije stigao");
+				Assert.True(received.Wait(TimeSpan.FromSeconds(10)), $"SIG{name} nije stigao");
 			}
-			Assert.Equal(System.Runtime.InteropServices.PosixSignal.SIGTERM, signal);
+			Assert.Equal(expected, signal);
 		}
 
 		[Fact]

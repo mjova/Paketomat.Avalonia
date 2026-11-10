@@ -50,7 +50,7 @@ mv "$stage/app/serilog.json" "$stage/serilog.json"
 # Natpis verzije u logu i zaglavlju (KioskHost čita paketomat.ver uz program), kao v2.
 printf '%s\n' "$label" > "$stage/app/paketomat.ver"
 
-cp deploy/linux/install.sh deploy/linux/boot-mode.sh deploy/linux/toppos-kiosk.service deploy/linux/toppos-kiosk.pam "$stage/"
+cp deploy/linux/install.sh deploy/linux/boot-mode.sh deploy/linux/toppos-kiosk.service "$stage/"
 cp deploy/linux/kiosk-session.sh "$stage/app/"
 # Prava izvršavanja ne zavise od checkout-a (Windows ih ne čuva); install.sh ih ionako postavlja na uređaju.
 chmod 755 "$stage/install.sh" "$stage/boot-mode.sh" "$stage/app/kiosk-session.sh" "$stage/app/TopPos.Kiosk"

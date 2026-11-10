@@ -1,13 +1,14 @@
 # Isporuka na Linux (F0b, priprema)
 
-Kiosk radi kao systemd servis `toppos-kiosk`: kiosk kompozitor **cage** na `tty1`, kiosk unutra kroz XWayland (Avalonia
-na Linuxu crta kroz X11). Bez desktopa, bez prozora i bez prelaska na drugi VT. Podržano: Debian 12 i Ubuntu 24.04 (apt).
+Kiosk radi kao systemd servis `toppos-kiosk`: kiosk kompozitor **cage** na `tty1` (servis pre starta prelazi na njega i
+gasi getty tog VT-a), kiosk unutra kroz XWayland (Avalonia na Linuxu crta kroz X11). Ekran i ulaz daje **seatd**. Bez desktopa,
+bez prozora i bez prelaska na drugi VT. Podržano: Debian 12 i Ubuntu 24.04 (apt).
 
 Fajlovi u `deploy/linux/`:
 - `publish.sh` — pravi paket;
 - `install.sh` — instalacija;
 - `boot-mode.sh` — bira šta se diže pri boot-u, kiosk ili desktop;
-- `toppos-kiosk.service` i `toppos-kiosk.pam` — servis i njegova sesija;
+- `toppos-kiosk.service` — servis;
 - `kiosk-session.sh` — glavni proces servisa (cage + kiosk, uredno gašenje).
 
 ## Paket
@@ -37,15 +38,31 @@ sudo ./install.sh --config /putanja/app-configuration.json [--kiosk-boot]
 | Logovi (kiosk, `ECR/`) | `/var/log/toppos-kiosk` (`LogsDirectory`); izlaz procesa u `journalctl -u toppos-kiosk` |
 
 `install.sh`:
-- instalira zavisnosti: `cage`, `xwayland`, `libicuNN`, `libvlc5`, `vlc-plugin-base`, `libfontconfig1`, `dbus-user-session`;
-- pravi sistemskog korisnika `toppos` u grupi `dialout`, zbog serijskih uređaja. Ekran, touch i zvuk daje logind sesija
-  servisa (`PAMName=toppos-kiosk`), pa grupe `video`, `input` i `audio` nisu potrebne;
+- instalira zavisnosti: `cage`, `xwayland`, `seatd`, `kbd` (`chvt`), `libicuNN`, `libvlc5`, `vlc-plugin-base`, `libfontconfig1`, i
+  uključuje `seatd.service`;
+- pravi sistemskog korisnika `toppos` sa grupama `dialout` (serijski uređaji), `audio` (zvuk preko ALSA) i grupom
+  seatd-a (`seatd -g`, na Debianu `video`: ekran i touch);
 - instalirano izdanje ne prepisuje. Novo izdanje kopira u privremeni folder pa ga preimenuje, a `current` menja atomski,
   pa prekinuta instalacija ne ostavlja `current` na nepotpunom izdanju;
 - postojeću konfiguraciju ne menja. `app-configuration.json` upisuje samo uz `--config`, a `serilog.json` samo ako ga nema;
 - maskira `sleep`, `suspend`, `hibernate` i `hybrid-sleep`. Na Debian VM-u je KDE uspavao gosta usred rada kioska;
-- bez `--kiosk-boot` desktop ostaje, a servis se pokreće ručno: `sudo systemctl start toppos-kiosk` (prebacuje ekran na
+- bez `--kiosk-boot` desktop ostaje, a servis se ručno pokreće sa `sudo systemctl start toppos-kiosk` (prelazi na
   tty1). Sa `--kiosk-boot` poziva `boot-mode.sh kiosk`.
+
+**Proba pored desktopa** (desktop na tty1, `loginctl show-session <id> -p VTNr`): kiosk ide na tty2, a getty na tty2 se
+maskira, da ga logind ne pokrene pri prelasku i tako ne ugasi kiosk (`Conflicts`). Maske i drop-in su u `/run`, pa
+zajedno nestaju pri restartu:
+```
+sudo systemctl mask --runtime --now getty@tty2.service autovt@tty2.service
+sudo mkdir -p /run/systemd/system/toppos-kiosk.service.d
+printf '[Service]\nExecStartPre=\nExecStartPre=+/usr/bin/chvt 2\n' | sudo tee /run/systemd/system/toppos-kiosk.service.d/vt.conf
+sudo systemctl daemon-reload
+systemctl show toppos-kiosk -p ExecStartPre    # mora biti chvt 2
+sudo systemctl start toppos-kiosk
+```
+Povratak: `sudo systemctl stop toppos-kiosk`, `sudo chvt 1`, `sudo rm -r /run/systemd/system/toppos-kiosk.service.d`,
+`sudo systemctl daemon-reload`, `sudo systemctl unmask --runtime getty@tty2.service autovt@tty2.service`. Pošto cage ne
+dozvoljava prelazak na drugi VT, skripta probe mora sama da vrati ekran (trap i vremenska granica).
 
 Vraćanje na prethodno izdanje: `sudo ln -sfn /opt/toppos-kiosk/releases/<staro> /opt/toppos-kiosk/current` i
 `sudo systemctl restart toppos-kiosk`. Čuvanje stanja pri nadogradnji i potpis paketa dolaze u F5.
@@ -82,15 +99,17 @@ Glavni proces servisa je `kiosk-session.sh`, koji pokreće cage sa kioskom. Serv
 3. Kad kiosk izađe, cage izlazi sam.
 
 Granica je `TimeoutStopSec=30`; posle nje systemd šalje SIGKILL svima. Kad bi signal stigao svima odjednom, cage bi ugasio
-prikaz dok kiosk još radi. `ExecStop` se ne koristi: TTY podešavanja servisa (`TTYVHangup`) važe i za njega i prekinula bi
-sesiju pre gašenja kioska.
+prikaz dok kiosk još radi. Pri gašenju sistema servis staje pre seatd-a (`After=seatd.service`).
 
 Kad kiosk padne, cage izlazi i servis se ponovo pokreće posle 2 s (`Restart=always`).
 
-**Otvoreno — gašenje celog sistema:** `PAMName` premešta procese u logind sesiju (`session-N.scope`). Pri gašenju
-sistema systemd tu sesiju gasi paralelno sa servisom, pa cage može da izgubi prikaz pre nego što kiosk završi. Proverava
-se na VM-u (`systemctl reboot` uz proveru `CleanShutdown` u `status.lock`). Ako kiosk ne podnosi gubitak prikaza tokom
-gašenja, rešenje je sesija bez logind-a (seatd) ili gašenje kioska koje ne zavisi od prikaza.
+**Zašto seatd, a ne logind sesija (`PAMName`).** Proba na Debian VM-u 10.11.2026 sa `PAMName`:
+- logind premešta sve procese servisa u svoj `session-N.scope`;
+- kad se taj scope gasi, kao pri gašenju sistema, paralelno sa servisom, svi procesi odmah dobijaju SIGTERM i SIGHUP;
+- kiosk je od SIGHUP-a umro bez završnog upisa: `CleanShutdown=false` u 3 od 3 pokušaja;
+- `KillMode` i SIGKILL posle `TimeoutStopSec` nisu pogađali procese u scope-u.
+
+Sa seatd-om svi procesi ostaju u cgroup-u servisa. Kiosk od tada SIGHUP obrađuje kao zahtev za gašenje.
 
 ## Otvoreno (uređaj)
 
@@ -102,4 +121,4 @@ gašenja, rešenje je sesija bez logind-a (seatd) ili gašenje kioska koje ne za
 - ECR (Payten) čita `ecrcfg.xml`/`ecr.cfg` iz foldera programa (`/opt/.../current`, samo za čitanje) — odluka uz pravi
   POS.
 - Daljinska podrška (zamena za RDP/AnyDesk).
-- Zvuk: LibVLC u logind sesiji bez desktopa (PipeWire korisničke sesije ili ALSA direktno).
+- Zvuk: LibVLC preko ALSA (grupa `audio`, bez PipeWire-a i korisničke sesije) — proveriti izlaz na uređaju.

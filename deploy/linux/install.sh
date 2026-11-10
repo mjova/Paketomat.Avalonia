@@ -41,8 +41,9 @@ if [ -e "$release" ]; then
 	exit 1
 fi
 
-# Zavisnosti: cage + XWayland (Avalonia na Linuxu crta kroz X11), ICU (globalizacija .NET-a), LibVLC (zvuk; dinamički,
-# LGPL-2.1), fontconfig (Skia). Ime ICU paketa zavisi od izdanja (libicu72 na Debianu 12, libicu74 na Ubuntu 24.04).
+# Zavisnosti: cage + XWayland (Avalonia na Linuxu crta kroz X11), seatd (ekran i ulaz bez logind sesije), kbd (chvt), ICU
+# (globalizacija .NET-a), LibVLC (zvuk; dinamički, LGPL-2.1), fontconfig (Skia). Ime ICU paketa zavisi od izdanja
+# (libicu72 na Debianu 12, libicu74 na Ubuntu 24.04).
 apt-get update
 icu=$(apt-cache search --names-only '^libicu[0-9]+$' | awk '{ print $1 }' | sort -V | tail -n 1)
 if [ -z "$icu" ]; then
@@ -50,13 +51,23 @@ if [ -z "$icu" ]; then
 	exit 1
 fi
 DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-	cage xwayland "$icu" libvlc5 vlc-plugin-base libfontconfig1 dbus-user-session
+	cage xwayland seatd kbd "$icu" libvlc5 vlc-plugin-base libfontconfig1
 
-# Korisnik programa: dialout za serijske uređaje (kontroler vrata, skener, POS). Ekran, touch i zvuk daje logind sesija.
+# seatd daje ekran i ulaz članovima grupe iz svog servisa (seatd -g <grupa>; Debian: video).
+seat_group=$(systemctl cat seatd.service | sed -n 's/^ExecStart=.*[[:space:]]-g[[:space:]]*\([^[:space:]]*\).*/\1/p' | tail -n 1)
+if [ -z "$seat_group" ]; then
+	echo "seatd.service nema grupu (-g): soket bi bio samo za root-a. Podesiti seatd ili dopuniti install.sh." >&2
+	exit 1
+fi
+systemctl enable --now seatd.service
+
+# Korisnik programa: dialout za serijske uređaje (kontroler vrata, skener, POS), grupa seatd-a za ekran i touch, audio
+# za zvuk (LibVLC preko ALSA, bez korisničke sesije i PipeWire-a).
+groups="dialout,audio,$seat_group"
 if ! id toppos > /dev/null 2>&1; then
-	useradd --system --create-home --home-dir /home/toppos --shell /usr/sbin/nologin --groups dialout toppos
+	useradd --system --create-home --home-dir /home/toppos --shell /usr/sbin/nologin --groups "$groups" toppos
 else
-	usermod --append --groups dialout toppos
+	usermod --append --groups "$groups" toppos
 fi
 
 # Program: svako izdanje u svom folderu, „current“ pokazuje na aktivno (vraćanje = promena linka). Novo izdanje se kopira
@@ -86,7 +97,8 @@ if [ ! -f "$etc/app-configuration.json" ]; then
 fi
 
 install -m 644 toppos-kiosk.service /etc/systemd/system/toppos-kiosk.service
-install -m 644 toppos-kiosk.pam /etc/pam.d/toppos-kiosk
+# Ranija proba (logind sesija, PAMName) je ostavljala PAM fajl.
+rm -f /etc/pam.d/toppos-kiosk
 
 # Uređaj ne sme da zaspi (Debian VM: KDE je posle 15 min bez unosa uspavao gosta usred rada kioska).
 systemctl mask sleep.target suspend.target hibernate.target hybrid-sleep.target
@@ -96,6 +108,6 @@ if [ "$kiosk_boot" -eq 1 ]; then
 	"$prefix/boot-mode.sh" kiosk
 	echo "Restart: systemctl reboot. Povratak na desktop: sudo $prefix/boot-mode.sh desktop."
 else
-	echo "Instalirano. Ručno pokretanje: systemctl start toppos-kiosk (prebacuje na tty1)."
+	echo "Instalirano. Ručno pokretanje: systemctl start toppos-kiosk (prelazi na tty1 — ne pored desktopa na tty1, doc/deploy-linux.md)."
 fi
 echo "Izdanje $label u $release."
