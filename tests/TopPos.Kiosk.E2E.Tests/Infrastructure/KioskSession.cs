@@ -486,6 +486,11 @@ namespace TopPos.E2E.Tests.Infrastructure
 		private async Task StartClientAsync(bool outOfOrder = false)
 		{
 			int logMark = Log.Mark();
+#if !WINDOWS
+			if (OperatingSystem.IsLinux()) {
+				await AtSpiKioskUi.EnableAccessibilityAsync(Trace).ConfigureAwait(false);
+			}
+#endif
 			_client = Process.Start(new ProcessStartInfo(Executable(ClientDirectory, KioskProcess)) {
 				WorkingDirectory = ClientDirectory,
 				UseShellExecute = false,

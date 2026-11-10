@@ -7,7 +7,7 @@ namespace TopPos.E2E.Tests.Infrastructure
 	/// UI klijenta preko pristupačnosti platforme, po AutomationId-u (doc/plan-e2e-ui-testing.md u v2, sekcija 3.2):
 	/// dugmad "&lt;Stranica&gt;.&lt;Komanda&gt;", koren stranice "Page.&lt;ImeStranice&gt;", tastatura "Keypad.0-9|Clear|Confirm",
 	/// zaglavlje "Header.Home|Language|Rotate".
-	/// v4: Windows — UI Automation (<see cref="UiaKioskUi"/>, v2 KioskUi); Linux — AT-SPI (faza E2). Scenariji vide samo ovaj
+	/// v4: Windows — UI Automation (UiaKioskUi, v2 KioskUi); Linux — AT-SPI (AtSpiKioskUi). Scenariji vide samo ovaj
 	/// interfejs; razlike platformi su u implementacijama.
 	/// </summary>
 	public abstract class KioskUi : IDisposable
@@ -20,7 +20,9 @@ namespace TopPos.E2E.Tests.Infrastructure
 #if WINDOWS
 			return UiaKioskUi.AttachAsync(process, timeout, guard, trace);
 #else
-			throw new PlatformNotSupportedException("UI kioska na ovoj platformi još nije podržan (Linux: AT-SPI, faza E2).");
+			return OperatingSystem.IsLinux()
+				? AtSpiKioskUi.AttachAsync(process, timeout, guard, trace)
+				: throw new PlatformNotSupportedException("UI kioska: podržani su Windows (UI Automation) i Linux (AT-SPI).");
 #endif
 		}
 

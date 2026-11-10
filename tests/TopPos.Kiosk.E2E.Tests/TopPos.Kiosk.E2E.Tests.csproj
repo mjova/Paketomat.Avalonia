@@ -21,6 +21,11 @@
   </ItemGroup>
   <ItemGroup Condition="'$(OS)' != 'Windows_NT'">
     <Compile Remove="Infrastructure\UiaKioskUi.cs" />
+    <!-- AT-SPI preko D-Bus-a, ista verzija kao u Avaloniji -->
+    <PackageReference Include="Tmds.DBus.Protocol" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(OS)' == 'Windows_NT'">
+    <Compile Remove="Infrastructure\AtSpiKioskUi.cs" />
   </ItemGroup>
 
   <ItemGroup>
