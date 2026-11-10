@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Usklađivanje simulatora sa v2 (samo v2 → v4, dok v2 ne ode).
+# Usklađivanje simulatora i E2E testova sa v2 (samo v2 → v4, dok v2 ne ode).
 #
 #   tools/sync-v2-simulators.sh <v2-repo> [--base <commit>] [--ref <grana>] [--apply]
 #
@@ -68,15 +68,47 @@ mapped=(
 	"Tests/TopPos.LockerSimulator.Tests/PosFrameTests.cs|tests/TopPos.Simulators.Tests/PosFrameTests.cs"
 	"Tests/TopPos.LockerSimulator.Tests/PosRequestTests.cs|tests/TopPos.Simulators.Tests/PosRequestTests.cs"
 	"Tests/TopPos.LockerSimulator.Tests/PosTerminalEngineTests.cs|tests/TopPos.Simulators.Tests/PosTerminalEngineTests.cs"
+	# E2E (v4 tests/TopPos.Kiosk.E2E.Tests; v2 KioskUi je UiaKioskUi)
+	"Tests/TopPos.E2E.Tests/Config/client.app-configuration.json|tests/TopPos.Kiosk.E2E.Tests/Config/client.app-configuration.json"
+	"Tests/TopPos.E2E.Tests/Config/locker.app-configuration.json|tests/TopPos.Kiosk.E2E.Tests/Config/locker.app-configuration.json"
+	"Tests/TopPos.E2E.Tests/Config/server.app-configuration.json|tests/TopPos.Kiosk.E2E.Tests/Config/server.app-configuration.json"
+	"Tests/TopPos.E2E.Tests/E2ECollection.cs|tests/TopPos.Kiosk.E2E.Tests/E2ECollection.cs"
+	"Tests/TopPos.E2E.Tests/GlobalUsings.cs|tests/TopPos.Kiosk.E2E.Tests/GlobalUsings.cs"
+	"Tests/TopPos.E2E.Tests/Harness/ClientLogTests.cs|tests/TopPos.Kiosk.E2E.Tests/Harness/ClientLogTests.cs"
+	"Tests/TopPos.E2E.Tests/Harness/KioskOptionsTests.cs|tests/TopPos.Kiosk.E2E.Tests/Harness/KioskOptionsTests.cs"
+	"Tests/TopPos.E2E.Tests/Harness/LockerLayoutTests.cs|tests/TopPos.Kiosk.E2E.Tests/Harness/LockerLayoutTests.cs"
+	"Tests/TopPos.E2E.Tests/Harness/SandboxTests.cs|tests/TopPos.Kiosk.E2E.Tests/Harness/SandboxTests.cs"
+	"Tests/TopPos.E2E.Tests/Harness/SessionLockTests.cs|tests/TopPos.Kiosk.E2E.Tests/Harness/SessionLockTests.cs"
+	"Tests/TopPos.E2E.Tests/Infrastructure/ClientLog.cs|tests/TopPos.Kiosk.E2E.Tests/Infrastructure/ClientLog.cs"
+	"Tests/TopPos.E2E.Tests/Infrastructure/E2ESettings.cs|tests/TopPos.Kiosk.E2E.Tests/Infrastructure/E2ESettings.cs"
+	"Tests/TopPos.E2E.Tests/Infrastructure/KioskOptions.cs|tests/TopPos.Kiosk.E2E.Tests/Infrastructure/KioskOptions.cs"
+	"Tests/TopPos.E2E.Tests/Infrastructure/KioskSession.cs|tests/TopPos.Kiosk.E2E.Tests/Infrastructure/KioskSession.cs"
+	"Tests/TopPos.E2E.Tests/Infrastructure/KioskSteps.cs|tests/TopPos.Kiosk.E2E.Tests/Infrastructure/KioskSteps.cs"
+	"Tests/TopPos.E2E.Tests/Infrastructure/LockerSim.cs|tests/TopPos.Kiosk.E2E.Tests/Infrastructure/LockerSim.cs"
+	"Tests/TopPos.E2E.Tests/Infrastructure/Poll.cs|tests/TopPos.Kiosk.E2E.Tests/Infrastructure/Poll.cs"
+	"Tests/TopPos.E2E.Tests/Infrastructure/Sandbox.cs|tests/TopPos.Kiosk.E2E.Tests/Infrastructure/Sandbox.cs"
+	"Tests/TopPos.E2E.Tests/Infrastructure/ServerSim.cs|tests/TopPos.Kiosk.E2E.Tests/Infrastructure/ServerSim.cs"
+	"Tests/TopPos.E2E.Tests/Infrastructure/TestData.cs|tests/TopPos.Kiosk.E2E.Tests/Infrastructure/TestData.cs"
+	"Tests/TopPos.E2E.Tests/Infrastructure/KioskUi.cs|tests/TopPos.Kiosk.E2E.Tests/Infrastructure/UiaKioskUi.cs"
+	"Tests/TopPos.E2E.Tests/Scenarios/DoorStatusPersistenceTests.cs|tests/TopPos.Kiosk.E2E.Tests/Scenarios/DoorStatusPersistenceTests.cs"
+	"Tests/TopPos.E2E.Tests/Scenarios/FiscalReceiptTests.cs|tests/TopPos.Kiosk.E2E.Tests/Scenarios/FiscalReceiptTests.cs"
+	"Tests/TopPos.E2E.Tests/Scenarios/KioskServiceTests.cs|tests/TopPos.Kiosk.E2E.Tests/Scenarios/KioskServiceTests.cs"
+	"Tests/TopPos.E2E.Tests/Scenarios/PaymentConfirmationQueueTests.cs|tests/TopPos.Kiosk.E2E.Tests/Scenarios/PaymentConfirmationQueueTests.cs"
+	"Tests/TopPos.E2E.Tests/Scenarios/RecipientFailureTests.cs|tests/TopPos.Kiosk.E2E.Tests/Scenarios/RecipientFailureTests.cs"
+	"Tests/TopPos.E2E.Tests/Scenarios/RecipientInputTests.cs|tests/TopPos.Kiosk.E2E.Tests/Scenarios/RecipientInputTests.cs"
+	"Tests/TopPos.E2E.Tests/Scenarios/RecipientPaymentTests.cs|tests/TopPos.Kiosk.E2E.Tests/Scenarios/RecipientPaymentTests.cs"
+	"Tests/TopPos.E2E.Tests/Scenarios/RecipientPickupTests.cs|tests/TopPos.Kiosk.E2E.Tests/Scenarios/RecipientPickupTests.cs"
+	"Tests/TopPos.E2E.Tests/Scenarios/SerialControllerTests.cs|tests/TopPos.Kiosk.E2E.Tests/Scenarios/SerialControllerTests.cs"
+	"Tests/TopPos.E2E.Tests/Scenarios/ServerConfirmationRetryTests.cs|tests/TopPos.Kiosk.E2E.Tests/Scenarios/ServerConfirmationRetryTests.cs"
+	"Tests/TopPos.E2E.Tests/Scenarios/ShutdownEvidenceTests.cs|tests/TopPos.Kiosk.E2E.Tests/Scenarios/ShutdownEvidenceTests.cs"
+	"Tests/TopPos.E2E.Tests/Scenarios/TimeoutTests.cs|tests/TopPos.Kiosk.E2E.Tests/Scenarios/TimeoutTests.cs"
 )
 # Prate se, ali se prenose ručno (GUI, E2E klijenti, protokol; biblioteke iz src/ imaju svoje redove u PORTED_FROM.md)
 watched=(
 	TopPos.ServerSimulator
 	TopPos.LockerSimulator
 	Tests/TopPos.LockerSimulator.Tests
-	Tests/TopPos.E2E.Tests/Infrastructure/ServerSim.cs
-	Tests/TopPos.E2E.Tests/Infrastructure/LockerSim.cs
-	Tests/TopPos.E2E.Tests/Config
+	Tests/TopPos.E2E.Tests
 	TopPos.LockController.NCU24L
 	TopPos.Service
 	TopPos.PenPosService
