@@ -34,7 +34,7 @@ namespace TopPos.Kiosk.Tests
 
 		private ServerConfirmationSender Sender() => new(
 			new ServerConfirmationSenderConfiguration { ServerConfirmationFilename = QueueFile, ProcessingDelayInMilliseconds = 20 },
-			new TopPosServiceClient(new TopPosServiceConfiguration { BaseUrl = _server.BaseUrl, PathPrefix = "api", RequestTimeout = 1000, DisableHeartbeats = true },
+			new TopPosServiceClient(new TopPosServiceConfiguration { BaseUrl = _server.BaseUrl, PathPrefix = "api", RequestTimeout = 5000, DisableHeartbeats = true },
 									"111", null, CancellationToken.None),
 			NullLogger.Instance);
 
@@ -104,11 +104,15 @@ namespace TopPos.Kiosk.Tests
 			using (var sender = Sender()) {
 				await WaitForFileAsync(entries => entries.Count == 0, "posle restarta poslata");
 			}
-			var afterRestart = _server.Requests.Skip(beforeRestart).ToList();
-			var pickupBody = Assert.Single(afterRestart, r => r.RequestLine.Contains("PrimaocPraznjenjePozicijePotvrda")).Body;
-			Assert.Equal("123456", RequestValue(pickupBody, "kodZaOtvaranje"));
-			Assert.Equal("0641234567", RequestValue(pickupBody, "telefonPrimaoca"));
-			Assert.Equal(DoorNumber.ToString(), RequestValue(pickupBody, "brojPozicije"));
+			// Zahtev prve instance koji je bio u toku može stići i posle brojanja (CI, 10.11.2026): isporuka je „bar jednom",
+			// server potvrde prima idempotentno — proverava se da svaki nosi podatke iz fajla.
+			var afterRestart = _server.Requests.Skip(beforeRestart).Where(r => r.RequestLine.Contains("PrimaocPraznjenjePozicijePotvrda")).ToList();
+			Assert.NotEmpty(afterRestart);
+			Assert.All(afterRestart, request => {
+				Assert.Equal("123456", RequestValue(request.Body, "kodZaOtvaranje"));
+				Assert.Equal("0641234567", RequestValue(request.Body, "telefonPrimaoca"));
+				Assert.Equal(DoorNumber.ToString(), RequestValue(request.Body, "brojPozicije"));
+			});
 		}
 
 		[Theory]

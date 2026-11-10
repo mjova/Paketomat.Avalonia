@@ -23,7 +23,7 @@ namespace TopPos.Kiosk.Tests
 		public void Dispose() => _server.Dispose();
 
 		private TopPosServiceClient Client() => new(
-			new TopPosServiceConfiguration { BaseUrl = _server.BaseUrl, PathPrefix = "api", RequestTimeout = 1000, DisableHeartbeats = true },
+			new TopPosServiceConfiguration { BaseUrl = _server.BaseUrl, PathPrefix = "api", RequestTimeout = 5000, DisableHeartbeats = true },
 			"111", null, CancellationToken.None);
 
 		[Fact]

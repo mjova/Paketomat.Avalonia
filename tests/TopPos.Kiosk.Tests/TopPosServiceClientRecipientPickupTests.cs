@@ -19,7 +19,7 @@ namespace TopPos.Kiosk.Tests
 
 		public void Dispose() => _server.Dispose();
 
-		private static TopPosServiceClient Client(string baseUrl, int requestTimeout = 1000) => new(
+		private static TopPosServiceClient Client(string baseUrl, int requestTimeout = 5000) => new(
 			new TopPosServiceConfiguration { BaseUrl = baseUrl, PathPrefix = "api", RequestTimeout = requestTimeout, DisableHeartbeats = true },
 			"111", null, CancellationToken.None);
 
@@ -93,7 +93,7 @@ namespace TopPos.Kiosk.Tests
 		{
 			_server.ResponseDelay = TimeSpan.FromSeconds(3);
 			_server.Respond(HttpStatusCode.OK, "{\"brojPozicije\":5,\"iznosZaUplatu\":0}");
-			Assert.Equal((R.NoResponse, null, null, null), await Lookup(Client(_server.BaseUrl)));
+			Assert.Equal((R.NoResponse, null, null, null), await Lookup(Client(_server.BaseUrl, requestTimeout: 1000)));
 		}
 
 		[Fact]

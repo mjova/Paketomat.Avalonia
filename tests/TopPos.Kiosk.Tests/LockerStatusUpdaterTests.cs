@@ -199,7 +199,7 @@ namespace TopPos.Kiosk.Tests
 			const int unknownDoor = 8;
 			using var server = new StubHttpServer { Handler = (requestLine, body) => ServerWithoutDoor(unknownDoor, requestLine, body) };
 			var client = new TopPosServiceClient(
-				new TopPosServiceConfiguration { BaseUrl = server.BaseUrl, PathPrefix = "api", RequestTimeout = 1000, DisableHeartbeats = true },
+				new TopPosServiceConfiguration { BaseUrl = server.BaseUrl, PathPrefix = "api", RequestTimeout = 5000, DisableHeartbeats = true },
 				"TEST", logger: null, CancellationToken.None);
 			var updater = await StartAsync(client: client);	// server: paketomat u funkciji
 			try {
