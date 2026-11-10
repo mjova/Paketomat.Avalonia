@@ -15,9 +15,15 @@
     <Project Path="src/TopPos.Platform/TopPos.Platform.csproj" />
     <Project Path="src/TopPos.Service/TopPos.Service.csproj" />
   </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/TopPos.Simulators.Locker/TopPos.Simulators.Locker.csproj" />
+    <Project Path="tools/TopPos.Simulators.Server/TopPos.Simulators.Server.csproj" />
+    <Project Path="tools/TopPos.Simulators/TopPos.Simulators.csproj" />
+  </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/TopPos.Kiosk.Tests/TopPos.Kiosk.Tests.csproj" />
     <Project Path="tests/TopPos.Kiosk.UI.Tests/TopPos.Kiosk.UI.Tests.csproj" />
+    <Project Path="tests/TopPos.Simulators.Tests/TopPos.Simulators.Tests.csproj" />
   </Folder>
   <Folder Name="/Solution Items/">
     <File Path="Directory.Build.props" />

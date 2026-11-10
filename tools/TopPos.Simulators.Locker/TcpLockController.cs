@@ -25,8 +25,12 @@ namespace TopPos.LockerSimulator
 		private readonly ILogger? _logger;
 		private readonly NetworkModuleConfiguration _module;
 		private readonly Task _listenTask;
-		// Do kada modul odbija svaku vezu (posle veze zatvorene dok je odgovor čekao)
-		private DateTime _blockedUntil = DateTime.MinValue;
+		// Do kada modul odbija svaku vezu (posle veze zatvorene dok je odgovor čekao). v4: monotoni sat (Environment.TickCount64),
+		// ne DateTime.Now — pomeranje sata ne sme da skrati ili produži blokadu.
+		private long _blockedUntilMs;
+		// v4: pauza pre nove veze koju reset (/_sim/reset) može da prekine
+		private CancellationTokenSource? _pauseCts;
+		private readonly Lock _pauseLock = new();
 
 		public TcpLockController(
 			IPAddress listenAddress,
@@ -50,7 +54,7 @@ namespace TopPos.LockerSimulator
 			_listener = new TcpListener(listenAddress, port);
 			_listener.Start();
 			_port = ((IPEndPoint)_listener.LocalEndpoint).Port;	// i kad je zadat port 0
-			_logger?.LogInformation($"TcpLockController: listening on {listenAddress}:{port}"
+			_logger?.LogInformation($"TcpLockController: listening on {listenAddress}:{_port}"
 				+ (_module.Enabled ? $" (ZLG modul: jedna veza={_module.SingleClient}, oslobađanje {_module.ReleaseDelayMs} ms, odgovor {_module.ResponseDelayMs} ms, blokada {_module.LockAfterAbandonedMs} ms)" : ""));
 
 			_listenTask = AcceptClientsAsync(cancellationToken);
@@ -59,47 +63,118 @@ namespace TopPos.LockerSimulator
 		/// <summary>Port na kome se sluša (korisno kad je zadat port 0).</summary>
 		public int Port => _port;
 
+		/// <summary>
+		/// v4: za <c>POST /_sim/reset</c> — skida blokadu posle napuštenog odgovora i prekida pauzu, pa listener odmah ponovo
+		/// prima vezu (inače bi sledeći E2E scenario do <see cref="NetworkModuleConfiguration.LockAfterAbandonedMs"/> dobijao „refused").
+		/// </summary>
+		public void ResetNetworkModule()
+		{
+			Interlocked.Exchange(ref _blockedUntilMs, 0);
+			lock (_pauseLock)
+			{
+				_pauseCts?.Cancel();
+			}
+		}
+
+		/// <summary>v4: završava se posle otkazivanja tokena, kad su zatvoreni listener i veza (uredno gašenje simulatora).</summary>
+		public Task Completion => _listenTask;
+
 		private bool SingleClient => _module.Enabled && _module.SingleClient;
 
 		private async Task AcceptClientsAsync(CancellationToken ct)
 		{
-			while (!ct.IsCancellationRequested)
+			try
+			{
+				while (!ct.IsCancellationRequested)
+				{
+					try
+					{
+						var client = await _listener.AcceptTcpClientAsync(ct).ConfigureAwait(false);
+						_logger?.LogInformation($"TcpLockController: client connected from {client.Client.RemoteEndPoint}");
+
+						if (!SingleClient)
+						{
+							_ = HandleClientAsync(client, ct);
+							continue;
+						}
+
+						// Jedna veza: dok traje, listener je zaustavljen, pa OS odbija nove veze — klijent vidi „refused",
+						// kao na terenu. Posle zatvaranja mesto se oslobađa tek posle pauze (ili blokade).
+						_listener.Stop();
+						await HandleClientAsync(client, ct).ConfigureAwait(false);
+
+						var pause = TimeSpan.FromMilliseconds(_module.ReleaseDelayMs);
+						var blocked = TimeSpan.FromMilliseconds(_blockedUntilMs - Environment.TickCount64);
+						if (blocked > pause)
+							pause = blocked;
+						_logger?.LogInformation($"TcpLockController: nova veza se prima za {pause.TotalMilliseconds:0} ms");
+						await PauseAsync(pause, ct).ConfigureAwait(false);
+						await RestartListenerAsync(ct).ConfigureAwait(false);
+					}
+					catch (OperationCanceledException) { break; }
+					catch (Exception ex)
+					{
+						_logger?.LogError(ex, "TcpLockController: error accepting client");
+						// v4: npr. listener nije mogao ponovo da se pokrene — bez pauze bi se petlja vrtela
+						await Task.Delay(100, CancellationToken.None).ConfigureAwait(false);
+					}
+				}
+			}
+			finally
+			{
+				// v4: uredno gašenje — port se oslobađa odmah, ne kad GC pokupi listener
+				_listener.Stop();
+			}
+		}
+
+		/// <summary>v4: pauza koju prekida <see cref="ResetNetworkModule"/> (ili gašenje — tada <see cref="OperationCanceledException"/>).</summary>
+		private async Task PauseAsync(TimeSpan pause, CancellationToken ct)
+		{
+			using var pauseCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+			lock (_pauseLock)
+			{
+				_pauseCts = pauseCts;
+			}
+			try
+			{
+				await Task.Delay(pause, pauseCts.Token).ConfigureAwait(false);
+			}
+			catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+			{
+				_logger?.LogInformation("TcpLockController: pauza je prekinuta (reset)");
+			}
+			finally
+			{
+				lock (_pauseLock)
+				{
+					_pauseCts = null;
+				}
+			}
+		}
+
+		/// <summary>v4: posle pauze port može biti zauzet (npr. drugi proces) — pokušava se ponovo, bez izlaska iz petlje.</summary>
+		private async Task RestartListenerAsync(CancellationToken ct)
+		{
+			for (;;)
 			{
 				try
 				{
-					var client = await _listener.AcceptTcpClientAsync(ct).ConfigureAwait(false);
-					_logger?.LogInformation($"TcpLockController: client connected from {client.Client.RemoteEndPoint}");
-
-					if (!SingleClient)
-					{
-						_ = HandleClientAsync(client, ct);
-						continue;
-					}
-
-					// Jedna veza: dok traje, listener je zaustavljen, pa OS odbija nove veze — klijent vidi „refused",
-					// kao na terenu. Posle zatvaranja mesto se oslobađa tek posle pauze (ili blokade).
-					_listener.Stop();
-					await HandleClientAsync(client, ct).ConfigureAwait(false);
-
-					var pause = TimeSpan.FromMilliseconds(_module.ReleaseDelayMs);
-					var blocked = _blockedUntil - DateTime.Now;
-					if (blocked > pause)
-						pause = blocked;
-					_logger?.LogInformation($"TcpLockController: nova veza se prima za {pause.TotalMilliseconds:0} ms");
-					await Task.Delay(pause, ct).ConfigureAwait(false);
 					_listener = new TcpListener(_listenAddress, _port);
 					_listener.Start();
+					return;
 				}
-				catch (OperationCanceledException) { break; }
-				catch (Exception ex)
+				catch (SocketException ex)
 				{
-					_logger?.LogError(ex, "TcpLockController: error accepting client");
+					_logger?.LogWarning($"TcpLockController: port {_port} nije slobodan ({ex.SocketErrorCode}), novi pokušaj za 1 s");
+					await Task.Delay(1000, ct).ConfigureAwait(false);
 				}
 			}
 		}
 
 		private async Task HandleClientAsync(TcpClient client, CancellationToken ct)
 		{
+			// v4: ReadByte ne prima token — pri gašenju se veza zatvara, pa čitanje odmah završava
+			using var closeOnCancel = ct.Register(client.Close);
 			using (client)
 			await using (var stream = client.GetStream())
 			{
@@ -218,7 +293,7 @@ namespace TopPos.LockerSimulator
 			if (!SingleClient || _module.LockAfterAbandonedMs <= 0)
 				return;
 
-			_blockedUntil = DateTime.Now.AddMilliseconds(_module.LockAfterAbandonedMs);
+			_blockedUntilMs = Environment.TickCount64 + _module.LockAfterAbandonedMs;
 			_logger?.LogWarning($"TcpLockController: veza je zatvorena dok je odgovor čekao — modul odbija veze {_module.LockAfterAbandonedMs / 1000.0:0.#} s (ZLG na terenu, 2026-10-16)");
 		}
 

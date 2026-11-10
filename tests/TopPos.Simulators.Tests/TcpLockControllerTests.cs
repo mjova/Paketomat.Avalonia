@@ -53,8 +53,8 @@ namespace TopPos.LockerSimulator.Tests
 			}
 
 			var sw = Stopwatch.StartNew();
-			using var second = new TcpClient();
-			await second.ConnectAsync(IPAddress.Loopback, simulator.Port);
+			// v4: Linux vezu tokom pauze odbije odmah (Windows ponavlja SYN ~2 s), pa se pokušava ponovo, kao kiosk
+			using var second = await ConnectWithRetryAsync(simulator.Port, TimeSpan.FromSeconds(5));
 
 			Assert.True(sw.ElapsedMilliseconds >= 700, $"nova veza primljena posle {sw.ElapsedMilliseconds} ms");
 		}
@@ -151,6 +151,26 @@ namespace TopPos.LockerSimulator.Tests
 				addr => [0xFF, 0xFF, 0xFF],
 				_cts.Token,
 				networkModule: module);
+
+		/// <summary>v4: povezivanje uz ponavljanje na „refused" dok ne istekne <paramref name="limit"/>.</summary>
+		private static async Task<TcpClient> ConnectWithRetryAsync(int port, TimeSpan limit)
+		{
+			var sw = Stopwatch.StartNew();
+			for (;;)
+			{
+				var client = new TcpClient();
+				try
+				{
+					await client.ConnectAsync(IPAddress.Loopback, port);
+					return client;
+				}
+				catch (SocketException ex) when (ex.SocketErrorCode == SocketError.ConnectionRefused && sw.Elapsed < limit)
+				{
+					client.Dispose();
+					await Task.Delay(50);
+				}
+			}
+		}
 
 		private static async Task<byte[]> ReadAsync(NetworkStream stream, int count)
 		{

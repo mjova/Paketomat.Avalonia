@@ -10,7 +10,10 @@
 
         public int Number { get; }
 
-		public bool IsLocked { get; set; }	
+		public bool IsLocked { get; set; }
+
+		// v4: iz WPF LockBoxViewModel — blokirana vrata se ne otključavaju (zaglavljena brava)
+		public bool IsBlocked { get; set; }
     }
 
 	public class LockModule
@@ -24,6 +27,9 @@
 		public IReadOnlyList<LockBox> Boxes => _boxes;
 
 		public bool IsOperational { get; set; } = true;
+
+		// v4: iz WPF LockModuleViewModel — isključen modul ne odgovara na komande
+		public bool IsOn { get; set; } = true;
     }
 
 	public class Locker

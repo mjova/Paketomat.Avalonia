@@ -1,5 +1,5 @@
-using System.Collections.ObjectModel;
 using System.Net;
+using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
 using Flatsoft.Common.Text;
@@ -12,8 +12,11 @@ namespace TopPos.ServerSimulator
 	public class HttpServer
 	{
 		private readonly ServerSimulatorConfiguration _config;
-		private readonly ObservableCollection<PackageItem> _packages;
+		// v4: stanje je samo u memoriji (bez ServerStatus.json). U v2 ga je čuvao WPF Dispatcher (kolekcija vezana za DataGrid);
+		// ovde jedan lock za pakete i vrata, a mrežna čekanja su van njega.
+		private readonly List<PackageItem> _packages = [];
 		private readonly DoorPanelViewModel _doorPanel;
+		private readonly Lock _stateLock = new();
 		private readonly ILogger _logger;
 		private HttpListener? _listener;
 		private CancellationTokenSource? _cts;
@@ -34,23 +37,81 @@ namespace TopPos.ServerSimulator
 		public event Action<LogEntry>? OnRequestLogged;
 		public int RequestCount => _requestCount;
 
-		public HttpServer(ServerSimulatorConfiguration config, ObservableCollection<PackageItem> packages, DoorPanelViewModel doorPanel, ILogger logger)
+		public HttpServer(ServerSimulatorConfiguration config, ILogger logger)
 		{
 			_config = config;
-			_packages = packages;
-			_doorPanel = doorPanel;
+			_doorPanel = new DoorPanelViewModel(config.DoorCount);
 			_logger = logger;
 		}
+
+		/// <summary>Port na kome server sluša; sa <c>Server.Port</c> = 0 bira se slobodan port.</summary>
+		public int Port { get; private set; }
 
 		public void Start()
 		{
 			_cts = new CancellationTokenSource();
-			_listener = new HttpListener();
 			var bindAddress = string.IsNullOrWhiteSpace(_config.Server.BindAddress) ? "localhost" : _config.Server.BindAddress;
-			_listener.Prefixes.Add($"http://{bindAddress}:{_config.Server.Port}/");
-			_listener.Start();
-			_logger.LogInformation($"HTTP server started on http://{bindAddress}:{_config.Server.Port}");
+			// v4: HttpListener ne prima port 0 — slobodan port se bira unapred; ako ga u međuvremenu zauzme neko drugi, bira se nov.
+			for (int attempt = 1; ; attempt++)
+			{
+				var port = _config.Server.Port != 0 ? _config.Server.Port : FreeTcpPort();
+				var listener = new HttpListener();
+				listener.Prefixes.Add($"http://{bindAddress}:{port}/");
+				try
+				{
+					listener.Start();
+				}
+				catch (HttpListenerException) when (_config.Server.Port == 0 && attempt < 5)
+				{
+					listener.Close();
+					continue;
+				}
+				_listener = listener;
+				Port = port;
+				break;
+			}
+			_logger.LogInformation($"HTTP server started on http://{bindAddress}:{Port}");
 			Task.Run(() => ListenLoop(_cts.Token));
+		}
+
+		private static int FreeTcpPort()
+		{
+			var probe = new TcpListener(IPAddress.Loopback, 0);
+			probe.Start();
+			var port = ((IPEndPoint)probe.LocalEndpoint).Port;
+			probe.Stop();
+			return port;
+		}
+
+		// v4: reset (/_sim/reset) menja generaciju stanja. Zahtev primljen pre reset-a (npr. još čeka zadato kašnjenje) posle
+		// njega ne sme da menja stanje ni evidenciju sledećeg testa — dobija 503. Provera je pod lock-om, zajedno sa izmenom.
+		private int _generation;
+		private readonly AsyncLocal<int?> _requestGeneration = new();
+
+		private bool IsStaleRequest() => _requestGeneration.Value is int generation && generation != Volatile.Read(ref _generation);
+
+		private void ThrowIfStaleRequest()
+		{
+			if (IsStaleRequest())
+				throw new SimulatedStatusException(503, "Simulator je resetovan tokom obrade zahteva");
+		}
+
+		private T Locked<T>(Func<T> func)
+		{
+			lock (_stateLock)
+			{
+				ThrowIfStaleRequest();
+				return func();
+			}
+		}
+
+		private void Locked(Action action)
+		{
+			lock (_stateLock)
+			{
+				ThrowIfStaleRequest();
+				action();
+			}
 		}
 
 		public void Stop()
@@ -112,6 +173,7 @@ namespace TopPos.ServerSimulator
 			int statusCode = 200;
 			bool isError = false;
 
+			_requestGeneration.Value = Volatile.Read(ref _generation);
 			try
 			{
 				var fault = _config.Server.EnableControlApi ? _faults.Take(endpoint) : null;
@@ -120,6 +182,7 @@ namespace TopPos.ServerSimulator
 					_logger.LogInformation($"Zadata greška za {endpoint}: kašnjenje {fault.DelayMs} ms, greška '{fault.Error}', status {fault.Status}{(fault.AfterProcessing ? " posle obrade" : "")}");
 					if (fault.DelayMs > 0)
 						await Task.Delay(fault.DelayMs).ConfigureAwait(false);
+					ThrowIfStaleRequest();
 					if (!fault.AfterProcessing)
 					{
 						if (fault.Status != null)
@@ -193,7 +256,7 @@ namespace TopPos.ServerSimulator
 			lock (_callsLock)
 			{
 				logEntry.Seq = ++_callSeq;
-				if (_config.Server.EnableControlApi)	// u ručnom radu lista bi rasla bez granice
+				if (_config.Server.EnableControlApi && !IsStaleRequest())	// u ručnom radu lista bi rasla bez granice; v4: bez zahteva pre reset-a
 				{
 					_calls.Add(logEntry);
 				}
@@ -259,7 +322,8 @@ namespace TopPos.ServerSimulator
 		}
 
 		// ─── Kontrolni API (/_sim/*) — samo za E2E testove, uključuje se sa Server.EnableControlApi ───
-		//   GET  /_sim/health             → server je gore
+		//   GET  /_sim/health             → server je gore (v4: i port)
+		//   POST /_sim/reset              → v4: bez paketa, grešaka vrata i paketomata, zadatih grešaka i evidencije poziva
 		//   GET  /_sim/packages           → trenutni paketi
 		//   POST /_sim/packages           → dodaje paket (telo: PackageItem)
 		//   GET  /_sim/calls?since=<seq>  → primljeni API pozivi sa Seq > since (redosled obrade)
@@ -274,7 +338,8 @@ namespace TopPos.ServerSimulator
 			{
 				result = (request.HttpMethod, command.ToLowerInvariant()) switch
 				{
-					("GET", "health") => new { Status = "ok" },
+					("GET", "health") => new { Status = "ok", Port },
+					("POST", "reset") => Reset(),
 					("GET", "packages") => GetPackagesSnapshot(),
 					("POST", "packages") => AddPackage(requestBody),
 					("GET", "calls") => GetCalls(request.QueryString["since"]),
@@ -311,8 +376,8 @@ namespace TopPos.ServerSimulator
 			if (string.IsNullOrWhiteSpace(pkg.Barkod))
 				throw new ControlApiException(400, "Barkod je obavezan");
 
-			// Provera i dodavanje na UI niti (kolekcija je vezana za DataGrid); greška se baca van Dispatcher-a.
-			var conflict = System.Windows.Application.Current.Dispatcher.Invoke(() =>
+			// Provera i dodavanje pod lock-om stanja; greška se baca van lock-a.
+			var conflict = Locked(() =>
 			{
 				if (_packages.Any(p => p.Barkod == pkg.Barkod))
 					return $"Paket sa barkodom {pkg.Barkod} već postoji";
@@ -325,12 +390,31 @@ namespace TopPos.ServerSimulator
 			});
 			if (conflict != null)
 				throw new ControlApiException(409, conflict);
-			return System.Windows.Application.Current.Dispatcher.Invoke(pkg.Snapshot);
+			return Locked(pkg.Snapshot);
 		}
 
-		// Kolekciju menja UI nit (DataGrid, potvrde preuzimanja): kopija vrednosti se pravi na UI niti, a serijalizuje van nje.
+		// Kopija vrednosti se pravi pod lock-om, a serijalizuje van njega.
 		private List<PackageItem> GetPackagesSnapshot()
-			=> System.Windows.Application.Current.Dispatcher.Invoke(() => _packages.Select(p => p.Snapshot()).ToList());
+			=> Locked(() => _packages.Select(p => p.Snapshot()).ToList());
+
+		// v4: E2E počinje svaki test od čistog stanja bez ponovnog pokretanja procesa. Redni broj poziva raste dalje.
+		private object Reset()
+		{
+			Locked(() =>
+			{
+				Interlocked.Increment(ref _generation);
+				_packages.Clear();
+				_doorPanel.ClearErrors();
+			});
+			_lockerInError = false;
+			_faults.Clear();
+			lock (_callsLock)
+			{
+				_calls.Clear();
+			}
+			_logger.LogInformation("Control API: stanje simulatora je obrisano (reset)");
+			return new { Status = "ok" };
+		}
 
 		private List<ServerFault> ArmFault(string requestBody)
 		{
@@ -419,7 +503,7 @@ namespace TopPos.ServerSimulator
 
 		private string HandleStatusPaketomata()
 		{
-			var packages = _packages.Where(p => !p.Preuzet).ToList();
+			var packages = Locked(() => _packages.Where(p => !p.Preuzet).Select(p => p.Snapshot()).ToList());
 			var statusBySize = new[] { "S", "M", "L" }.Select(size => new StatusPoVeliciniPozicije
 			{
 				Velicina = size,
@@ -462,7 +546,7 @@ namespace TopPos.ServerSimulator
 
 		private string HandleKurirPozicijeZaPraznjenje()
 		{
-			var packages = _packages.Where(p => p.Istekao && !p.Preuzet).ToList();
+			var packages = Locked(() => _packages.Where(p => p.Istekao && !p.Preuzet).Select(p => p.Snapshot()).ToList());
 			return JsonApiSerialization.Serialize(new KurirPozicijeZaPraznjenjeResponse
 			{
 				ListaPaketa = packages.Select(p => new BarkodPozicija
@@ -478,7 +562,7 @@ namespace TopPos.ServerSimulator
 			var queryParams = request.QueryString;
 			var barkod = queryParams["Barkod"] ?? "";
 
-			var packages = _packages.ToList();
+			var (packages, doorErrors) = Locked(() => (_packages.Select(p => p.Snapshot()).ToList(), _doorPanel.GetErrors()));
 			var pkg = packages.FirstOrDefault(p => p.Barkod == barkod && p.BrojPozicije == 0);
 
 			if (pkg == null)
@@ -487,7 +571,7 @@ namespace TopPos.ServerSimulator
 			// Kao pravi server: dodela ne zauzima vrata (zauzima ih tek potvrda), pa dva zahteva zaredom dobijaju ista vrata;
 			// vrata preuzetog paketa su slobodna.
 			var usedPositions = packages.Where(p => p.UPaketomatu).Select(p => p.BrojPozicije).ToHashSet();
-			var erroredPositions = _doorPanel.GetErrors().Select(e => e.DoorNumber).ToHashSet();
+			var erroredPositions = doorErrors.Select(e => e.DoorNumber).ToHashSet();
 			int freePosition = Enumerable.Range(1, _config.DoorCount)
 				.FirstOrDefault(i => !usedPositions.Contains(i) && !erroredPositions.Contains(i) && GetBoxSize(i) == pkg.Velicina);
 
@@ -504,7 +588,7 @@ namespace TopPos.ServerSimulator
 
 			if (brojPozicije > 0 && req?.Barkod != null)
 			{
-				var error = System.Windows.Application.Current.Dispatcher.Invoke(() =>
+				var error = Locked(() =>
 				{
 					var pkg = _packages.FirstOrDefault(p => p.Barkod == req.Barkod);
 					// Kao pravi server (de-test, 2026-10-09): vrata koja drži drugi paket se ne potvrđuju — npr. zakasnela
@@ -536,7 +620,7 @@ namespace TopPos.ServerSimulator
 
 			if (brojPozicije > 0)
 			{
-				System.Windows.Application.Current.Dispatcher.Invoke(() =>
+				Locked(() =>
 				{
 					var pkg = _packages.FirstOrDefault(p => p.UPaketomatu && p.BrojPozicije == brojPozicije);
 					if (pkg != null)
@@ -559,24 +643,25 @@ namespace TopPos.ServerSimulator
 		private string HandleKurirPromenaVelicinePosiljke(string requestBody)
 		{
 			var req = JsonApiSerialization.Deserialize<KurirPromenaVelicinePosiljke>(requestBody);
-			var pkg = _packages.ToList().FirstOrDefault(p => p.Barkod == req?.Barkod);
-			var currentSize = pkg?.Velicina ?? "S";
-
-			// S → M → L; L ostaje L
-			var newSize = currentSize switch
+			var newSize = Locked(() =>
 			{
-				"S" => Velicine.M,
-				"M" => Velicine.L,
-				_ => Velicine.L
-			};
+				var pkg = _packages.FirstOrDefault(p => p.Barkod == req?.Barkod);
+				var currentSize = pkg?.Velicina ?? "S";
 
-			if (pkg != null)
-			{
-				System.Windows.Application.Current.Dispatcher.Invoke(() =>
+				// S → M → L; L ostaje L
+				var size = currentSize switch
 				{
-					pkg.Velicina = newSize.ToString();
-				});
-			}
+					"S" => Velicine.M,
+					"M" => Velicine.L,
+					_ => Velicine.L
+				};
+
+				if (pkg != null)
+				{
+					pkg.Velicina = size.ToString();
+				}
+				return size;
+			});
 
 			return JsonApiSerialization.Serialize(new KurirPromenaVelicinePosiljkeResponse
 			{
@@ -591,7 +676,7 @@ namespace TopPos.ServerSimulator
 			var telefon = queryParams["TelefonPrimaoca"];
 			int.TryParse(kodStr, out int kod);
 
-			var pkg = _packages.ToList().FirstOrDefault(p => p.KodZaOtvaranje == kod);
+			var pkg = Locked(() => _packages.FirstOrDefault(p => p.KodZaOtvaranje == kod)?.Snapshot());
 			if (pkg == null)
 			{
 				// throw new InvalidOperationException($"Paket sa kodom {kod} nije pronađen");
@@ -609,7 +694,7 @@ namespace TopPos.ServerSimulator
 			{
 				throw new InvalidOperationException("Paket još nije isporučen u paketomat");
 			}
-			if (pkg.Preuzet && _packages.ToList().Any(p => p.UPaketomatu && p.BrojPozicije == pkg.BrojPozicije))
+			if (pkg.Preuzet && Locked(() => _packages.Any(p => p.UPaketomatu && p.BrojPozicije == pkg.BrojPozicije)))
 			{
 				throw new InvalidOperationException("Na poziciji se nalazi novi paket. Preuzimanje nije moguće.");
 			}
@@ -633,7 +718,7 @@ namespace TopPos.ServerSimulator
 			{
 				// Paket ostaje (Preuzet), vrata postaju slobodna za ostavljanje; ponovljena potvrda prolazi (de-test, 2026-10-09).
 				// Po kodu, ne po vratima: zakasnela potvrda ne sme da „preuzme" nov paket koji je u međuvremenu u istim vratima.
-				System.Windows.Application.Current.Dispatcher.Invoke(() =>
+				Locked(() =>
 				{
 					var pkg = _packages.FirstOrDefault(p => p.KodZaOtvaranje == req!.KodZaOtvaranje && p.BrojPozicije == brojPozicije);
 					if (pkg != null && !pkg.Preuzet)
@@ -657,7 +742,7 @@ namespace TopPos.ServerSimulator
 			var uplaceno = (req?.IznosKartice ?? 0) + (req?.IznosGotovina ?? 0);
 
 			// Provera i upis na UI niti (kolekcija i paket su vezani za DataGrid); greška se baca van Dispatcher-a.
-			var error = System.Windows.Application.Current.Dispatcher.Invoke(() =>
+			var error = Locked(() =>
 			{
 				var pkg = _packages.FirstOrDefault(p => p.KodZaOtvaranje == kod);
 				if (pkg == null)
@@ -711,7 +796,7 @@ namespace TopPos.ServerSimulator
 			if (req != null && !IsKnownDoor(req.BrojPozicije))
 				throw new InvalidOperationException($"Na paketomatu \"{req.SifraBenzinskeStanice}\" ne postoji broj pozicije \"{req.BrojPozicije}\"");
 			if (req != null)
-				_doorPanel.SetError(req.BrojPozicije, req.GreskaPozicije);
+				Locked(() => _doorPanel.SetError(req.BrojPozicije, req.GreskaPozicije));
 			return JsonApiSerialization.Serialize(new PrijavaGreskePozicijeResponse
 			{
 				BrojPozicije = req?.BrojPozicije ?? 0
@@ -724,10 +809,10 @@ namespace TopPos.ServerSimulator
 			if (req != null && !IsKnownDoor(req.BrojPozicije))
 				throw new InvalidOperationException($"Na paketomatu \"{req.SifraBenzinskeStanice}\" ne postoji navedeni broj pozicije \"{req.BrojPozicije}\"");
 			// Kao pravi server: vrata bez greške → 400 (klijent ga tretira kao uspeh, IsDoorNotInErrorStateResponse)
-			if (req != null && !_doorPanel.HasError(req.BrojPozicije))
+			if (req != null && !Locked(() => _doorPanel.HasError(req.BrojPozicije)))
 				throw new InvalidOperationException($"Pozicija \"{req.BrojPozicije}\" je već bez greške");
 			if (req != null)
-				_doorPanel.ClearError(req.BrojPozicije);
+				Locked(() => _doorPanel.ClearError(req.BrojPozicije));
 			return JsonApiSerialization.Serialize(new PonistavanjeGreskePozicijeResponse
 			{
 				BrojPozicije = req?.BrojPozicije ?? 0
