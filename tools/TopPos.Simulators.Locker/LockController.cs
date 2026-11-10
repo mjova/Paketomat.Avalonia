@@ -10,8 +10,10 @@ using TopPos.LockController.Serial;
 namespace TopPos.LockerSimulator
 {
 	// Development tool. Used to simulate actual locker.
-	public class LockController
+	// v4: IAsyncDisposable — gašenje zatvara port i završava petlju (simulator u testovima se pokreće i gasi u istom procesu).
+	public class LockController : IAsyncDisposable
 	{
+		private readonly CancellationTokenSource _cts;
 		private readonly SerialClient _serialClient;
 		private readonly Func<LockCommand, LockResponse?> _funcMakeResponse;
 		private readonly Task _taskProcessIncomingCommands;
@@ -33,7 +35,8 @@ namespace TopPos.LockerSimulator
 			_funcMakeResponse = funcMakeResponse;
 
 			_logger = logger;
-			_taskProcessIncomingCommands = ProcessIncomingCommands(cancellationToken);
+			_cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+			_taskProcessIncomingCommands = ProcessIncomingCommands(_cts.Token);
 		}
 
 		public int BaudRate
@@ -91,8 +94,25 @@ namespace TopPos.LockerSimulator
 					}
 				}
 				catch (Exception ex) {
+					// v4: pauza, da petlja ne bi vrtela procesor dok port ne postoji
+					_logger?.LogDebug($"{nameof(LockController)}[{_serialClient.Port}]: {ex.Message}");
+					try {
+						await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken).ConfigureAwait(false);
+					}
+					catch (OperationCanceledException) { }
 				}
 			}
+		}
+
+		public async ValueTask DisposeAsync()
+		{
+			_cts.Cancel();
+			await _serialClient.DisposeAsync().ConfigureAwait(false);	// prekida čitanje koje čeka komandu
+			try {
+				await _taskProcessIncomingCommands.WaitAsync(TimeSpan.FromSeconds(5)).ConfigureAwait(false);
+			}
+			catch (Exception ex) when (ex is OperationCanceledException or TimeoutException) { }
+			_cts.Dispose();
 		}
 
 		private async ValueTask SendResponse(LockResponse lockResponse, CancellationToken cancellationToken)

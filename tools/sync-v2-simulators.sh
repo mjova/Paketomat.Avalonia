@@ -48,9 +48,28 @@ mapped=(
 	"TopPos.LockerSimulator/Locker.cs|tools/TopPos.Simulators.Locker/Locker.cs"
 	"TopPos.LockerSimulator/LockerSimulatorConfiguration.cs|tools/TopPos.Simulators.Locker/LockerSimulatorConfiguration.cs"
 	"TopPos.LockerSimulator/MainWindow.xaml.cs|tools/TopPos.Simulators.Locker/LockerEngine.cs"
+	"TopPos.LockerSimulator/LockController.cs|tools/TopPos.Simulators.Locker/LockController.cs"
+	"TopPos.LockerSimulator/BarcodeScanner.cs|tools/TopPos.Simulators.Locker/BarcodeScanner.cs"
+	"TopPos.LockerSimulator/Pos/PosFrame.cs|tools/TopPos.Simulators.Locker/Pos/PosFrame.cs"
+	"TopPos.LockerSimulator/Pos/PosFrameAssembler.cs|tools/TopPos.Simulators.Locker/Pos/PosFrameAssembler.cs"
+	"TopPos.LockerSimulator/Pos/PosRequest.cs|tools/TopPos.Simulators.Locker/Pos/PosRequest.cs"
+	"TopPos.LockerSimulator/Pos/PosResponses.cs|tools/TopPos.Simulators.Locker/Pos/PosResponses.cs"
+	"TopPos.LockerSimulator/Pos/PosTerminalEngine.cs|tools/TopPos.Simulators.Locker/Pos/PosTerminalEngine.cs"
+	"TopPos.LockerSimulator/Pos/PosTerminalModel.cs|tools/TopPos.Simulators.Locker/Pos/PosTerminalModel.cs"
+	"TopPos.LockerSimulator/Pos/SerialPosWire.cs|tools/TopPos.Simulators.Locker/Pos/SerialPosWire.cs"
+	"TopPos.LockerSimulator/Pos/SimCard.cs|tools/TopPos.Simulators.Locker/Pos/SimCard.cs"
 	"Tests/TopPos.LockerSimulator.Tests/TcpLockControllerTests.cs|tests/TopPos.Simulators.Tests/TcpLockControllerTests.cs"
+	"Tests/TopPos.LockerSimulator.Tests/Ecr.cs|tests/TopPos.Simulators.Tests/Ecr.cs"
+	"Tests/TopPos.LockerSimulator.Tests/EcrCompatibilityTests.cs|tests/TopPos.Simulators.Tests/EcrCompatibilityTests.cs"
+	"Tests/TopPos.LockerSimulator.Tests/FakeEcrWire.cs|tests/TopPos.Simulators.Tests/FakeEcrWire.cs"
+	"Tests/TopPos.LockerSimulator.Tests/GoldenFrames.cs|tests/TopPos.Simulators.Tests/GoldenFrames.cs"
+	"Tests/TopPos.LockerSimulator.Tests/PosEndToEndTests.cs|tests/TopPos.Simulators.Tests/PosEndToEndTests.cs"
+	"Tests/TopPos.LockerSimulator.Tests/PosFrameAssemblerTests.cs|tests/TopPos.Simulators.Tests/PosFrameAssemblerTests.cs"
+	"Tests/TopPos.LockerSimulator.Tests/PosFrameTests.cs|tests/TopPos.Simulators.Tests/PosFrameTests.cs"
+	"Tests/TopPos.LockerSimulator.Tests/PosRequestTests.cs|tests/TopPos.Simulators.Tests/PosRequestTests.cs"
+	"Tests/TopPos.LockerSimulator.Tests/PosTerminalEngineTests.cs|tests/TopPos.Simulators.Tests/PosTerminalEngineTests.cs"
 )
-# Prate se, ali se prenose ručno (GUI, faza B, E2E klijenti, protokol; biblioteke iz src/ imaju svoje redove u PORTED_FROM.md)
+# Prate se, ali se prenose ručno (GUI, E2E klijenti, protokol; biblioteke iz src/ imaju svoje redove u PORTED_FROM.md)
 watched=(
 	TopPos.ServerSimulator
 	TopPos.LockerSimulator

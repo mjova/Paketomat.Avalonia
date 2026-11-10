@@ -28,7 +28,9 @@ namespace TopPos.LockerSimulator.Pos
 		private readonly object _ackLock = new();
 		private TaskCompletionSource<PosWireEvent>? _pendingAck;
 
-		// Samo petlja RunAsync menja sesiju.
+		// Samo petlja RunAsync menja sesiju (v4: i ResetAsync, pod istim _loopLock-om).
+		// v4: obrada poruke od ECR-a i ResetAsync se ne preklapaju
+		private readonly SemaphoreSlim _loopLock = new(1, 1);
 		private CancellationTokenSource? _sessionCts;
 		private Task _sessionTask = Task.CompletedTask;
 		// Zahtev na koji je poslat pogrešan bajt umesto ACK-a: ECR ga odmah ponavlja, a terminal na ponavljanja ćuti.
@@ -72,12 +74,41 @@ namespace TopPos.LockerSimulator.Pos
 		/// <summary>Kupac pritisne "odustani" na terminalu.</summary>
 		public void CustomerCancel() => _customerActions.Writer.TryWrite(new CancelAction());
 
+		/// <summary>
+		/// v4: početno stanje za sledeći E2E scenario (<c>POST /_sim/reset</c>): prekida tekuću sesiju (i zaleđenu posle
+		/// FreezeAfterAck), zaboravlja zahtev ignorisan posle WrongAckByte i akcije kupca, briše kvarove i vraća podešavanja.
+		/// </summary>
+		public async Task ResetAsync()
+		{
+			await _loopLock.WaitAsync().ConfigureAwait(false);
+			try {
+				await StopSessionAsync("reset simulatora").ConfigureAwait(false);
+				_ignoredRequest = null;
+				while (_customerActions.Reader.TryRead(out _)) {
+				}
+				Faults.Clear();
+				AutoCustomer = false;
+				AutoCard = SimCard.MastercardContactless;
+				Cancel11Response = Cancel11Response.Reject;
+				SetStatus(PosTerminalStatus.Initial);
+			}
+			finally {
+				_loopLock.Release();
+			}
+		}
+
 		public async Task RunAsync(CancellationToken cancellationToken)
 		{
 			try {
 				await foreach (var ev in _wire.Incoming.ReadAllAsync(cancellationToken).ConfigureAwait(false)) {
 					try {
-						await HandleIncomingAsync(ev, cancellationToken).ConfigureAwait(false);
+						await _loopLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+						try {
+							await HandleIncomingAsync(ev, cancellationToken).ConfigureAwait(false);
+						}
+						finally {
+							_loopLock.Release();
+						}
 					}
 					catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
 						throw;

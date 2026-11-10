@@ -1,8 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <!-- Simulator paketomata bez GUI-ja (v2 TopPos.LockerSimulator): NCU24L preko TCP-a sa ponašanjem ZLG modula i kontrolni
-       API /_sim/*. Pokreće ga TopPos.Simulators, a testovi u procesu. Namespace kao u v2, da izmene iz v2 prolaze
-       (tools/sync-v2-simulators.sh). -->
+  <!-- Simulator paketomata bez GUI-ja (v2 TopPos.LockerSimulator): NCU24L preko TCP-a sa ponašanjem ZLG modula, serijski
+       kontroler, skener i POS terminal (Linux: pty par, Windows: com0com) i kontrolni API /_sim/*. Pokreće ga
+       TopPos.Simulators, a testovi u procesu. Namespace kao u v2, da izmene iz v2 prolaze (tools/sync-v2-simulators.sh). -->
   <PropertyGroup>
     <RootNamespace>TopPos.LockerSimulator</RootNamespace>
   </PropertyGroup>
@@ -14,6 +14,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Flatsoft.Common\Flatsoft.Common.csproj" />
     <ProjectReference Include="..\..\src\TopPos.LockController.NCU24L\TopPos.LockController.NCU24L.csproj" />
+    <ProjectReference Include="..\..\src\TopPos.LockController.Serial\TopPos.LockController.Serial.csproj" />
   </ItemGroup>
 
 </Project>

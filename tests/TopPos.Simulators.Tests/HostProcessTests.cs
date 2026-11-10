@@ -101,6 +101,11 @@ namespace TopPos.Simulators.Tests
 			Assert.Equal(1, await Start("locker", "--config", Write("empty.json", new { })).WaitExit());
 			Assert.Equal(1, await Start("server", "--config", Write("bad-port.json", new { Server = new { Port = 70000 } })).WaitExit());
 			Assert.Equal(1, await Start("server", "--config", Path.Combine(_dir, "nema.json")).WaitExit());
+			// serijski kontroler odgovara sa tačno 8 statusa po modulu
+			Assert.Equal(1, await Start("locker", "--config", Write("serial-24.json", new {
+				Locker = new { ModuleCount = 2, BoxCountPerModule = 24 },
+				LockController = new { Type = "Serial", ComPort = new { PortName = "COM99", BaudRate = 9600, DataBits = 8, Parity = "None" } },
+			})).WaitExit());
 		}
 
 		[Fact]
@@ -128,6 +133,31 @@ namespace TopPos.Simulators.Tests
 			Assert.Equal(port, ready.GetProperty("locker").GetProperty("tcpPort").GetInt32());
 		}
 
+		[LinuxFact]
+		public async Task Serial_devices_report_kiosk_ports_and_remove_them_on_shutdown()
+		{
+			var sim = Start("locker", "--config", SerialLockerConfig());
+			var locker = (await sim.WaitReady()).GetProperty("locker");
+
+			Assert.Equal(JsonValueKind.Null, locker.GetProperty("tcpPort").ValueKind);
+			foreach (var (key, name) in new[] { ("lockControllerPort", "ttyLOCK"), ("barcodeScannerPort", "ttySCAN"), ("posTerminalPort", "ttyPOS") }) {
+				Assert.Equal(Path.Combine(_dir, "dev", name), locker.GetProperty(key).GetString());
+				Assert.StartsWith("/dev/pts/", new FileInfo(Path.Combine(_dir, "dev", name)).LinkTarget);
+			}
+
+			sim.Terminate();
+
+			Assert.Equal(0, await sim.WaitExit());
+			Assert.Empty(Directory.GetFileSystemEntries(Path.Combine(_dir, "dev")));
+		}
+
+		[WindowsFact]
+		public async Task Kiosk_port_name_is_rejected_on_windows()
+		{
+			// na Windows-u par pravi com0com; tiho zanemaren KioskPortName bi ostavio kiosk bez veze
+			Assert.Equal(1, await Start("locker", "--config", SerialLockerConfig()).WaitExit());
+		}
+
 		// ─── Pomoćno ───
 
 		private string ServerConfig()
@@ -150,6 +180,18 @@ namespace TopPos.Simulators.Tests
 				},
 				ControlApi = new { Port = 0 },
 			});
+
+		private string SerialLockerConfig()
+		{
+			var dev = Path.Combine(_dir, "dev");
+			return Write("serial.json", new {
+				Locker = new { ModuleCount = 2, BoxCountPerModule = 8 },
+				LockController = new { Type = "Serial", ComPort = new { PortName = "", BaudRate = 9600, DataBits = 8, Parity = "None" }, KioskPortName = Path.Combine(dev, "ttyLOCK") },
+				BarcodeScanner = new { ComPort = new { PortName = "", BaudRate = 9600, DataBits = 8, Parity = "None" }, KioskPortName = Path.Combine(dev, "ttySCAN") },
+				PosTerminal = new { ComPort = new { PortName = "", BaudRate = 9600, DataBits = 8, Parity = "None" }, KioskPortName = Path.Combine(dev, "ttyPOS") },
+				ControlApi = new { Port = 0 },
+			});
+		}
 
 		private string Write(string name, object content)
 		{

@@ -8,8 +8,10 @@ using Flatsoft.Net.Serial;
 namespace TopPos.LockerSimulator
 {
 	// Development tool. Used for sending barcodes entered in the simulator to a com port.
-	public class BarcodeScanner
+	// v4: IAsyncDisposable — gašenje zatvara port i završava petlju (simulator u testovima se pokreće i gasi u istom procesu).
+	public class BarcodeScanner : IAsyncDisposable
 	{
+		private readonly CancellationTokenSource _cts = new();
 		private readonly BarcodeScannerConfiguration _configuration;
 		private readonly SerialClient _serialClient;
 		private readonly Task _taskProcessScannerCommands;	// simulate expected responses
@@ -30,9 +32,8 @@ namespace TopPos.LockerSimulator
 			// We are permanently processing incoming commands, so there's a permanent ongoing read operation.
 			// SerialClient should not attempt to empty reader before writing, because it would raise InvalidOperationException (reading already in progress).
 			_serialClient.EmptyReaderBeforeWrite = false;  
-			_taskProcessScannerCommands = ProcessIncomingScannerCommands(CancellationToken.None);
-
 			_logger = logger;
+			_taskProcessScannerCommands = ProcessIncomingScannerCommands(_cts.Token);
 		}
 
 		public int BaudRate
@@ -134,8 +135,29 @@ namespace TopPos.LockerSimulator
 				}
 				catch (Exception ex) {
 					_logger?.LogError($"{nameof(ProcessIncomingScannerCommands)}[{_serialClient.Port}]: exception: {ex.Message}");
+					await PauseAfterError(cancellationToken).ConfigureAwait(false);
 				}
 			}
+		}
+
+		/// <summary>v4: posle greške porta pauza, da petlja ne bi vrtela procesor dok port ne postoji.</summary>
+		private static async Task PauseAfterError(CancellationToken cancellationToken)
+		{
+			try {
+				await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken).ConfigureAwait(false);
+			}
+			catch (OperationCanceledException) { }
+		}
+
+		public async ValueTask DisposeAsync()
+		{
+			_cts.Cancel();
+			await _serialClient.DisposeAsync().ConfigureAwait(false);	// prekida čitanje koje čeka komandu
+			try {
+				await _taskProcessScannerCommands.WaitAsync(TimeSpan.FromSeconds(5)).ConfigureAwait(false);
+			}
+			catch (Exception ex) when (ex is OperationCanceledException or TimeoutException) { }
+			_cts.Dispose();
 		}
 
 		private ResponseProcessingResult TryProcessCheckPresenceCommand(ReadOnlySequence<byte> incomingData, out bool isCheckPresenceCommand)

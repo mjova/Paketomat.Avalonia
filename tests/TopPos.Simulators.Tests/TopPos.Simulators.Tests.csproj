@@ -10,6 +10,7 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="xunit" />
+    <PackageReference Include="Xunit.SkippableFact" />
     <PackageReference Include="xunit.runner.visualstudio">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
@@ -21,6 +22,10 @@
     <ProjectReference Include="..\..\tools\TopPos.Simulators.Locker\TopPos.Simulators.Locker.csproj" />
     <ProjectReference Include="..\..\tools\TopPos.Simulators.Server\TopPos.Simulators.Server.csproj" />
     <ProjectReference Include="..\..\src\TopPos.LockController.NCU24L\TopPos.LockController.NCU24L.csproj" />
+    <ProjectReference Include="..\..\src\TopPos.LockController.Serial\TopPos.LockController.Serial.csproj" />
+    <!-- Pravi ECR parser/serijalizator i PosClient kioska: okviri simulatora moraju da prođu kroz kod kioska. -->
+    <ProjectReference Include="..\..\src\TopPos.ECR\TopPos.ECR.csproj" />
+    <ProjectReference Include="..\..\src\TopPos.Kiosk.Core\TopPos.Kiosk.Core.csproj" />
     <ProjectReference Include="..\..\src\TopPos.PenPosService\TopPos.PenPosService.csproj" />
     <ProjectReference Include="..\..\src\TopPos.Service\TopPos.Service.csproj" />
   </ItemGroup>

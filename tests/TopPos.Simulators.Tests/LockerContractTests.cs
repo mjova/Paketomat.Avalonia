@@ -34,7 +34,7 @@ namespace TopPos.Simulators.Tests
 				ControlApi = new ControlApiConfiguration { Port = 0 },
 			}, NullLogger.Instance);
 			_control = new HttpClient { BaseAddress = new Uri($"http://localhost:{_engine.ControlApiPort}/_sim/") };
-			_client = new LockControllerClientNCU24L(new TcpControllerConfiguration { IpAddress = "127.0.0.1", Port = _engine.TcpPort });
+			_client = new LockControllerClientNCU24L(new TcpControllerConfiguration { IpAddress = "127.0.0.1", Port = _engine.TcpPort!.Value });
 			return Task.CompletedTask;
 		}
 

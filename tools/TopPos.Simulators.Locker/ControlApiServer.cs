@@ -4,6 +4,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
 using TopPos.LockController;
+using TopPos.LockerSimulator.Pos;
 
 namespace TopPos.LockerSimulator
 {
@@ -96,7 +97,8 @@ namespace TopPos.LockerSimulator
 	/// <summary>
 	/// Kontrolni API za E2E testove (HTTP na localhost-u, uključuje se sekcijom ControlApi u konfiguraciji).
 	///   GET  /_sim/health                       → v4: i portovi (TcpPort, ControlApiPort)
-	///   POST /_sim/reset                        → v4: vrata zatvorena i bez blokade, moduli uključeni, bez kvarova, evidencije i ZLG blokade
+	///   POST /_sim/reset                        → v4: vrata zatvorena i bez blokade, moduli uključeni, bez kvarova, evidencije i ZLG blokade;
+	///                                             POS bez kvarova, sa podrazumevanim podešavanjima
 	///   GET  /_sim/doors                        → stanje svih vrata
 	///   POST /_sim/doors/{n}/open|close|block|unblock
 	///   POST /_sim/doors/close-all
@@ -105,7 +107,16 @@ namespace TopPos.LockerSimulator
 	///   GET  /_sim/faults                       → naoružani kvarovi kontrolera vrata
 	///   POST /_sim/faults                       → {"fault":"DropOpenResponse","count":1}
 	///   POST /_sim/faults/clear
-	/// v4 faza A: skener (<c>/_sim/barcode</c>) i POS (<c>/_sim/pos/*</c>) iz v2 još nisu preneti (serijski par, faza B) — 404.
+	///   POST /_sim/barcode                      → {"barcode":"..."} šalje se kao sa skenera
+	///   GET  /_sim/pos                          → faza, iznos, podešavanja, kvarovi
+	///   POST /_sim/pos/card                     → {"card":"MastercardContactless"} (samo u fazi WaitingForCard)
+	///   POST /_sim/pos/pin                      → {"pin":"1234"} ili bez tela = ispravan PIN (samo u WaitingForPin)
+	///   POST /_sim/pos/cancel                   → kupac odustaje (WaitingForCard/WaitingForPin)
+	///   POST /_sim/pos/settings                 → {"autoCustomer":false,"autoCard":"...","cancel11Response":"Reject"}
+	///   POST /_sim/pos/faults                   → {"fault":"NoResponse","count":1}
+	///   POST /_sim/pos/faults/clear
+	/// Akcija kupca van odgovarajuće faze vraća 409: engine bi je zanemario ili obrisao na početku sledeće sesije.
+	/// v4: bez sekcije BarcodeScanner/PosTerminal odgovarajuće komande vraćaju 404.
 	/// </summary>
 	public sealed class ControlApiServer
 	{
@@ -115,21 +126,31 @@ namespace TopPos.LockerSimulator
 			Converters = { new JsonStringEnumConverter() },
 		};
 
+		private static readonly Dictionary<string, SimCard> __cards = new(StringComparer.OrdinalIgnoreCase) {
+			[nameof(SimCard.VisaChip)] = SimCard.VisaChip,
+			[nameof(SimCard.MastercardContactless)] = SimCard.MastercardContactless,
+			[nameof(SimCard.DinacardDeclined)] = SimCard.DinacardDeclined,
+			[nameof(SimCard.VisaExpired)] = SimCard.VisaExpired,
+		};
+
 		private readonly int _requestedPort;
-		private readonly int _tcpPort;
+		private readonly int? _tcpPort;
 		private readonly Locker _locker;
 		private readonly Lock _stateLock;
 		private readonly UnlockLog _unlockLog;
 		private readonly LockFaults _lockFaults;
-		private readonly Action? _onReset;
+		private readonly BarcodeScanner? _barcodeScanner;
+		private readonly PosTerminalEngine? _posEngine;
+		private readonly Func<Task>? _onReset;
 		private readonly ILogger? _logger;
 		private HttpListener? _listener;
 
 		/// <param name="port">0 = slobodan port (<see cref="Port"/>).</param>
-		/// <param name="tcpPort">Port NCU24L simulatora, za <c>/_sim/health</c>.</param>
+		/// <param name="tcpPort">Port NCU24L simulatora, za <c>/_sim/health</c>; null za serijski kontroler.</param>
 		/// <param name="stateLock">Lock stanja vrata i modula (v2: WPF Dispatcher), isti kao za komande kontrolera.</param>
-		/// <param name="onReset">Dodatno za <c>POST /_sim/reset</c> (skidanje ZLG blokade u kontroleru).</param>
-		public ControlApiServer(int port, int tcpPort, Locker locker, Lock stateLock, UnlockLog unlockLog, LockFaults lockFaults, ILogger? logger, Action? onReset = null)
+		/// <param name="onReset">Dodatno za <c>POST /_sim/reset</c> (ZLG blokada, POS; odgovor čeka da se završi).</param>
+		public ControlApiServer(int port, int? tcpPort, Locker locker, Lock stateLock, UnlockLog unlockLog, LockFaults lockFaults,
+								BarcodeScanner? barcodeScanner, PosTerminalEngine? posEngine, ILogger? logger, Func<Task>? onReset = null)
 		{
 			_requestedPort = port;
 			_tcpPort = tcpPort;
@@ -137,6 +158,8 @@ namespace TopPos.LockerSimulator
 			_stateLock = stateLock;
 			_unlockLog = unlockLog;
 			_lockFaults = lockFaults;
+			_barcodeScanner = barcodeScanner;
+			_posEngine = posEngine;
 			_onReset = onReset;
 			_logger = logger;
 		}
@@ -220,7 +243,7 @@ namespace TopPos.LockerSimulator
 					throw new ControlApiException(404, $"Nepoznata putanja: {path}");
 				}
 				var segments = path[Prefix.Length..].Trim('/').ToLowerInvariant().Split('/', StringSplitOptions.RemoveEmptyEntries);
-				result = Dispatch(request.HttpMethod, segments, request.QueryString["since"], body);
+				result = await Dispatch(request.HttpMethod, segments, request.QueryString["since"], body);
 			}
 			catch (ControlApiException ex) {
 				statusCode = ex.StatusCode;
@@ -260,7 +283,7 @@ namespace TopPos.LockerSimulator
 			catch (Exception ex) when (ex is ObjectDisposedException or HttpListenerException or InvalidOperationException) { }
 		}
 
-		private object? Dispatch(string method, string[] s, string? since, string body)
+		private async Task<object?> Dispatch(string method, string[] s, string? since, string body)
 		{
 			switch (method, s.Length > 0 ? s[0] : "") {
 				case ("GET", "health") when s.Length == 1:
@@ -276,7 +299,9 @@ namespace TopPos.LockerSimulator
 					});
 					_lockFaults.Clear();
 					_unlockLog.Clear();
-					_onReset?.Invoke();
+					if (_onReset != null) {
+						await _onReset().ConfigureAwait(false);
+					}
 					_logger?.LogInformation("Control API: stanje simulatora je obrisano (reset)");
 					return new { Status = "ok" };
 
@@ -304,6 +329,21 @@ namespace TopPos.LockerSimulator
 				case ("POST", "faults") when s.Length == 2 && s[1] == "clear":
 					_lockFaults.Clear();
 					return _lockFaults.Snapshot();
+
+				case ("POST", "barcode") when s.Length == 1: {
+					if (_barcodeScanner == null) {
+						throw new ControlApiException(404, "Skener nije konfigurisan (sekcija BarcodeScanner)");
+					}
+					var barcode = Deserialize<BarcodeRequest>(body)?.Barcode;
+					if (string.IsNullOrWhiteSpace(barcode)) {
+						throw new ControlApiException(400, "Barkod je obavezan");
+					}
+					await _barcodeScanner.Send(barcode, CancellationToken.None).ConfigureAwait(false);
+					return new { Sent = barcode };
+				}
+
+				case (_, "pos"):
+					return PosAction(method, s.Skip(1).ToArray(), body);
 			}
 			throw new ControlApiException(404, $"Nepoznata kontrolna komanda: {method} {string.Join('/', s)}");
 		}
@@ -358,6 +398,93 @@ namespace TopPos.LockerSimulator
 			return new { Module = number, IsOn = _locker.Modules[number - 1].IsOn };
 		}
 
+		// ─── POS ───
+
+		private object PosAction(string method, string[] s, string body)
+		{
+			if (_posEngine == null) {
+				throw new ControlApiException(404, "POS simulator nije konfigurisan (sekcija PosTerminal)");
+			}
+			var phase = _posEngine.Status.Phase;
+			switch (method, string.Join('/', s)) {
+				case ("GET", ""):
+					return GetPosState();
+
+				case ("POST", "card"): {
+					var name = Deserialize<CardRequest>(body)?.Card ?? "";
+					if (!__cards.TryGetValue(name, out var card)) {
+						throw new ControlApiException(400, $"Nepoznata kartica \"{name}\"; dozvoljene: {string.Join(", ", __cards.Keys)}");
+					}
+					RequirePhase(phase, PosTerminalPhase.WaitingForCard);
+					_posEngine.PresentCard(card);
+					return GetPosState();
+				}
+
+				case ("POST", "pin"):
+					RequirePhase(phase, PosTerminalPhase.WaitingForPin);
+					_posEngine.EnterPin(Deserialize<PinRequest>(body)?.Pin ?? _posEngine.Options.Pin);
+					return GetPosState();
+
+				case ("POST", "cancel"):
+					RequirePhase(phase, PosTerminalPhase.WaitingForCard, PosTerminalPhase.WaitingForPin);
+					_posEngine.CustomerCancel();
+					return GetPosState();
+
+				case ("POST", "settings"): {
+					var settings = Deserialize<PosSettingsRequest>(body) ?? new PosSettingsRequest();
+					SimCard? autoCard = null;
+					if (settings.AutoCard != null && !__cards.TryGetValue(settings.AutoCard, out autoCard)) {
+						throw new ControlApiException(400, $"Nepoznata kartica \"{settings.AutoCard}\"");
+					}
+					// v4: direktno u engine (v2: preko view-model-a, da prozor POS terminala prikazuje isto stanje)
+					if (settings.AutoCustomer.HasValue) {
+						_posEngine.AutoCustomer = settings.AutoCustomer.Value;
+					}
+					if (autoCard != null) {
+						_posEngine.AutoCard = autoCard;
+					}
+					if (settings.Cancel11Response.HasValue) {
+						_posEngine.Cancel11Response = settings.Cancel11Response.Value;
+					}
+					return GetPosState();
+				}
+
+				case ("POST", "faults"): {
+					var request = Deserialize<FaultRequest>(body) ?? throw new ControlApiException(400, "Prazno telo zahteva");
+					_posEngine.Faults.Arm(request.Fault, Math.Max(1, request.Count));
+					return GetPosState();
+				}
+
+				case ("POST", "faults/clear"):
+					_posEngine.Faults.Clear();
+					return GetPosState();
+			}
+			throw new ControlApiException(404, $"Nepoznata POS komanda: {method} pos/{string.Join('/', s)}");
+		}
+
+		private static void RequirePhase(PosTerminalPhase actual, params PosTerminalPhase[] allowed)
+		{
+			if (!allowed.Contains(actual)) {
+				throw new ControlApiException(409, $"POS je u fazi {actual}; akcija je dozvoljena samo u: {string.Join(", ", allowed)}");
+			}
+		}
+
+		private object GetPosState()
+		{
+			var status = _posEngine!.Status;
+			return new {
+				status.Phase,
+				status.DisplayText,
+				status.Amount,
+				status.SeqNumber,
+				status.TransactionType,
+				_posEngine.AutoCustomer,
+				AutoCard = __cards.First(c => c.Value == _posEngine.AutoCard).Key,
+				_posEngine.Cancel11Response,
+				Faults = _posEngine.Faults.Snapshot(),
+			};
+		}
+
 		// ─── Pomoćno ───
 
 		private static int ParseNumber(string text)
@@ -367,7 +494,12 @@ namespace TopPos.LockerSimulator
 			=> string.IsNullOrWhiteSpace(body) ? null : JsonSerializer.Deserialize<T>(body, __jsonOptions);
 
 		private sealed record DoorState(int Number, int Module, bool IsLocked, bool IsBlocked, bool ModuleOn);
+		private sealed record BarcodeRequest(string? Barcode);
+		private sealed record CardRequest(string? Card);
+		private sealed record PinRequest(string? Pin);
+		private sealed record FaultRequest(PosFault Fault, int Count = 1);
 		private sealed record LockFaultRequest(LockFault Fault, int Count = 1);
+		private sealed record PosSettingsRequest(bool? AutoCustomer = null, string? AutoCard = null, Cancel11Response? Cancel11Response = null);
 
 		private sealed class ControlApiException(int statusCode, string message) : Exception(message)
 		{

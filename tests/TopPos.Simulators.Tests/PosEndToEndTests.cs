@@ -1,8 +1,9 @@
 using System.Collections.Concurrent;
 using ECR;
 using Flatsoft.Common;
-using TopPos.Client.WPF;
+using TopPos.Kiosk;
 using TopPos.LockerSimulator.Pos;
+using TopPos.Simulators.Serial;
 using Xunit;
 
 namespace TopPos.LockerSimulator.Tests
@@ -16,14 +17,14 @@ namespace TopPos.LockerSimulator.Tests
 
 	/// <summary>
 	/// Pravi TopPos.ECR (EcrPort.DoTransactionV3, kao PosClient) preko virtuelnog para portova protiv simulatora.
-	/// Pokreće se samo kad je postavljena promenljiva POS_SIM_E2E_PORTS="COM20,COM21" (ECR strana, simulator);
-	/// ako je postavljena a par ne radi, testovi padaju. POS_SIM_E2E_ECRLOG=1 uključuje ECR log (bin/.../Log/std_log_*.log).
+	/// Windows: pokreće se samo kad je postavljena promenljiva POS_SIM_E2E_PORTS="COM20,COM21" (com0com: ECR strana, simulator);
+	/// ako je postavljena a par ne radi, testovi padaju. v4, Linux: bez promenljive test sam pravi pty par (<see cref="PtySerialPair"/>). POS_SIM_E2E_ECRLOG=1 uključuje ECR log (bin/.../Log/std_log_*.log).
 	/// </summary>
 	[Collection(EcrStaticStateCollection.Name)]
 	public sealed class PosEndToEndTests : IAsyncLifetime
 	{
 		private const string PortsVariable = "POS_SIM_E2E_PORTS";
-		private const string SkipReason = $"Promenljiva {PortsVariable} nije postavljena (npr. \"COM20,COM21\" za com0com par).";
+		private const string SkipReason = $"Promenljiva {PortsVariable} nije postavljena (npr. \"COM20,COM21\" za com0com par); na Linuxu par pravi sam test.";
 		private static readonly TimeSpan __transactionTimeout = TimeSpan.FromSeconds(40);
 
 		private static readonly ConcurrentQueue<string> __ecrMessages = new();
@@ -31,6 +32,7 @@ namespace TopPos.LockerSimulator.Tests
 
 		private readonly string? _ecrPort;
 		private readonly string? _simulatorPort;
+		private readonly PtySerialPair? _pair;
 		private readonly CancellationTokenSource _cts = new();
 		private SerialPosWire? _wire;
 		private PosTerminalEngine _engine = default!;
@@ -41,6 +43,10 @@ namespace TopPos.LockerSimulator.Tests
 			string[]? ports = Environment.GetEnvironmentVariable(PortsVariable)?.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
 			if (ports is { Length: 2 }) {
 				(_ecrPort, _simulatorPort) = (ports[0], ports[1]);
+			}
+			else if (OperatingSystem.IsLinux()) {
+				_pair = new PtySerialPair(Path.Combine(Path.GetTempPath(), $"toppos-sim-{Guid.NewGuid():N}", "ttyPOS"), logger: null);
+				(_ecrPort, _simulatorPort) = (_pair.KioskPortName, _pair.SimulatorPortName);
 			}
 		}
 
@@ -68,6 +74,9 @@ namespace TopPos.LockerSimulator.Tests
 				}
 				await Task.Delay(50);
 			}
+			if (_pair != null && !_pair.WaitForSimulator(TimeSpan.FromSeconds(5))) {
+				throw new InvalidOperationException($"Pumpa pty para nije videla otvoren {_simulatorPort}");
+			}
 		}
 
 		public async Task DisposeAsync()
@@ -77,6 +86,10 @@ namespace TopPos.LockerSimulator.Tests
 				await _wire.DisposeAsync();
 			}
 			await _run;
+			if (_pair != null) {
+				_pair.Dispose();
+				Directory.Delete(Path.GetDirectoryName(_pair.KioskPortName)!, recursive: true);
+			}
 			_cts.Dispose();
 		}
 

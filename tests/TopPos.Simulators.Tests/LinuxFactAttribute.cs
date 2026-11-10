@@ -12,4 +12,15 @@ namespace TopPos.Simulators.Tests
 			}
 		}
 	}
+
+	/// <summary>Test samo za Windows; drugde se preskače.</summary>
+	public sealed class WindowsFactAttribute : FactAttribute
+	{
+		public WindowsFactAttribute()
+		{
+			if (!OperatingSystem.IsWindows()) {
+				Skip = "Samo Windows";
+			}
+		}
+	}
 }

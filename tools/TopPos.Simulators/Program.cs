@@ -19,7 +19,9 @@ namespace TopPos.Simulators
 	///   TopPos.Simulators both --server-config &lt;putanja&gt; --locker-config &lt;putanja&gt;
 	///   --parent-pid &lt;pid&gt;: gašenje kad nestane roditeljski proces (E2E harness koji je pao ne ostavlja simulatore)
 	/// Port 0 u konfiguraciji = slobodan port. Kad su simulatori spremni, na stdout ide jedan red
-	/// <c>READY {"server":{"port":..},"locker":{"tcpPort":..,"controlApiPort":..}}</c>; log ide na stderr (i u fajl iz serilog.json).
+	/// <c>READY {"server":{"port":..},"locker":{"tcpPort":..,"controlApiPort":..,"lockControllerPort":..,"barcodeScannerPort":..,
+	/// "posTerminalPort":..}}</c> (serijski portovi su oni koje otvara kiosk; null za uređaj koji se ne simulira); log ide na
+	/// stderr (i u fajl iz serilog.json).
 	/// Gašenje: SIGTERM, SIGINT (Ctrl+C), SIGQUIT ili kraj roditelja. Izlazni kod: 0 uredno, 1 argumenti ili konfiguracija,
 	/// 2 port je zauzet.
 	/// </summary>
@@ -109,7 +111,7 @@ namespace TopPos.Simulators
 				}
 				catch (Exception ex)
 				{
-					// npr. nepodržan kontroler (faza B) ili neispravna adresa; port je obrađen iznad
+					// npr. nepodržan kontroler, neispravna adresa ili serijski port koji ne može da se napravi; TCP port je obrađen iznad
 					Log.Error(ex, "Simulatori nisu pokrenuti: {Message}", ex.Message);
 					return ExitUsage;
 				}
@@ -120,7 +122,14 @@ namespace TopPos.Simulators
 				Console.Out.WriteLine("READY " + JsonSerializer.Serialize(new
 				{
 					server = server == null ? null : new { port = server.Port },
-					locker = locker == null ? null : new { tcpPort = locker.TcpPort, controlApiPort = locker.ControlApiPort },
+					locker = locker == null ? null : new
+					{
+						tcpPort = locker.TcpPort,
+						controlApiPort = locker.ControlApiPort,
+						lockControllerPort = locker.LockControllerPort,
+						barcodeScannerPort = locker.BarcodeScannerPort,
+						posTerminalPort = locker.PosTerminalPort,
+					},
 				}));
 				Console.Out.Flush();
 
@@ -181,6 +190,14 @@ namespace TopPos.Simulators
 			Require(config.LockController!.NetworkModule != null, "LockController.NetworkModule ne sme biti null");
 			if (config.LockController.TcpController != null)
 				RequirePort(config.LockController.TcpController.Port, "LockController.TcpController.Port");
+			if (string.Equals(config.LockController.Type, "Serial", StringComparison.OrdinalIgnoreCase))
+			{
+				Require(config.LockController.ComPort != null, "LockController.ComPort je obavezan za serijski kontroler");
+				// odgovor za više vrata nosi tačno 8 statusa (MultipleDoorResponse); sa drugim brojem simulator ne bi odgovarao
+				Require(config.Locker.BoxCountPerModule == 8, "Locker.BoxCountPerModule mora biti 8 za serijski kontroler");
+			}
+			Require(config.BarcodeScanner == null || config.BarcodeScanner.ComPort != null, "BarcodeScanner.ComPort je obavezan");
+			Require(config.PosTerminal == null || config.PosTerminal.ComPort != null, "PosTerminal.ComPort je obavezan");
 			if (config.ControlApi != null)
 				RequirePort(config.ControlApi.Port, "ControlApi.Port");
 		}

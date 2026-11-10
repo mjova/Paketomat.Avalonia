@@ -30,17 +30,17 @@ namespace TopPos.Simulators.Tests
 				ControlApi = new ControlApiConfiguration { Port = 0 },
 			}, NullLogger.Instance);
 			using (var abandoned = new TcpClient()) {
-				await abandoned.ConnectAsync(IPAddress.Loopback, engine.TcpPort);
+				await abandoned.ConnectAsync(IPAddress.Loopback, engine.TcpPort!.Value);
 				abandoned.GetStream().Write(GetState);
 			}
 			await Task.Delay(800);	// odgovor (300 ms) nije imao kome da ode → blokada 60 s
-			Assert.False(await TryConnect(engine.TcpPort, TimeSpan.FromMilliseconds(500)), "modul nije blokiran");
+			Assert.False(await TryConnect(engine.TcpPort!.Value, TimeSpan.FromMilliseconds(500)), "modul nije blokiran");
 
 			using var control = new HttpClient();
 			var response = await control.PostAsync($"http://localhost:{engine.ControlApiPort}/_sim/reset", new StringContent(""));
 			Assert.True(response.IsSuccessStatusCode);
 
-			Assert.True(await TryConnect(engine.TcpPort, TimeSpan.FromSeconds(5)), "posle reset-a modul i dalje odbija vezu");
+			Assert.True(await TryConnect(engine.TcpPort!.Value, TimeSpan.FromSeconds(5)), "posle reset-a modul i dalje odbija vezu");
 		}
 
 		/// <summary>Povezivanje uz ponavljanje na „refused" (Linux odbija odmah, Windows posle ~2 s).</summary>

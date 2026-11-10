@@ -8,7 +8,8 @@ namespace TopPos.LockerSimulator
 
 		public LockControllerConfiguration LockController { get; set; } = default!;
 
-		public BarcodeScannerConfiguration BarcodeScanner { get; set; } = default!;
+		/// <summary>v4: opciono — bez ove sekcije skener se ne simulira (<c>/_sim/barcode</c> vraća 404).</summary>
+		public BarcodeScannerConfiguration? BarcodeScanner { get; set; }
 
 		/// <summary>Opciono — bez ove sekcije POS simulator se ne pokreće.</summary>
 		public PosTerminalSimulatorConfiguration? PosTerminal { get; set; }
@@ -27,6 +28,13 @@ namespace TopPos.LockerSimulator
 	{
 		/// <summary>Druga strana virtuelnog para (npr. com0com COM20 ↔ COM21); kiosk koristi prvu.</summary>
 		public ComPortConfiguration ComPort { get; set; } = default!;
+
+		/// <summary>
+		/// v4, Linux: putanja koju otvara kiosk (npr. /tmp/toppos-sim/ttyPOS). Simulator tada sam napravi virtuelni par
+		/// (<see cref="TopPos.Simulators.Serial.PtySerialPair"/>, kao com0com) i otvara svoju stranu, pa se <c>ComPort.PortName</c>
+		/// ne koristi. Na Windows-u par je u com0com-u, a ovo polje se odbija.
+		/// </summary>
+		public string? KioskPortName { get; set; }
 
 		public string Pin { get; set; } = "1234";
 
@@ -50,6 +58,13 @@ namespace TopPos.LockerSimulator
 		public string Type { get; set; } = "Serial";  // "Serial" or "NCU24L"
 
 		public ComPortConfiguration ComPort { get; set; } = default!;
+
+		/// <summary>
+		/// v4, Linux: putanja koju otvara kiosk (npr. /tmp/toppos-sim/ttyPOS). Simulator tada sam napravi virtuelni par
+		/// (<see cref="TopPos.Simulators.Serial.PtySerialPair"/>, kao com0com) i otvara svoju stranu, pa se <c>ComPort.PortName</c>
+		/// ne koristi. Na Windows-u par je u com0com-u, a ovo polje se odbija.
+		/// </summary>
+		public string? KioskPortName { get; set; }
 
 		public TcpControllerConfiguration? TcpController { get; set; }
 
@@ -97,6 +112,13 @@ namespace TopPos.LockerSimulator
 	public class BarcodeScannerConfiguration
 	{
 		public ComPortConfiguration ComPort { get; set; } = default!;
+
+		/// <summary>
+		/// v4, Linux: putanja koju otvara kiosk (npr. /tmp/toppos-sim/ttyPOS). Simulator tada sam napravi virtuelni par
+		/// (<see cref="TopPos.Simulators.Serial.PtySerialPair"/>, kao com0com) i otvara svoju stranu, pa se <c>ComPort.PortName</c>
+		/// ne koristi. Na Windows-u par je u com0com-u, a ovo polje se odbija.
+		/// </summary>
+		public string? KioskPortName { get; set; }
 
 		public bool CarriageReturnBarcodeTermination { get; set; } = true;
 	}
