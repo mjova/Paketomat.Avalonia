@@ -132,13 +132,38 @@ namespace TopPos.ServerSimulator
 				try
 				{
 					var context = await _listener.GetContextAsync().ConfigureAwait(false);
-					_ = Task.Run(() => HandleRequest(context), ct);
+					_ = Task.Run(() => HandleRequestSafeAsync(context), ct);
 				}
 				catch (HttpListenerException) when (ct.IsCancellationRequested) { break; }
 				catch (ObjectDisposedException) { break; }
 				catch (Exception ex)
 				{
 					_logger.LogError($"Listen error: {ex.Message}");
+				}
+			}
+		}
+
+		/// <summary>
+		/// v4: izuzetak iz obrade (npr. čitanje tela) ne sme ostati neprimećen — klijent bi čekao do isteka vremena bez traga u
+		/// logu (E2E, 10.11.2026). Beleži se kao greška i, ako odgovor još nije poslat, vraća se 500.
+		/// </summary>
+		private async Task HandleRequestSafeAsync(HttpListenerContext context)
+		{
+			try
+			{
+				await HandleRequest(context).ConfigureAwait(false);
+			}
+			catch (Exception ex)
+			{
+				_logger.LogError(ex, $"Obrada zahteva {context.Request.HttpMethod} {context.Request.Url?.AbsolutePath} nije uspela: {ex.Message}");
+				try
+				{
+					context.Response.StatusCode = 500;
+					context.Response.Close();
+				}
+				catch (Exception)
+				{
+					// odgovor je već poslat ili veza zatvorena
 				}
 			}
 		}
