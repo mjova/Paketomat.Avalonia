@@ -106,7 +106,9 @@ namespace TopPos.E2E.Tests.Scenarios
 		[InlineData(0)]
 		[InlineData(250)]
 		public Task HomeWhileValidating_LateOutcomeIgnored_NoDoorOpens(int amount)
-			=> KioskSession.RunAsync($"{nameof(HomeWhileValidating_LateOutcomeIgnored_NoDoorOpens)}-{amount}", output, async kiosk => {
+		{
+			E2ESettings.RequireRealMouse();	// v4
+			return KioskSession.RunAsync($"{nameof(HomeWhileValidating_LateOutcomeIgnored_NoDoorOpens)}-{amount}", output, async kiosk => {
 				var package = kiosk.Data.RecipientPackage(amount: amount);
 				await kiosk.Server.AddPackageAsync(package);
 				var serverMark = await kiosk.Server.MarkAsync();
@@ -142,5 +144,6 @@ namespace TopPos.E2E.Tests.Scenarios
 					Assert.NotEqual("01", pos.TransactionType);	// nijedna prodaja (poslednja je provera prisutnosti pri startu klijenta)
 				}
 			});
+		}
 	}
 }

@@ -24,6 +24,16 @@ namespace TopPos.E2E.Tests.Infrastructure
 		public static void RequireDebugClient(string feature)
 			=> Skip.If(Current.BuildConfiguration != "Debug", $"{feature} postoji samo u Debug build-u klijenta (E2E je u {Current.BuildConfiguration}).");
 
+		/// <summary>
+		/// v4: preskače test sa pravim mišem (Home, dug pritisak) pre pokretanja sesije — na Linuxu ga UI ne podržava
+		/// (AtSpiKioskUi), a preskakanje usred scenarija troši ~20 s na start kioska.
+		/// </summary>
+		public static void RequireRealMouse()
+		{
+			RequireEnabled();
+			Skip.If(OperatingSystem.IsLinux(), "Pravi miš (Home, dug pritisak) na Linuxu nije podržan u E2E (AT-SPI nema klik mišem, Wayland ne dozvoljava ubacivanje).");
+		}
+
 		public const string LockerPortsVariable = "TOPPOS_E2E_LOCKER_PORTS";
 
 		/// <summary>

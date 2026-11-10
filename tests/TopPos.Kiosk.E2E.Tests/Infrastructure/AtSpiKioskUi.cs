@@ -52,11 +52,11 @@ namespace TopPos.E2E.Tests.Infrastructure
 			using var session = new DBusConnection(DBusAddress.Session ?? throw new E2EException("Nema D-Bus sesije (DBUS_SESSION_BUS_ADDRESS)."));
 			await session.ConnectAsync().ConfigureAwait(false);
 			bool enabled = await CallAsync(session, "org.a11y.Bus", "/org/a11y/bus", "org.freedesktop.DBus.Properties", "Get", "ss",
-											w => { w.WriteString("org.a11y.Status"); w.WriteString("IsEnabled"); },
+											(ref MessageWriter w) => { w.WriteString("org.a11y.Status"); w.WriteString("IsEnabled"); },
 											(m, _) => m.GetBodyReader().ReadVariantValue().GetBool()).ConfigureAwait(false);
 			if (!enabled) {
 				await CallAsync<bool>(session, "org.a11y.Bus", "/org/a11y/bus", "org.freedesktop.DBus.Properties", "Set", "ssv",
-										w => { w.WriteString("org.a11y.Status"); w.WriteString("IsEnabled"); w.WriteVariantBool(true); },
+										(ref MessageWriter w) => { w.WriteString("org.a11y.Status"); w.WriteString("IsEnabled"); w.WriteVariantBool(true); },
 										(_, _) => true).ConfigureAwait(false);
 				trace("AT-SPI: pristupačnost uključena u sesiji (org.a11y.Status.IsEnabled)");
 			}
@@ -97,7 +97,7 @@ namespace TopPos.E2E.Tests.Infrastructure
 			foreach (var application in applications) {
 				try {
 					uint owner = await CallAsync(bus, "org.freedesktop.DBus", "/org/freedesktop/DBus", "org.freedesktop.DBus", "GetConnectionUnixProcessID", "s",
-												w => w.WriteString(application.Bus), (m, _) => m.GetBodyReader().ReadUInt32()).ConfigureAwait(false);
+												(ref MessageWriter w) => w.WriteString(application.Bus), (m, _) => m.GetBodyReader().ReadUInt32()).ConfigureAwait(false);
 					if (owner == pid) {
 						return application.Bus;
 					}
@@ -156,7 +156,7 @@ namespace TopPos.E2E.Tests.Infrastructure
 
 		private Task<string> GetStringPropertyAsync(Node node, string property)
 			=> CallAsync(_bus, node.Bus, node.Path, "org.freedesktop.DBus.Properties", "Get", "ss",
-							w => { w.WriteString(AccessibleInterface); w.WriteString(property); },
+							(ref MessageWriter w) => { w.WriteString(AccessibleInterface); w.WriteString(property); },
 							(m, _) => m.GetBodyReader().ReadVariantValue().GetString());
 
 		private async Task<(bool Enabled, bool Shown)> StateAsync(Node node)
@@ -193,7 +193,7 @@ namespace TopPos.E2E.Tests.Infrastructure
 		{
 			var node = await WaitForNodeAsync(automationId, timeout).ConfigureAwait(false);
 			bool done = await Guarded(() => CallAsync(_bus, node.Bus, node.Path, "org.a11y.atspi.Action", "DoAction", "i",
-														w => w.WriteInt32(0), (m, _) => m.GetBodyReader().ReadBool()), $"DoAction {automationId}").ConfigureAwait(false);
+														(ref MessageWriter w) => w.WriteInt32(0), (m, _) => m.GetBodyReader().ReadBool()), $"DoAction {automationId}").ConfigureAwait(false);
 			if (!done) {
 				throw new E2EException($"AT-SPI DoAction(0) za \"{automationId}\" nije izvršen.");
 			}
@@ -234,7 +234,7 @@ namespace TopPos.E2E.Tests.Infrastructure
 
 		/// <summary>Component.GetExtents u koordinatama prozora (1) — na Wayland-u ekranske koordinate nisu poznate.</summary>
 		private Task<Rectangle> ExtentsAsync(Node node)
-			=> Guarded(() => CallAsync(_bus, node.Bus, node.Path, "org.a11y.atspi.Component", "GetExtents", "u", w => w.WriteUInt32(1),
+			=> Guarded(() => CallAsync(_bus, node.Bus, node.Path, "org.a11y.atspi.Component", "GetExtents", "u", (ref MessageWriter w) => w.WriteUInt32(1),
 										(m, _) => {
 											var reader = m.GetBodyReader();
 											reader.AlignStruct();
@@ -293,13 +293,24 @@ namespace TopPos.E2E.Tests.Infrastructure
 			}
 		}
 
+		/// <summary>
+		/// Argumenti poziva. <see cref="MessageWriter"/> je ref struct: kroz <c>Action&lt;MessageWriter&gt;</c> lambda bi pisala u kopiju,
+		/// pa bi poruka otišla sa potpisom a bez tela — dbus-daemon tada zatvara vezu (Debian VM, 10.11.2026).
+		/// </summary>
+		private delegate void ArgumentWriter(ref MessageWriter writer);
+
 		private static Task<T> CallAsync<T>(DBusConnection connection, string destination, string path, string @interface, string member,
-											string? signature, Action<MessageWriter>? arguments, MessageValueReader<T> reader)
+											string? signature, ArgumentWriter? arguments, MessageValueReader<T> reader)
 		{
-			using var writer = connection.GetMessageWriter();
-			writer.WriteMethodCallHeader(destination, path, @interface, member, signature, MessageFlags.None);
-			arguments?.Invoke(writer);
-			return connection.CallMethodAsync(writer.CreateMessage(), reader);
+			var writer = connection.GetMessageWriter();	// ne `using var`: takva promenljiva ne sme kao ref argument
+			try {
+				writer.WriteMethodCallHeader(destination, path, @interface, member, signature, MessageFlags.None);
+				arguments?.Invoke(ref writer);
+				return connection.CallMethodAsync(writer.CreateMessage(), reader);
+			}
+			finally {
+				writer.Dispose();
+			}
 		}
 
 		/// <summary>a(so): reference na elemente (ime na magistrali, putanja objekta).</summary>
