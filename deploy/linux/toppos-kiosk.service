@@ -1,0 +1,43 @@
+# Kiosk paketomata: cage (Wayland kiosk kompozitor, kiosk kroz XWayland) na tty1, kao korisnik toppos sa logind sesijom
+# (PAMName → pristup ekranu, touch-u i zvuku). Folderi: /etc/toppos-kiosk (konfiguracija, samo za čitanje),
+# /var/lib/toppos-kiosk (stanje: status.lock, redovi potvrda), /var/log/toppos-kiosk (logovi). doc/deploy-linux.md
+[Unit]
+Description=TopPos kiosk paketomata
+After=systemd-user-sessions.service plymouth-quit-wait.service network-online.target
+Wants=network-online.target
+Wants=dbus.socket systemd-logind.service
+After=dbus.socket systemd-logind.service
+Conflicts=getty@tty1.service
+After=getty@tty1.service
+ConditionPathExists=/dev/tty1
+
+[Service]
+Type=simple
+User=toppos
+PAMName=toppos-kiosk
+TTYPath=/dev/tty1
+TTYReset=yes
+TTYVHangup=yes
+TTYVTDisallocate=yes
+StandardInput=tty-fail
+StandardOutput=journal
+StandardError=journal
+UtmpIdentifier=tty1
+UtmpMode=user
+
+ConfigurationDirectory=toppos-kiosk
+StateDirectory=toppos-kiosk
+LogsDirectory=toppos-kiosk
+
+# cage -d (bez dekoracija, bez -s: prelazak na drugi VT je isključen) sa kioskom; skripta je glavni proces i jedina dobija
+# SIGTERM (KillMode=mixed), pa kiosk završava pre nego što cage ugasi prikaz. Bez ExecStop: TTY podešavanja iznad važe i
+# za ExecStop (TTYVHangup bi prekinuo sesiju pre gašenja kioska).
+ExecStart=/opt/toppos-kiosk/current/kiosk-session.sh
+KillMode=mixed
+TimeoutStopSec=30
+Restart=always
+RestartSec=2
+
+[Install]
+# Režim kiosk je multi-user.target bez desktopa (boot-mode.sh); display manager se tada ne diže.
+WantedBy=multi-user.target

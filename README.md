@@ -12,7 +12,7 @@ Status: početak — faza F0 (proba na Linuxu). Plan, odluke i procena su u [`do
 | `src/` | Jezgro (workflow, activator-i, servisi, kontroleri), platformski sloj (Windows/Linux) i Avalonia klijent |
 | `tests/` | Workflow, platformski i E2E testovi |
 | `tools/` | Simulatori (locker, server, POS) i pomoćni alati |
-| `deploy/linux/` | `.deb`/tarball, systemd, kiosk sesija |
+| `deploy/linux/` | Paket, instalacija, systemd servis sa kiosk sesijom (cage) — [`doc/deploy-linux.md`](doc/deploy-linux.md) |
 | `deploy/windows/` | Instaler za Windows |
 | `doc/` | Plan i dokumentacija |
 
