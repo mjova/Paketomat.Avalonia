@@ -1,4 +1,4 @@
-using TopPos.Client.WPF.Workflow;
+using TopPos.Kiosk.Workflow;
 using TopPos.E2E.Tests.Infrastructure;
 using Xunit;
 using Xunit.Abstractions;
@@ -101,7 +101,7 @@ namespace TopPos.E2E.Tests.Scenarios
 		/// plaćanje — dugme je onemogućeno, mašina ostaje u RecipientPayment, a posle kartice vrata se otvaraju.
 		/// Ranije je naređani Reset posle naplate preticao RecipientPaymentApproved: naplaćeno, vrata zatvorena.
 		/// </summary>
-		[SkippableFact]
+		[RealMouseFact]	// v4
 		public Task HomeDuringPayment_IsIgnored_PaymentCompletesAndDoorOpens()
 			=> KioskSession.RunAsync(nameof(HomeDuringPayment_IsIgnored_PaymentCompletesAndDoorOpens), output, async kiosk => {
 				var package = kiosk.Data.RecipientPackage(amount: Amount);
