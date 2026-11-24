@@ -38,7 +38,8 @@ sudo ./install.sh --config /putanja/app-configuration.json [--kiosk-boot]
 | Logovi (kiosk, `ECR/`) | `/var/log/toppos-kiosk` (`LogsDirectory`); izlaz procesa u `journalctl -u toppos-kiosk` |
 
 `install.sh`:
-- instalira zavisnosti: `cage`, `xwayland`, `seatd`, `kbd` (`chvt`), `libicuNN`, `libvlc5`, `vlc-plugin-base`, `libfontconfig1`, i
+- instalira zavisnosti: `cage`, `xwayland`, `seatd`, `kbd` (`chvt`), `libicuNN`, `libvlc5`, `vlc-plugin-base`, `libfontconfig1`, X11 biblioteke koje Avalonia učitava (`libx11-6`, `libice6`,
+  `libsm6`, `libxcursor1`, `libxext6`, `libxfixes3`, `libxi6`, `libxrandr2`, `libgl1`), i
   uključuje `seatd.service`;
 - pravi sistemskog korisnika `toppos` sa grupama `dialout` (serijski uređaji), `audio` (zvuk preko ALSA) i grupom
   seatd-a (`seatd -g`, na Debianu `video`: ekran i touch);

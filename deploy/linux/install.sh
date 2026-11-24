@@ -43,7 +43,8 @@ fi
 
 # Zavisnosti: cage + XWayland (Avalonia na Linuxu crta kroz X11), seatd (ekran i ulaz bez logind sesije), kbd (chvt), ICU
 # (globalizacija .NET-a), LibVLC (zvuk; dinamički, LGPL-2.1), fontconfig (Skia). Ime ICU paketa zavisi od izdanja
-# (libicu72 na Debianu 12, libicu74 na Ubuntu 24.04).
+# (libicu72 na Debianu 12, libicu74 na Ubuntu 24.04). X11 biblioteke koje Avalonia.X11 učitava (libICE/libSM bez desktopa
+# nisu instalirane — start pada sa DllNotFoundException; GTK je samo za dijaloge, kiosk ga ne koristi).
 apt-get update
 icu=$(apt-cache search --names-only '^libicu[0-9]+$' | awk '{ print $1 }' | sort -V | tail -n 1)
 if [ -z "$icu" ]; then
@@ -51,7 +52,8 @@ if [ -z "$icu" ]; then
 	exit 1
 fi
 DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-	cage xwayland seatd kbd "$icu" libvlc5 vlc-plugin-base libfontconfig1
+	cage xwayland seatd kbd "$icu" libvlc5 vlc-plugin-base libfontconfig1 \
+	libx11-6 libice6 libsm6 libxcursor1 libxext6 libxfixes3 libxi6 libxrandr2 libgl1
 
 # seatd daje ekran i ulaz članovima grupe iz svog servisa (seatd -g <grupa>; Debian: video).
 seat_group=$(systemctl cat seatd.service | sed -n 's/^ExecStart=.*[[:space:]]-g[[:space:]]*\([^[:space:]]*\).*/\1/p' | tail -n 1)
