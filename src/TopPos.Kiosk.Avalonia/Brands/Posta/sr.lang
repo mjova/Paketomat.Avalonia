@@ -1,0 +1,8 @@
+{
+    "LanguageId": "sr",
+    "LanguageDisplayName": "Srpski",
+    "TextEntries": {
+        "NumericKeypad.CodePlaceholder": "(vaš 8-cifreni kod)",
+        "RecipientCodeInputPage.InputChoice.2": "2) Unesite osmocifreni broj koji se nalazi u SMS poruci."
+    }
+}

@@ -1,0 +1,7 @@
+{
+  "LanguageId": "en",
+  "LanguageDisplayName": "English",
+  "TextEntries": {
+    "MainArea.TechnicalSupportContact": "Support: 011-1234567 \nLocker: {0}\n"
+  }
+}

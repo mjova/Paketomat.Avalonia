@@ -1,0 +1,8 @@
+{
+    "LanguageId": "en",
+    "LanguageDisplayName": "English",
+    "TextEntries": {
+        "NumericKeypad.CodePlaceholder": "(your 8-digit code)",
+        "RecipientCodeInputPage.InputChoice.2": "2) By entering a 8-digit code from the SMS message."
+    }
+}

@@ -42,6 +42,25 @@ namespace TopPos.Kiosk.UI.Tests
 			_ => throw new ArgumentOutOfRangeException(nameof(page))
 		};
 
+		public static TheoryData<string> Brands => new() { "Ananas", "CityExpress", "DailyExpress", "EuroExpress", "MNM", "Posta", "TopPos", "XExpress" };
+
+		// Brend iz konfiguracije (General.Brand) mora postojati u paketu; bez foldera program staje na startu.
+		[AvaloniaTheory]
+		[MemberData(nameof(Brands))]
+		public void Brand_theme_and_language_overrides_load(string brand)
+		{
+			var brandDirectory = Path.Combine(AppContext.BaseDirectory, "Brands", brand);
+			var resources = new ResourceDictionary();
+
+			BrandTheme.Apply(brandDirectory, resources);
+			var languages = new LanguageManager(null);
+			languages.LoadLanguageResources(Path.Combine(AppContext.BaseDirectory, "Languages"), ".lang", "sr");
+			languages.LoadBrandOverrides(brandDirectory, ".lang");
+
+			Assert.IsType<Avalonia.Media.SolidColorBrush>(resources["ApplicationBackgroundColor"]);
+			Assert.IsType<Avalonia.Media.Imaging.Bitmap>(resources["ApplicationLogo"]);
+		}
+
 		[AvaloniaTheory]
 		[MemberData(nameof(Pages))]
 		public void Page_renders_with_app_resources(string page)
