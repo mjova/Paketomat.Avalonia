@@ -1,0 +1,15 @@
+{
+  "Locker": {
+    "ModuleCount": 2,
+    "BoxCountPerModule": 24
+  },
+  "LockController": {
+    "Type": "NCU24L",
+    "ComPort": { "PortName": "/dev/ttyNEPOSTOJI", "BaudRate": 115200, "DataBits": 8, "Parity": "None" },
+    "TcpController": { "IpAddress": "127.0.0.1", "Port": 14001 },
+    "ListenAddress": "127.0.0.1"
+  },
+  "ControlApi": {
+    "Port": 18299
+  }
+}

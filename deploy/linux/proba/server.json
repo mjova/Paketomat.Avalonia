@@ -1,0 +1,12 @@
+{
+  "Server": {
+    "Port": 18080,
+    "PathPrefix": "/Api",
+    "BindAddress": "localhost",
+    "EnableControlApi": true
+  },
+  "DefaultCourierCode": "K001",
+  "CourierQrCodes": [ "PROBA-KURIR-QR" ],
+  "PaketomatId": "111",
+  "DoorCount": 48
+}

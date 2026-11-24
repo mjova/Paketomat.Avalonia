@@ -1,0 +1,128 @@
+{
+  "General": {
+    "OperationTimeout": 20000,
+    "PaymentTimeout": 60000,
+    "UserMessageDisplayTimeInSeconds": 2,
+    "CourierMessageDisplayTimeInSeconds": 2,
+    "MinimumUnlockCodeLength": 6,
+    "MaximumUnlockCodeLength": 11,
+    "CurrencyDisplayName": "RSD",
+    "CurrencyDecimalPlaces": 2,
+    "PlayButtonPressedSound": true,
+    "ExternalTerminalPaymentMessageId": null,
+    "Brand": "DailyExpress",
+    "ConfirmPackagePickup": false,
+    "ConfirmPackageDeposition": true,
+    "DoorStatusResponseTimeout": 2000,
+    "EnableCourierManualLogin": false,
+    "EnableLockerBoxAvailabilityPage": false,
+    "EnablePackageDeposition": true,
+    "SenderDepositCourierCode": "30",
+    "ShowLockerIdQrCode": true
+  },
+  "Locker": {
+    "LockerId": "111",
+    "LockerBoxCount": 48,
+    "ServiceDoorNumber": 3,
+    "ServiceDoorCode": "9999999",
+    "ReadWriteTimeout": 2500,
+    "DoorWatcherFrequency": 30000,
+    "GetMultipleDoorStatusCooldown": 2500,
+    "ControllerType": "NCU24L",
+    "ComPort": {
+      "PortName": "COM255",
+      "BaudRate": 115200,
+      "DataBits": 8,
+      "StopBits": 1,
+      "Parity": "None",
+      "ReceivedBytesThreshold": 1,
+      "RetryCount": 3
+    },
+    "TcpController": {
+      "IpAddress": "127.0.0.1",
+      "Port": 14001
+    }
+  },
+  "LockerStatusUpdater": {
+    "ServerStatusFilename": "ServerStatus.json",
+    "ProcessingDelayInMilliseconds": 1000
+  },
+  "PaymentConfirmationSender": {
+    "PaymentConfirmationFilename": "PaymentConfirmation.json",
+    "ProcessingDelayInMilliseconds": 1000
+  },
+  "ServerConfirmationSender": {
+    "ServerConfirmationFilename": "ServerConfirmations.json",
+    "ProcessingDelayInMilliseconds": 1000
+  },
+  "TopPosService": {
+    "BaseUrl": "http://localhost:18080",
+    "PathPrefix": "json/reply",
+    "ServiceUsername": "e2e",
+    "ServicePassword": "e2e",
+    "POSUsername": "e2e",
+    "POSPassword": "e2e",
+    "CourierServiceUsername": "e2e",
+    "CourierServicePassword": "e2e",
+    "RequestTimeout": 5000,
+    "HeartbeatFrequency": 15000
+  },
+  "PosTerminal": {
+    "TerminalInstalled": true,
+    "ProductKey": {
+      "KeyE": "UPISATI-IZ-V2",
+      "KeyW": "UPISATI-IZ-V2"
+    },
+    "ComPort": {
+      "PortName": "/dev/serial/by-id/UPISATI-POS",
+      "BaudRate": 9600,
+      "DataBits": 8,
+      "StopBits": 1,
+      "Parity": "None",
+      "ReceivedBytesThreshold": 2
+    },
+    "IpAddress": "127.0.0.1:3000",
+    "RetryTimeout": 1000,
+    "WaitForAckTimeout": 5000,
+    "FunctionTimeout": 60000,
+    "Logging": {
+      "Enabled": false,
+      "Detailed": false
+    },
+    "ProtocolV1": {
+      "SendRespMessage13": false
+    },
+    "InputV2": {
+      "AmountCurrency": "941"
+    },
+    "Encoding": "ISO-8859-5"
+  },
+  "BarcodeScanner": {
+    "ComPort": {
+      "PortName": "/dev/serial/by-id/UPISATI-SKENER",
+      "BaudRate": 9600,
+      "DataBits": 8,
+      "StopBits": 1,
+      "Parity": "None"
+    },
+    "MinimumBarcodeLength": 2,
+    "CarriageReturnBarcodeTermination": true,
+    "ReadThresholdInMilliseconds": 1000,
+    "ScanTrackerTimeoutInMilliseconds": 60000
+  },
+  "PenPosService": {
+    "IsEnabled": false,
+    "BaseManagementUrl": "http://localhost:18080/esir/v3",
+    "BaseInvoiceUrl": "http://localhost:18080/api",
+    "Pin": "0000",
+    "ItemName": "1",
+    "TaxCategory": "A",
+    "Cashier": null,
+    "RequestTimeout": null
+  },
+  "Alarm": {
+    "Active": false,
+    "DeactivationCode": "E2E-ALARM-1",
+    "DeactivationCodeWithLocker": "E2E-ALARM-2"
+  }
+}

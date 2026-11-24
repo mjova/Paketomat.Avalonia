@@ -103,6 +103,8 @@ project.fragment.lock.json
 
 # DotNetCore/5/.NET 6 Intermediate outputs
 artifacts/
+# Komplet za probu na Linux mašini (deploy/linux/pripremi-probu.sh)
+Installer/
 
 # Paketomat v4
 # Lokalna konfiguracija (kredencijali, adrese, podešavanja mašine); primeri su *.sample
