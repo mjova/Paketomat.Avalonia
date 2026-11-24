@@ -268,8 +268,9 @@ namespace TopPos.Kiosk
 			}
 		}
 
-		private void EcrAs24MessageReceivedHandler(string messageIdentifier, string track2data, string message, string bfoc) 
-			=> _logger?.LogInformation($"{nameof(PosClient)}[{_posConfig.ComPort.PortName}]: Called ECR delegate {nameof(EcrPort.EcrAs24MessageReceived)}, Parameters: messageIdentifier={messageIdentifier}, track2data={track2data}, message={message}, bfoc={bfoc}");
+		// v4: track2data su podaci kartice (broj, rok) — u log ide samo dužina (v2 ga upisuje ceo).
+		private void EcrAs24MessageReceivedHandler(string messageIdentifier, string track2data, string message, string bfoc)
+			=> _logger?.LogInformation($"{nameof(PosClient)}[{_posConfig.ComPort.PortName}]: Called ECR delegate {nameof(EcrPort.EcrAs24MessageReceived)}, Parameters: messageIdentifier={messageIdentifier}, track2data=({track2data?.Length ?? 0} znakova), message={message}, bfoc={bfoc}");
 
 		// Događaj stiže iz ECR-a usred transakcije: izuzetak ne sme da izađe. Pamti se poslednji odgovor 10 (završni odgovor).
 		private void RawdataEventHandler(EcrPort.DataDirection direction, byte[] rawdata)
