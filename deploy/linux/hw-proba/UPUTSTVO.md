@@ -3,11 +3,34 @@
 Pokretanje programa kioska (v4) sa desktopa, bez instalacije i bez kiosk režima. Uređaji su pravi: POS, barkod skener i
 kontroler vrata na serijskim portovima (RS232/RS485). Server je test server.
 
-U folderu: `toppos-kiosk-<oznaka>-linux-x64.tar.gz` (program) i ovo uputstvo. Poneti još `app-configuration.json` sa
-test paketomata (v2).
+U folderu: `toppos-kiosk-<oznaka>-linux-x64.tar.gz` (program), `pokreni-probu.sh` i ovo uputstvo. U isti folder staviti
+i `app-configuration.json` sa test paketomata (v2).
 
 Pri pokretanju program proverava POS (čita TID). **Plaćanje odobreno na produkcionom POS terminalu je stvarna naplata**,
 i kad program radi sa test serverom.
+
+## Brzo: sve jednom komandom
+
+Iz terminala na desktopu, u folderu sa USB-a, kao običan korisnik (skripta sama traži `sudo` lozinku):
+```
+bash pokreni-probu.sh
+```
+
+Pri prvom pokretanju, uz internet, skripta:
+- instalira biblioteke, dodaje korisnika u grupu `dialout` i zaustavlja ModemManager (korak 1 ispod);
+- instalira RustDesk (poslednje izdanje sa GitHub-a) sa stalnom lozinkom. Na Enter se lozinka sama napravi; ID i
+  lozinka se ispisuju na ekranu, pa ih treba **slikati**, jer se nigde ne čuvaju. GNOME prijavu prebacuje na X11,
+  što važi od sledeće prijave; tada veza ne traži potvrdu na mašini;
+- raspakuje program u `~/toppos/toppos-kiosk-.../app` i kopira konfiguraciju u `~/toppos/konfiguracija`.
+
+Pri svakom pokretanju:
+- prikazuje pronađene serijske portove pod brojevima i za kontroler vrata, POS i skener pita broj (Enter = zadrži);
+- pokreće program. Odjava zbog grupe `dialout` nije potrebna.
+
+Konfiguracija, stanje i logovi su u stalnim folderima `~/toppos/konfiguracija`, `~/toppos/stanje` i `~/toppos/logovi`,
+pa ih nov paket ne menja. Logovi za USB (bez ECR loga): `bash pokreni-probu.sh logovi`; arhiva nastaje pored skripte.
+
+Ostatak uputstva su isti koraci, ručno (tada je sve u folderu `app`).
 
 ## 1. Priprema sistema (jednom, traži internet)
 
