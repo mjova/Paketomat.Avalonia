@@ -218,9 +218,10 @@ chmod 600 "$config_dir/app-configuration.json"
 ports=()
 covered=" "
 for p in /dev/serial/by-id/*; do
-	[ -e "$p" ] || continue
+	# Adapter izvučen tokom popisa: link (i prazan by-id folder) nestaje, pa se port preskače umesto prekida (set -e).
+	target=$(readlink -e -- "$p") || continue
 	ports+=("$p")
-	covered="$covered$(readlink -f "$p") "
+	covered="$covered$target "
 done
 # USB čvorovi bez sopstvenog by-id imena (npr. dva ista adaptera dobiju isto by-id ime).
 for p in /dev/ttyUSB* /dev/ttyACM*; do
@@ -230,18 +231,28 @@ for p in /dev/ttyUSB* /dev/ttyACM*; do
 		*) ports+=("$p") ;;
 	esac
 done
-# Portovi na ploči (ttyS) koji stvarno postoje (UART poznat kernelu).
+# Portovi na ploči (ttyS) koji stvarno postoje (UART poznat kernelu), sa adresom i IRQ-om za poređenje sa BIOS-om, gde
+# su obično označeni kao COM1..COM4. Red izgleda ovako: "1: uart:16550A port:000002F8 irq:3 tx:0 rx:0".
+declare -A details=()
 while read -r line; do
-	ports+=("/dev/ttyS${line%%:*}")
+	p="/dev/ttyS${line%%:*}"
+	ports+=("$p")
+	text=""
+	if [[ "$line" =~ port:([0-9A-Fa-f]+) ]]; then
+		address=$(printf '0x%X' $((16#${BASH_REMATCH[1]})))
+		text="adresa $address"
+		case "$address" in
+			0x3F8) text="$text (obično COM1)" ;;
+			0x2F8) text="$text (obično COM2)" ;;
+			0x3E8) text="$text (obično COM3)" ;;
+			0x2E8) text="$text (obično COM4)" ;;
+		esac
+	elif [[ "$line" =~ mmio:(0x[0-9A-Fa-f]+) ]]; then
+		text="mmio ${BASH_REMATCH[1]}"
+	fi
+	[[ "$line" =~ irq:([0-9]+) ]] && text="$text, IRQ ${BASH_REMATCH[1]}"
+	details[$p]=$text
 done < <(sudo cat /proc/tty/driver/serial 2> /dev/null | grep -E '^[0-9]+:' | grep -v 'uart:unknown' || true)
-
-say "Serijski portovi"
-if [ ${#ports[@]} -eq 0 ]; then
-	echo "Nijedan serijski port nije nađen — priključiti uređaje i pokrenuti ponovo."
-fi
-for i in "${!ports[@]}"; do
-	printf '  %d) %s -> %s\n' $((i + 1)) "${ports[$i]}" "$(readlink -f "${ports[$i]}")"
-done
 
 config="$config_dir/app-configuration.json"
 current() {
@@ -253,23 +264,74 @@ for k in sys.argv[2].split("."):
 print(c if c is not None else "")
 PY
 }
+# canon <putanja>: stvarni uređaj (by-id link i /dev/ttyUSB0 su isti port); prazno ostaje prazno.
+canon() {
+	if [ -n "$1" ]; then
+		readlink -f -m -- "$1"
+	fi
+}
+labels=("Kontroler vrata" "POS terminal" "Barkod skener")
+keys=(Locker.ComPort.PortName PosTerminal.ComPort.PortName BarcodeScanner.ComPort.PortName)
+nows=()
+for key in "${keys[@]}"; do
+	now=$(current "$key") || die "Konfiguracija $config nije ispravan JSON."
+	nows+=("$now")
+done
+
+say "Serijski portovi"
+if [ ${#ports[@]} -eq 0 ]; then
+	echo "Nijedan serijski port nije nađen — priključiti uređaje i pokrenuti ponovo."
+fi
+for i in "${!ports[@]}"; do
+	p=${ports[$i]}
+	# -m: USB adapter izvučen posle pravljenja spiska ne prekida skriptu (set -e).
+	target=$(canon "$p")
+	line=$(printf '  %d) %s' $((i + 1)) "$p")
+	[ "$target" != "$p" ] && line="$line -> $target"
+	[ -n "${details[$p]:-}" ] && line="$line  ${details[$p]}"
+	for j in "${!keys[@]}"; do
+		[ "$(canon "${nows[$j]}")" = "$target" ] && line="$line  [sada: ${labels[$j]}]"
+	done
+	echo "$line"
+done
+
+# Jedan port može imati samo jedan uređaj (dva uređaja na istom portu se međusobno ometaju). Poređenje i po putanji i po
+# stvarnom uređaju, razrešeno pri svakom izboru: adapter izvučen između dva izbora ne sakriva sukob.
 choices=()
-for device in "Kontroler vrata:Locker.ComPort.PortName" "POS terminal:PosTerminal.ComPort.PortName" \
-	"Barkod skener:BarcodeScanner.ComPort.PortName"; do
-	label=${device%%:*}
-	path=${device#*:}
-	now=$(current "$path") || die "Konfiguracija $config nije ispravan JSON."
+chosen=()
+chosen_targets=()
+for j in "${!keys[@]}"; do
 	while :; do
-		printf '%s [sada: %s] — broj sa spiska, Enter = zadrži: ' "$label" "$now"
+		printf '%s [sada: %s] — broj sa spiska, 0 = bez porta, Enter = zadrži: ' "${labels[$j]}" \
+			"${nows[$j]:-nije podešen}"
 		read -r answer
 		if [ -z "$answer" ]; then
-			choices+=("$path=$now")
-			break
+			value=${nows[$j]}
+		elif [ "$answer" = 0 ]; then
+			value=""
 		elif [[ "$answer" =~ ^[0-9]+$ ]] && [ "$answer" -ge 1 ] && [ "$answer" -le ${#ports[@]} ]; then
-			choices+=("$path=${ports[$((answer - 1))]}")
-			break
+			value=${ports[$((answer - 1))]}
+		else
+			echo "  Pogrešan unos."
+			continue
 		fi
-		echo "  Pogrešan unos."
+		target=$(canon "$value")
+		taken=""
+		for k in "${!chosen[@]}"; do
+			# Ista putanja, isti uređaj u trenutku ranijeg izbora ili isti uređaj sada.
+			if [ -n "$value" ] && { [ "${chosen[$k]}" = "$value" ] || [ "${chosen_targets[$k]}" = "$target" ] ||
+				[ "$(canon "${chosen[$k]}")" = "$target" ]; }; then
+				taken=${labels[$k]}
+			fi
+		done
+		if [ -n "$taken" ]; then
+			echo "  $value je već izabran za: $taken. Izabrati drugi port ili 0 (Ctrl+C prekida bez izmena)."
+			continue
+		fi
+		choices+=("${keys[$j]}=$value")
+		chosen+=("$value")
+		chosen_targets+=("$target")
+		break
 	done
 done
 
@@ -288,10 +350,12 @@ for choice in sys.argv[2:]:
 			node[k] = {}
 		node = node[k]
 	node[last] = value
-# Proba POS-a: bez ovoga program POS ne koristi ni ne proverava.
+# Proba POS-a: bez TerminalInstalled program POS ne koristi ni ne proverava. POS bez porta (izbor 0) je isključen, pa
+# proba vrata i skenera radi i bez podešavanja POS-a (npr. valute).
 if not isinstance(c.get("PosTerminal"), dict):
 	c["PosTerminal"] = {}
-c["PosTerminal"]["TerminalInstalled"] = True
+pos_port = (c["PosTerminal"].get("ComPort") or {}).get("PortName")
+c["PosTerminal"]["TerminalInstalled"] = bool(pos_port)
 # mkstemp pravi fajl sa pravima 0600 (u konfiguraciji su lozinke), u istom folderu da os.replace bude atomski.
 fd, tmp = tempfile.mkstemp(dir=os.path.dirname(path), prefix=".app-configuration-")
 with os.fdopen(fd, "w", encoding="utf-8") as f:

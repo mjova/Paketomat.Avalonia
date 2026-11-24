@@ -24,7 +24,9 @@ Pri prvom pokretanju, uz internet, skripta:
 - raspakuje program u `~/toppos/toppos-kiosk-.../app` i kopira konfiguraciju u `~/toppos/konfiguracija`.
 
 Pri svakom pokretanju:
-- prikazuje pronađene serijske portove pod brojevima i za kontroler vrata, POS i skener pita broj (Enter = zadrži);
+- prikazuje pronađene serijske portove pod brojevima i za kontroler vrata, POS i skener pita broj (Enter = zadrži, 0 = bez porta; POS bez porta se isključuje).
+  Uz port na ploči (`ttyS`) piše adresa i IRQ (npr. `adresa 0x2F8 (obično COM2), IRQ 3`), za poređenje sa BIOS-om i
+  oznakama na ploči; uz port koji je već dodeljen piše kom uređaju. Isti port se ne može dati dvama uređajima;
 - pokreće program. Odjava zbog grupe `dialout` nije potrebna.
 
 Konfiguracija, stanje i logovi su u stalnim folderima `~/toppos/konfiguracija`, `~/toppos/stanje` i `~/toppos/logovi`,
