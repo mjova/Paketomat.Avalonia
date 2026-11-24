@@ -139,7 +139,7 @@ if [ ! -f "$rustdesk_done" ]; then
 
 	# Postojeća instalacija može tražiti klik na mašini ili samo privremenu lozinku — tada stalna lozinka ne pomaže.
 	rd_conf=$(sudo cat /root/.config/rustdesk/RustDesk2.toml 2> /dev/null || true)
-	if printf '%s' "$rd_conf" | grep -Eq "approve-mode *= *'click'|verification-method *= *'use-temporary-password'"; then
+	if printf '%s' "$rd_conf" | grep -Eq "approve-mode *= *['\"]click['\"]|verification-method *= *['\"]use-temporary-password['\"]"; then
 		x11_note="$x11_note PAŽNJA: RustDesk je podešen da traži klik ili privremenu lozinku (Podešavanja → Bezbednost: prihvatanje lozinkom, stalna lozinka)."
 	fi
 
@@ -166,7 +166,18 @@ if [ ! -f "$root/$name/.raspakovan" ]; then
 	chmod u+x "$root/.raspakivanje/$name/app/TopPos.Kiosk"
 	touch "$root/.raspakivanje/$name/.raspakovan"
 	# Isto izdanje raspakovano ručno (bez markera) ima svoju konfiguraciju, logove i stanje u app/ — sklanja se, ne briše.
+	# Redovi potvrda (neposlate potvrde naplate i preuzimanja) prelaze u stalni folder stanja, da ih program pošalje.
 	if [ -e "$root/$name" ]; then
+		mkdir -p "$state_dir"
+		for queue in PaymentConfirmation.json ServerConfirmations.json; do
+			[ -f "$root/$name/app/$queue" ] || continue
+			if [ -f "$state_dir/$queue" ]; then
+				rm -rf "$root/.raspakivanje"
+				die "Red potvrda postoji i u ručnoj probi ($root/$name/app/$queue) i u $state_dir — spojiti ručno ili pokrenuti ručnu probu dok server ne primi potvrde."
+			fi
+			cp "$root/$name/app/$queue" "$state_dir/$queue"
+			echo "Red potvrda $queue iz ručne probe prenet u $state_dir."
+		done
 		kept="$root/$name-rucno-$(date +%Y%m%d-%H%M%S)"
 		mv "$root/$name" "$kept"
 		echo "Ranije raspakovano izdanje (ručna proba) sačuvano kao $kept."
@@ -184,15 +195,32 @@ mkdir -p "$config_dir" "$state_dir" "$log_dir"
 chmod 700 "$config_dir"
 [ -f "$config_dir/serilog.json" ] || copy_new "$root/$name/serilog.json" "$config_dir/serilog.json"
 if [ ! -f "$config_dir/app-configuration.json" ]; then
-	copy_new "$kit/app-configuration.json" "$config_dir/app-configuration.json"
+	# Neispravan JSON sa USB-a ne dobija konačno ime, pa je posle ispravke izvora dovoljno ponovo pokrenuti skriptu.
+	cp "$kit/app-configuration.json" "$config_dir/app-configuration.json.novo" || die "Kopiranje konfiguracije nije uspelo."
+	if ! python3 -c 'import json, sys; json.load(open(sys.argv[1], encoding="utf-8-sig"))' "$config_dir/app-configuration.json.novo" 2> /dev/null; then
+		rm -f "$config_dir/app-configuration.json.novo"
+		die "$kit/app-configuration.json nije ispravan JSON — ispraviti ga i pokrenuti ponovo."
+	fi
+	mv "$config_dir/app-configuration.json.novo" "$config_dir/app-configuration.json"
 fi
 # U konfiguraciji su lozinke servisa i ključevi POS-a.
 chmod 600 "$config_dir/app-configuration.json"
 
 # ─── 4. Serijski portovi ─────────────────────────────────────────────────────────────────────────────────────────────
 ports=()
+covered=" "
 for p in /dev/serial/by-id/*; do
-	[ -e "$p" ] && ports+=("$p")
+	[ -e "$p" ] || continue
+	ports+=("$p")
+	covered="$covered$(readlink -f "$p") "
+done
+# USB čvorovi bez sopstvenog by-id imena (npr. dva ista adaptera dobiju isto by-id ime).
+for p in /dev/ttyUSB* /dev/ttyACM*; do
+	[ -e "$p" ] || continue
+	case "$covered" in
+		*" $p "*) ;;
+		*) ports+=("$p") ;;
+	esac
 done
 # Portovi na ploči (ttyS) koji stvarno postoje (UART poznat kernelu).
 while read -r line; do
