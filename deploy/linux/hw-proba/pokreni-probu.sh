@@ -169,14 +169,22 @@ if [ ! -f "$root/$name/.raspakovan" ]; then
 	# Redovi potvrda (neposlate potvrde naplate i preuzimanja) prelaze u stalni folder stanja, da ih program pošalje.
 	if [ -e "$root/$name" ]; then
 		mkdir -p "$state_dir"
+		# Prazan red je „[]“ (program ga tako upiše kad pošalje sve); takav se ne prenosi i ne smeta.
+		pending() {
+			[ -f "$1" ] && python3 -c 'import json, sys; sys.exit(0 if json.load(open(sys.argv[1], encoding="utf-8-sig")) else 1)' "$1" 2> /dev/null
+		}
+		# Prvo provera oba reda, pa tek onda premeštanje — sukob ne ostavlja delimično prenete redove.
 		for queue in PaymentConfirmation.json ServerConfirmations.json; do
-			[ -f "$root/$name/app/$queue" ] || continue
-			if [ -f "$state_dir/$queue" ]; then
+			if pending "$root/$name/app/$queue" && pending "$state_dir/$queue"; then
 				rm -rf "$root/.raspakivanje"
-				die "Red potvrda postoji i u ručnoj probi ($root/$name/app/$queue) i u $state_dir — spojiti ručno ili pokrenuti ručnu probu dok server ne primi potvrde."
+				die "Neposlate potvrde postoje i u ručnoj probi ($root/$name/app/$queue) i u $state_dir/$queue. Pokrenuti ručnu probu dok server ne primi potvrde (fajl tada sadrži []), ugasiti je, pa ponovo ovu skriptu."
 			fi
-			cp "$root/$name/app/$queue" "$state_dir/$queue"
-			echo "Red potvrda $queue iz ručne probe prenet u $state_dir."
+		done
+		for queue in PaymentConfirmation.json ServerConfirmations.json; do
+			if pending "$root/$name/app/$queue"; then
+				mv "$root/$name/app/$queue" "$state_dir/$queue"
+				echo "Neposlate potvrde $queue iz ručne probe prenete u $state_dir."
+			fi
 		done
 		kept="$root/$name-rucno-$(date +%Y%m%d-%H%M%S)"
 		mv "$root/$name" "$kept"
@@ -275,10 +283,15 @@ for choice in sys.argv[2:]:
 	node = c
 	*parents, last = key.split(".")
 	for k in parents:
-		node = node.setdefault(k, {})
+		# Sekcija koja nedostaje ili je null (npr. "ComPort": null) postaje prazan objekat.
+		if not isinstance(node.get(k), dict):
+			node[k] = {}
+		node = node[k]
 	node[last] = value
 # Proba POS-a: bez ovoga program POS ne koristi ni ne proverava.
-c.setdefault("PosTerminal", {})["TerminalInstalled"] = True
+if not isinstance(c.get("PosTerminal"), dict):
+	c["PosTerminal"] = {}
+c["PosTerminal"]["TerminalInstalled"] = True
 # mkstemp pravi fajl sa pravima 0600 (u konfiguraciji su lozinke), u istom folderu da os.replace bude atomski.
 fd, tmp = tempfile.mkstemp(dir=os.path.dirname(path), prefix=".app-configuration-")
 with os.fdopen(fd, "w", encoding="utf-8") as f:
