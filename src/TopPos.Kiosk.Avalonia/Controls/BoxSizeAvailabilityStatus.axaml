@@ -1,0 +1,62 @@
+<!-- v2 Controls/BoxSizeAvailabilityStatus: zaglavlje i red po veličini sanduka (slobodno, zauzeto, za preuzimanje). -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:TopPos.Kiosk.ViewModels"
+             xmlns:svc="using:TopPos.Service"
+             x:Class="TopPos.Kiosk.UI.Controls.BoxSizeAvailabilityStatus"
+             x:DataType="vm:CourierLockerBoxAvailabilityViewModel">
+	<UserControl.Styles>
+		<Style Selector="TextBlock.cell">
+			<Setter Property="HorizontalAlignment" Value="Stretch"/>
+			<Setter Property="VerticalAlignment" Value="Center"/>
+			<Setter Property="TextAlignment" Value="Center"/>
+			<Setter Property="Padding" Value="4"/>
+			<Setter Property="Margin" Value="4"/>
+			<Setter Property="Foreground" Value="#000000"/>
+			<Setter Property="FontSize" Value="24"/>
+		</Style>
+		<Style Selector="TextBlock.header">
+			<Setter Property="HorizontalAlignment" Value="Stretch"/>
+			<Setter Property="VerticalAlignment" Value="Center"/>
+			<Setter Property="TextAlignment" Value="Center"/>
+			<Setter Property="Padding" Value="8 4"/>
+			<Setter Property="Margin" Value="4"/>
+			<Setter Property="Background" Value="#77777777"/>
+			<Setter Property="Foreground" Value="#FFFFFF"/>
+			<Setter Property="FontSize" Value="22"/>
+		</Style>
+	</UserControl.Styles>
+	<StackPanel Grid.IsSharedSizeScope="True">
+		<Grid>
+			<Grid.ColumnDefinitions>
+				<ColumnDefinition Width="Auto" SharedSizeGroup="ColA"/>
+				<ColumnDefinition Width="Auto" SharedSizeGroup="ColB"/>
+				<ColumnDefinition Width="Auto" SharedSizeGroup="ColC"/>
+				<ColumnDefinition Width="Auto" SharedSizeGroup="ColD"/>
+			</Grid.ColumnDefinitions>
+			<TextBlock Grid.Column="0" Classes="header" Text="{Binding [BoxSizeAvailabilityStatus.Size]}"/>
+			<TextBlock Grid.Column="1" Classes="header" Text="{Binding [BoxSizeAvailabilityStatus.Available]}"/>
+			<TextBlock Grid.Column="2" Classes="header" Text="{Binding [BoxSizeAvailabilityStatus.Occupied]}"/>
+			<TextBlock Grid.Column="3" Classes="header" Text="{Binding [BoxSizeAvailabilityStatus.ForPickup]}"/>
+		</Grid>
+		<ItemsControl ItemsSource="{Binding BoxSizeAvailabilityStatuses}"
+					  AutomationProperties.AutomationId="CourierLockerBoxAvailabilityPage.Statuses">
+			<ItemsControl.ItemTemplate>
+				<DataTemplate x:DataType="svc:StatusPoVeliciniPozicije">
+					<Grid>
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition Width="Auto" SharedSizeGroup="ColA"/>
+							<ColumnDefinition Width="Auto" SharedSizeGroup="ColB"/>
+							<ColumnDefinition Width="Auto" SharedSizeGroup="ColC"/>
+							<ColumnDefinition Width="Auto" SharedSizeGroup="ColD"/>
+						</Grid.ColumnDefinitions>
+						<TextBlock Grid.Column="0" Classes="cell" Text="{Binding Velicina}" Foreground="WhiteSmoke" FontWeight="Bold" FontSize="22"/>
+						<TextBlock Grid.Column="1" Classes="cell" Text="{Binding Slobodno}" Background="#7ABA78"/>
+						<TextBlock Grid.Column="2" Classes="cell" Text="{Binding Zauzeto}" Background="#FA7070"/>
+						<TextBlock Grid.Column="3" Classes="cell" Text="{Binding ZaPreuzimanje}" Background="#FAE070"/>
+					</Grid>
+				</DataTemplate>
+			</ItemsControl.ItemTemplate>
+		</ItemsControl>
+	</StackPanel>
+</UserControl>

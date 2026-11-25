@@ -27,7 +27,7 @@ namespace TopPos.Kiosk.Tests
 
 		private readonly StubHttpServer _server = new();
 		private readonly DirectoryInfo _dir = Directory.CreateTempSubdirectory("toppos-payment-");
-		private readonly List<Host> _hosts = [];
+		private readonly List<FakeWorkflowHost> _hosts = [];
 
 		public void Dispose()
 		{
@@ -45,11 +45,11 @@ namespace TopPos.Kiosk.Tests
 			=> _server.Handler = (requestLine, _) => requestLine.Contains(nameof(PotvrdaPlacanja)) ? paymentConfirmation
 																									: pickup ?? (HttpStatusCode.OK, $"{{\"brojPozicije\":{DoorNumber},\"iznosZaUplatu\":0}}");
 
-		private async Task<Host> RunPayment(FakePos pos, bool penPos = false)
+		private async Task<FakeWorkflowHost> RunPayment(FakePos pos, bool penPos = false)
 		{
-			var host = new Host(_server.BaseUrl, _dir.FullName, pos, penPos);
+			var host = new FakeWorkflowHost(_server.BaseUrl, _dir.FullName, pos, penPos);
 			_hosts.Add(host);
-			await host.DriveToPayment();
+			await DriveToPayment(host);
 			await new RecipientFlowActivator(host).GoToRecipientPaymentPage();
 			return host;
 		}
@@ -173,7 +173,7 @@ namespace TopPos.Kiosk.Tests
 			Assert.Equal(S.Start, host.WorkflowMachine.State);
 		}
 
-		// ─── Lažni POS i host ───────────────────────────────────────────────
+		// ─── Lažni POS i dovođenje do plaćanja ──────────────────────────────
 
 		private sealed class FakePos : IPosClient
 		{
@@ -196,104 +196,19 @@ namespace TopPos.Kiosk.Tests
 			}
 		}
 
-		/// <summary>Host sa pravim servisima prema stub serveru; poruke se beleže umesto prikaza, lokalizacija vraća ključ.</summary>
-		private sealed class Host : IWorkflowHost, IDisposable
+		/// <summary>Start → šifra → telefon → provera → plaćanje, sa iznosom i šifrom u kontekstu (kao posle provere na serveru).</summary>
+		private static async Task DriveToPayment(FakeWorkflowHost host)
 		{
-			private readonly List<(string, MessageType)> _messages = [];
-
-			public Host(string baseUrl, string directory, IPosClient pos, bool penPos)
-			{
-				Configuration = new AppConfiguration {
-					General = new GeneralConfiguration {
-						MinimumUnlockCodeLength = 4, MaximumUnlockCodeLength = 10, CurrencyDecimalPlaces = 2, CurrencyDisplayName = "RSD",
-						OperationTimeout = 60_000
-					},
-					BarcodeScanner = new BarcodeScannerConfiguration { ComPort = new ComPortConfiguration { PortName = "COM_TEST_NONE" } }
-				};
-				ServiceClient = new TopPosServiceClient(
-					new TopPosServiceConfiguration { BaseUrl = baseUrl, PathPrefix = "api", RequestTimeout = 2000, DisableHeartbeats = true },
-					"111", null, CancellationToken.None);
-				PaymentConfirmationFile = Path.Combine(directory, "PaymentConfirmations.json");
-				PaymentConfirmationSender = new PaymentConfirmationSender(
-					new PaymentConfirmationSenderConfiguration { PaymentConfirmationFilename = PaymentConfirmationFile, ProcessingDelayInMilliseconds = 600_000 },
-					ServiceClient, Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance);
-				BarcodeScannerClient = new BarcodeScannerClient(Configuration.BarcodeScanner, null, CancellationToken.None);
-				PosClient = pos;
-				LanguageManager = new LanguageManager(null);
-				OperationCountdownTimer = new OperationCountdownTimer(TimeSpan.FromMinutes(1), null);
-				WorkflowContext = new WorkflowContext();
-				WorkflowMachine = Mk.Machine(WorkflowContext, penPos: penPos);
-			}
-
-			public void Dispose() => PaymentConfirmationSender.Dispose();
-
-			public string PaymentConfirmationFile { get; }
-			public IEnumerable<string> Messages => _messages.Select(m => m.Item1);
-			public IEnumerable<(string, MessageType)> MessagesWithType => _messages;
-
-			/// <summary>Start → šifra → telefon → provera → plaćanje, sa iznosom i šifrom u kontekstu (kao posle provere na serveru).</summary>
-			public async Task DriveToPayment()
-			{
-				var m = WorkflowMachine;
-				await m.FireAsync(T.Reset);
-				await m.FireAsync(T.RecipientPickupRequested);
-				await m.FireAsync(m.RecipientCodeAccepted, UnlockCode);
-				await m.FireAsync(m.RecipientPhoneEntered, "0641234567");
-				WorkflowContext.UnlockCode = UnlockCode;
-				WorkflowContext.RecipientPhoneNumber = "0641234567";
-				WorkflowContext.PaymentAmount = 350.50m;
-				await m.FireAsync(T.RecipientPaymentRequired);
-				Assert.Equal(S.RecipientPayment, m.State);
-			}
-
-			public AppConfiguration Configuration { get; }
-			public ILockControllerClient LockControllerClient => throw new NotSupportedException();
-			public Task PauseDoorWatcherAsync() => Task.CompletedTask;
-			public TopPosServiceClient ServiceClient { get; }
-			public BarcodeScannerClient BarcodeScannerClient { get; }
-			public IPosClient? PosClient { get; }
-			public PenPosServiceClient? PenPosServiceClient => null;
-			public LanguageManager LanguageManager { get; }
-			public IAudioPlayer AudioPlayer { get; } = new SilentAudio();
-			public PaymentConfirmationSender PaymentConfirmationSender { get; }
-			public ServerConfirmationSender ServerConfirmationSender => throw new NotSupportedException();
-			public BarcodeScanTracker BarcodeScanTracker => throw new NotSupportedException();
-			public OperationCountdownTimer OperationCountdownTimer { get; }
-			public WorkflowContext WorkflowContext { get; }
-			public WorkflowMachine WorkflowMachine { get; }
-			public ILogger? Logger => null;
-
-			public string Localize(string key) => key;
-
-			public ValueTask DisplayMessage(string message, MessageType messageType, int? displayTimeInSeconds = null)
-			{
-				_messages.Add((message, messageType));
-				return ValueTask.CompletedTask;
-			}
-
-			public void RemoveMessage() { }
-			public void SetCurrentPage(IWorkflowViewModel page) { }
-			public IWorkflowViewModel? CurrentWorkflowViewModel { get; set; }
-			public void SetCurrentStep(int stepNumber) { }
-			public string MakeCurrentLanguagePath(string filename) => filename;
-			public ValueTask FireResetAsync() => new(WorkflowMachine.FireAsync(T.Reset));
-			public KioskLease? CurrentSession => null;
-			public bool IsSessionActive(KioskLease? session) => true;
-			public Task FireInSession(KioskLease? session, WorkflowTrigger trigger) => WorkflowMachine.FireAsync(trigger);
-			public Task FireInSession<TArg>(KioskLease? session, StateMachine<WorkflowState, WorkflowTrigger>.TriggerWithParameters<TArg> trigger, TArg arg)
-				=> WorkflowMachine.FireAsync(trigger, arg);
-			public Task? RunInSession(KioskLease? session, Func<Task> work) => work();
-			public Task TrackDoorStatus(int doorNumber, DoorStatusCode targetStatusCode, Func<DoorStatusCode?, ValueTask> notifyComplete)
-				=> throw new NotSupportedException();
-			public ValueTask HandleDoorActionFailure(int doorNumber, DoorStatusCode? unexpectedStatusCode, int messageDisplayTime,
-													Func<ValueTask>? gotoPage, Serilog.ILogger contextLogger, CancellationToken cancellationToken)
-				=> throw new NotSupportedException();
-		}
-
-		private sealed class SilentAudio : IAudioPlayer
-		{
-			public void Play(string audioFileName) { }
-			public void Reset() { }
+			var m = host.WorkflowMachine;
+			await m.FireAsync(T.Reset);
+			await m.FireAsync(T.RecipientPickupRequested);
+			await m.FireAsync(m.RecipientCodeAccepted, UnlockCode);
+			await m.FireAsync(m.RecipientPhoneEntered, "0641234567");
+			host.WorkflowContext.UnlockCode = UnlockCode;
+			host.WorkflowContext.RecipientPhoneNumber = "0641234567";
+			host.WorkflowContext.PaymentAmount = 350.50m;
+			await m.FireAsync(T.RecipientPaymentRequired);
+			Assert.Equal(S.RecipientPayment, m.State);
 		}
 	}
 }

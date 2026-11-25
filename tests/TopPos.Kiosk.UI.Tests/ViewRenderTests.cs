@@ -5,12 +5,13 @@ using Avalonia.Threading;
 using Flatsoft.Common;
 using TopPos.Kiosk.UI.Views;
 using TopPos.Kiosk.ViewModels;
+using TopPos.Service;
 using Xunit;
 
 namespace TopPos.Kiosk.UI.Tests
 {
 	/// <summary>
-	/// Svaki ekran toka primaoca se prikazuje sa pravim ViewModel-om, jezicima i resursima aplikacije (stilovi, crteži, slike)
+	/// Svaki ekran toka (primalac, prijava kurira) se prikazuje sa pravim ViewModel-om, jezicima i resursima aplikacije (stilovi, crteži, slike)
 	/// i iscrtava (Skia). Sa <c>TOPPOS_UI_SNAPSHOTS</c> (folder) snimci se čuvaju za vizuelnu proveru, npr. na Linuxu bez ekrana.
 	/// </summary>
 	public class ViewRenderTests
@@ -26,7 +27,8 @@ namespace TopPos.Kiosk.UI.Tests
 		private static BarcodeScannerClient Scanner()
 			=> new(new BarcodeScannerConfiguration { ComPort = new ComPortConfiguration { PortName = "COM-NONE" } }, logger: null, CancellationToken.None);
 
-		public static TheoryData<string> Pages => new() { "Start", "CodeInput", "PhoneInput", "Payment", "FiscalReceipt", "PackagePickup", "DeviceStatus" };
+		public static TheoryData<string> Pages => new() { "Start", "CodeInput", "PhoneInput", "Payment", "FiscalReceipt", "PackagePickup", "DeviceStatus",
+													"CourierManualLogin", "CourierBoxAvailabilityLoading", "CourierBoxAvailability", "CourierPickupConfirmation" };
 
 		private static (object ViewModel, Type View) Create(string page, LanguageManager languages) => page switch {
 			"Start" => (new StartViewModel(Scanner(), "DX000111", languages, null), typeof(StartView)),
@@ -41,6 +43,19 @@ namespace TopPos.Kiosk.UI.Tests
 						typeof(RecipientPackagePickupView)),
 			// sloj preko glavnog prozora (dug pritisak na Home), posle provera: bez skenera i POS-a obe se završe odmah
 			"DeviceStatus" => (CheckedDeviceStatus(languages), typeof(DeviceStatusView)),
+			"CourierManualLogin" => (new CourierManualLoginViewModel(2, 11, languages, null), typeof(CourierManualLoginView)),
+			"CourierBoxAvailabilityLoading" => (new CourierLockerBoxAvailabilityViewModel(TimeSpan.FromSeconds(20), languages, null)
+						{ StatusMessage = languages.CurrentLanguage!.TextEntries["CourierLockerBoxAvailabilityPage.FetchingLockerBoxAvailability"] },
+						typeof(CourierLockerBoxAvailabilityView)),
+			"CourierBoxAvailability" => (new CourierLockerBoxAvailabilityViewModel(TimeSpan.FromSeconds(20), languages, null) {
+							BoxSizeAvailabilityStatuses = [
+								new StatusPoVeliciniPozicije { Velicina = "S", Slobodno = 12, Zauzeto = 3, ZaPreuzimanje = 1 },
+								new StatusPoVeliciniPozicije { Velicina = "M", Slobodno = 4, Zauzeto = 8, ZaPreuzimanje = 0 },
+								new StatusPoVeliciniPozicije { Velicina = "L", Slobodno = 0, Zauzeto = 6, ZaPreuzimanje = 2 }
+							]
+						},
+						typeof(CourierLockerBoxAvailabilityView)),
+			"CourierPickupConfirmation" => (new CourierPickupConfirmationViewModel(languages, null), typeof(CourierPickupConfirmationView)),
 			_ => throw new ArgumentOutOfRangeException(nameof(page))
 		};
 

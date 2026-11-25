@@ -37,6 +37,9 @@
 		<DataTemplate DataType="vm:RecipientFiscalReceiptViewModel"><views:RecipientFiscalReceiptView/></DataTemplate>
 		<DataTemplate DataType="vm:RecipientPackagePickupViewModel"><views:RecipientPackagePickupView/></DataTemplate>
 		<DataTemplate DataType="vm:DeviceStatusViewModel"><views:DeviceStatusView/></DataTemplate>
+		<DataTemplate DataType="vm:CourierManualLoginViewModel"><views:CourierManualLoginView/></DataTemplate>
+		<DataTemplate DataType="vm:CourierLockerBoxAvailabilityViewModel"><views:CourierLockerBoxAvailabilityView/></DataTemplate>
+		<DataTemplate DataType="vm:CourierPickupConfirmationViewModel"><views:CourierPickupConfirmationView/></DataTemplate>
 	</Application.DataTemplates>
 
 	<Application.Styles>
