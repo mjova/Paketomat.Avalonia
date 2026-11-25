@@ -42,7 +42,9 @@ namespace TopPos.Kiosk.ViewModels
 		WorkflowMachine WorkflowMachine { get; }
 		ILogger? Logger { get; }
 
-		// v4: deljeni CourierBarcodeScanViewModel/Page (kurirski tokovi) dolaze u F1.
+		// ─── Deljene UI komponente (koriste ih više activatora) ─────────────────
+		/// <summary>v4: samo ViewModel; prikaz bira View po tipu (v2: i CourierBarcodeScanPage).</summary>
+		CourierBarcodeScanViewModel CourierBarcodeScanViewModel { get; }
 
 		// ─── Host operacije ─────────────────────────────────────────────────────
 		/// <summary>Lokalizacija po ključu (zamena za ViewModelBase indekser <c>this[key]</c>).</summary>

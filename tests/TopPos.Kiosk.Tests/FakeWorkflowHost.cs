@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Flatsoft.Common;
 using Flatsoft.Common.UI;
 using Microsoft.Extensions.Logging;
@@ -12,8 +13,10 @@ namespace TopPos.Kiosk.Tests
 {
 	/// <summary>
 	/// v4: host za testove aktivatora — pravi servisi prema stub serveru, mašina bez OnEntry handlera (aktivator se zove ručno).
-	/// Poruke i prikazane stranice se beleže umesto prikaza, lokalizacija vraća ključ. Ono što test ne koristi baca
-	/// <see cref="NotSupportedException"/>.
+	/// Poruke i prikazane stranice se beleže umesto prikaza, lokalizacija vraća ključ. Vrata: otvaranje vraća
+	/// <see cref="OpenDoorResult"/>, praćenje se beleži (<see cref="DoorTracks"/>) i test sam javlja ishod; neuspeh vrata
+	/// se beleži i odmah ide na zadatu stranicu. Skener: pravi <see cref="BarcodeScanTracker"/>, sken kroz <see cref="ScanAsync"/>.
+	/// Ono što test ne koristi baca <see cref="NotSupportedException"/>.
 	/// </summary>
 	internal sealed class FakeWorkflowHost : IWorkflowHost, IDisposable
 	{
@@ -45,7 +48,11 @@ namespace TopPos.Kiosk.Tests
 			WorkflowMachine = Mk.Machine(WorkflowContext, enableLockerBoxAvailabilityPage, confirmPackagePickup, penPos);
 		}
 
-		public void Dispose() => PaymentConfirmationSender.Dispose();
+		public void Dispose()
+		{
+			_barcodeScanTracker?.Stop();
+			PaymentConfirmationSender.Dispose();
+		}
 
 		public string PaymentConfirmationFile { get; }
 		public IEnumerable<string> Messages => _messages.Select(m => m.Item1);
@@ -54,7 +61,29 @@ namespace TopPos.Kiosk.Tests
 		public IReadOnlyList<IWorkflowViewModel> Pages => _pages;
 
 		public AppConfiguration Configuration { get; }
-		public ILockControllerClient LockControllerClient => throw new NotSupportedException();
+		public ILockControllerClient LockControllerClient => _lockController ??= new FakeLockController(this);
+		private FakeLockController? _lockController;
+
+		/// <summary>Ishod otvaranja vrata po broju (null = kontroler nije odgovorio).</summary>
+		public Func<int, DoorStatusCode?> OpenDoorResult { get; set; } = _ => DoorStatusCode.Open;
+		public ConcurrentQueue<int> OpenedDoors { get; } = new();
+		/// <summary>Pokrenuta praćenja vrata; test javlja ishod kroz <c>Notify</c>.</summary>
+		public ConcurrentQueue<(int Door, DoorStatusCode Target, Func<DoorStatusCode?, ValueTask> Notify)> DoorTracks { get; } = new();
+		public ConcurrentQueue<(int Door, DoorStatusCode? Status)> DoorFailures { get; } = new();
+
+		/// <summary>Rok čekanja barkoda (pre prvog korišćenja <see cref="BarcodeScanTracker"/>).</summary>
+		public TimeSpan BarcodeScanLimit { get; set; } = TimeSpan.FromSeconds(30);
+		/// <summary>Sken kroz handler koji je postavio <see cref="BarcodeScanTracker"/> (kao pravi skener; i u Release build-u).</summary>
+		public async ValueTask ScanAsync(string barcode)
+		{
+			var handler = BarcodeScannerClient.ProcessBarcode;
+			if (handler != null) {
+				await handler(barcode);
+			}
+		}
+
+		/// <summary>Ako je postavljen, prikaz poruke traje dok se ne završi (kao rok prikaza u kiosku).</summary>
+		public Task? MessageShown { get; set; }
 		public Task PauseDoorWatcherAsync() => Task.CompletedTask;
 		public TopPosServiceClient ServiceClient { get; }
 		public BarcodeScannerClient BarcodeScannerClient { get; }
@@ -64,11 +93,14 @@ namespace TopPos.Kiosk.Tests
 		public IAudioPlayer AudioPlayer { get; } = new SilentAudio();
 		public PaymentConfirmationSender PaymentConfirmationSender { get; }
 		public ServerConfirmationSender ServerConfirmationSender => throw new NotSupportedException();
-		public BarcodeScanTracker BarcodeScanTracker => throw new NotSupportedException();
+		public BarcodeScanTracker BarcodeScanTracker => _barcodeScanTracker ??= new BarcodeScanTracker(BarcodeScannerClient, BarcodeScanLimit, 3, null);
+		private BarcodeScanTracker? _barcodeScanTracker;
 		public OperationCountdownTimer OperationCountdownTimer { get; }
 		public WorkflowContext WorkflowContext { get; }
 		public WorkflowMachine WorkflowMachine { get; }
 		public ILogger? Logger => null;
+		public CourierBarcodeScanViewModel CourierBarcodeScanViewModel => _courierBarcodeScan ??= new(LanguageManager, null);
+		private CourierBarcodeScanViewModel? _courierBarcodeScan;
 
 		public string Localize(string key) => key;
 
@@ -77,7 +109,7 @@ namespace TopPos.Kiosk.Tests
 			lock (_messages) {
 				_messages.Add((message, messageType));
 			}
-			return ValueTask.CompletedTask;
+			return MessageShown == null ? ValueTask.CompletedTask : new ValueTask(MessageShown);
 		}
 
 		public void RemoveMessage() { }
@@ -93,10 +125,42 @@ namespace TopPos.Kiosk.Tests
 			=> WorkflowMachine.FireAsync(trigger, arg);
 		public Task? RunInSession(KioskLease? session, Func<Task> work) => work();
 		public Task TrackDoorStatus(int doorNumber, DoorStatusCode targetStatusCode, Func<DoorStatusCode?, ValueTask> notifyComplete)
-			=> throw new NotSupportedException();
-		public ValueTask HandleDoorActionFailure(int doorNumber, DoorStatusCode? unexpectedStatusCode, int messageDisplayTime,
-												Func<ValueTask>? gotoPage, Serilog.ILogger contextLogger, CancellationToken cancellationToken)
-			=> throw new NotSupportedException();
+		{
+			DoorTracks.Enqueue((doorNumber, targetStatusCode, notifyComplete));
+			return Task.CompletedTask;
+		}
+
+		public async ValueTask HandleDoorActionFailure(int doorNumber, DoorStatusCode? unexpectedStatusCode, int messageDisplayTime,
+														Func<ValueTask>? gotoPage, Serilog.ILogger contextLogger, CancellationToken cancellationToken)
+		{
+			DoorFailures.Enqueue((doorNumber, unexpectedStatusCode));
+			if (gotoPage != null) {
+				await gotoPage();
+			}
+		}
+
+		private sealed class FakeLockController(FakeWorkflowHost host) : ILockControllerClient
+		{
+			public int NumberOfDoorsPerController => 8;
+
+			public ValueTask<DoorStatusCode?> OpenDoorSingle(int doorNumber, TimeSpan? sendTimeout, TimeSpan? receiveTimeout, CancellationToken cancellationToken)
+			{
+				host.OpenedDoors.Enqueue(doorNumber);
+				return ValueTask.FromResult(host.OpenDoorResult(doorNumber));
+			}
+
+			public ValueTask<DoorStatusCode?> OpenDoorSingle(int doorNumber, CancellationToken cancellationToken)
+				=> OpenDoorSingle(doorNumber, null, null, cancellationToken);
+			public ValueTask<DoorStatusCode?> OpenDoorSingle(int doorNumber, TimeSpan? receiveTimeout, CancellationToken cancellationToken)
+				=> OpenDoorSingle(doorNumber, null, receiveTimeout, cancellationToken);
+			public ValueTask<DoorOpenAttempt> OpenDoorOnce(int doorNumber, TimeSpan? receiveTimeout, CancellationToken cancellationToken) => throw new NotSupportedException();
+			public ValueTask<DoorStatusCode?> CheckDoorSingle(int doorNumber, CancellationToken cancellationToken) => throw new NotSupportedException();
+			public ValueTask<DoorStatusCode?> CheckDoorSingle(int doorNumber, TimeSpan? receiveTimeout, CancellationToken cancellationToken) => throw new NotSupportedException();
+			public ValueTask<DoorStatusCode?> CheckDoorSingle(int doorNumber, TimeSpan? sendTimeout, TimeSpan? receiveTimeout, CancellationToken cancellationToken) => throw new NotSupportedException();
+			public ValueTask<DoorStatusCode[]?> CheckDoorMultiple(int moduleNumber, CancellationToken cancellationToken) => throw new NotSupportedException();
+			public ValueTask<DoorStatusCode[]?> CheckDoorMultiple(int moduleNumber, TimeSpan? receiveTimeout, CancellationToken cancellationToken) => throw new NotSupportedException();
+			public ValueTask<DoorStatusCode[]?> CheckDoorMultiple(int moduleNumber, TimeSpan? sendTimeout, TimeSpan? receiveTimeout, CancellationToken cancellationToken) => throw new NotSupportedException();
+		}
 
 		private sealed class SilentAudio : IAudioPlayer
 		{

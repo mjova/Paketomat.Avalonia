@@ -51,6 +51,9 @@ namespace TopPos.Kiosk.ViewModels
 		protected WorkflowMachine _workflowMachine => _host.WorkflowMachine;
 		protected ILogger? _logger => _host.Logger;
 
+		// ─── Deljene UI komponente ──────────────────────────────────────────────
+		protected CourierBarcodeScanViewModel _courierBarcodeScanViewModel => _host.CourierBarcodeScanViewModel;
+
 		// ─── Host operacije (ista imena/signature kao MWVM private metode) ──────
 		protected string this[string key] => _host.Localize(key);
 		protected ValueTask DisplayMessage(string message, MessageType messageType, int? displayTimeInSeconds = null)

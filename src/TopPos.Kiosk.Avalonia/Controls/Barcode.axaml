@@ -1,0 +1,23 @@
+<!-- v2 Controls/Barcode: uzorak barkoda i crvena linija koja ga skenira (2 s, tamo-nazad). -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="TopPos.Kiosk.UI.Controls.Barcode">
+	<UserControl.Styles>
+		<Style Selector="Rectangle.barcodeline">
+			<Setter Property="RenderTransform">
+				<TranslateTransform/>
+			</Setter>
+			<Style.Animations>
+				<Animation Duration="0:0:2" IterationCount="Infinite" PlaybackDirection="Alternate">
+					<KeyFrame Cue="0%"><Setter Property="TranslateTransform.Y" Value="0"/></KeyFrame>
+					<KeyFrame Cue="100%"><Setter Property="TranslateTransform.Y" Value="197"/></KeyFrame>
+				</Animation>
+			</Style.Animations>
+		</Style>
+	</UserControl.Styles>
+	<Panel Width="350" Height="200" Background="WhiteSmoke" ClipToBounds="True"
+		   HorizontalAlignment="Center" VerticalAlignment="Center">
+		<Image Source="{StaticResource di_barcode_sample}"/>
+		<Rectangle Classes="barcodeline" Height="3" Fill="Red" VerticalAlignment="Top"/>
+	</Panel>
+</UserControl>

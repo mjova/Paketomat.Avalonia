@@ -26,6 +26,7 @@ namespace TopPos.Kiosk.ViewModels
 		private readonly PenPosServiceClient? _penPosServiceClient;
 		private readonly LanguageManager _languageManager;
 		private readonly StartViewModel _startViewModel;
+		private readonly CourierBarcodeScanViewModel _courierBarcodeScanViewModel;
 		private readonly OperationCountdownTimer _operationCountdownTimer;
 		private readonly DoorStatusTracker _doorStatusTracker;
 		private readonly BarcodeScanTracker _barcodeScanTracker;
@@ -52,6 +53,7 @@ namespace TopPos.Kiosk.ViewModels
 		// Faza 5 — per-flow activatori (drže svoje stranice/VM-ove i OnEntry handlere).
 		private readonly RecipientFlowActivator _recipientActivator;
 		private readonly CourierLoginActivator _courierLoginActivator;
+		private readonly CourierPickupActivator _courierPickupActivator;
 
 		/// <param name="audioPlayer">v4: zvuk iz platformskog sloja (v2 ga je pravio ovde, WPF MediaPlayer).</param>
 		/// <param name="languageImageFinder">v4: slika zastave jezika po <see cref="LanguageData.ImageResourceName"/>, iz prikaza.</param>
@@ -122,9 +124,11 @@ namespace TopPos.Kiosk.ViewModels
 			SetCurrentStep(0);
 
 			_startViewModel = SetUpStartPageViewModel();
+			_courierBarcodeScanViewModel = SetUpCourierBarcodeScanViewModel();
 
 			_recipientActivator = new RecipientFlowActivator(this);
 			_courierLoginActivator = new CourierLoginActivator(this);
+			_courierPickupActivator = new CourierPickupActivator(this);
 
 			this.LanguageSelectorViewModel = new LanguageSelectorViewModel(langManager, _languageImageFinder, logger);
 			this.LanguageSelectorViewModel.HandleLanguageSelected = languageId => {
@@ -538,8 +542,12 @@ namespace TopPos.Kiosk.ViewModels
 			_workflowMachine.OnEntry(WorkflowState.CourierLockerBoxAvailability, _courierLoginActivator.GoToLockerBoxAvailabilityPage);
 			_workflowMachine.OnEntry(WorkflowState.CourierPickupConfirmation, _courierLoginActivator.GoToCourierPickupConfirmationPage);
 			_workflowMachine.OnEntry(WorkflowState.CourierFetchingExpiredPackages, _courierLoginActivator.FetchExpiredPackagesAndRoute);
-			// v4: preuzimanje i ostavljanje kurira i ostavljanje pošiljaoca dolaze u sledećim koracima F1 (do tada se u ta stanja
-			// ne ulazi: TryHandleCourierOrServiceBarcode, IsPackageDepositionEnabled = false).
+			// Pod-korak 2 — courier pickup kroz machine.
+			_workflowMachine.OnEntry(WorkflowState.CourierPickupPrompt, _courierPickupActivator.GoToCourierPickupPromptPage);
+			_workflowMachine.OnEntry(WorkflowState.CourierPackagePickup, _courierPickupActivator.GoToCourierPackagePickupPage);
+			_workflowMachine.OnEntry(WorkflowState.CourierPackagePickupBarcodeScan, _courierPickupActivator.GoToCourierPackagePickupBarcodeScanPage);
+			// v4: ostavljanje kurira i pošiljaoca dolaze u sledećim koracima F1 (do tada se u ta stanja ne ulazi:
+			// TryHandleCourierOrServiceBarcode, IsPackageDepositionEnabled = false).
 
 			// Servis (tehničar) — servisni kod sa Start ekrana.
 			_workflowMachine.OnEntry(WorkflowState.ServiceDoorOpening, OpenServiceDoor);
@@ -590,6 +598,9 @@ namespace TopPos.Kiosk.ViewModels
 			=> new(_barcodeScannerClient,
 				_configuration.General.ShowLockerIdQrCode ? _configuration.Locker.LockerId : string.Empty,
 				_languageManager, _logger);
+
+		private CourierBarcodeScanViewModel SetUpCourierBarcodeScanViewModel()
+			=> new(_languageManager, _logger);
 
 		private bool? _isLockerOperational;
 		public bool? IsLockerOperational {

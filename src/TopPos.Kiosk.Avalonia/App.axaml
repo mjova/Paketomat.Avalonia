@@ -12,6 +12,7 @@
 				<ResourceInclude Source="/Resources/success.axaml"/>
 				<ResourceInclude Source="/Resources/information.axaml"/>
 				<ResourceInclude Source="/Resources/toppos-rs-qrcode-sample.axaml"/>
+				<ResourceInclude Source="/Resources/barcode-sample.axaml"/>
 				<ResourceInclude Source="/Languages/sr/sr.axaml"/>
 				<ResourceInclude Source="/Languages/en/en.axaml"/>
 			</ResourceDictionary.MergedDictionaries>
@@ -40,6 +41,9 @@
 		<DataTemplate DataType="vm:CourierManualLoginViewModel"><views:CourierManualLoginView/></DataTemplate>
 		<DataTemplate DataType="vm:CourierLockerBoxAvailabilityViewModel"><views:CourierLockerBoxAvailabilityView/></DataTemplate>
 		<DataTemplate DataType="vm:CourierPickupConfirmationViewModel"><views:CourierPickupConfirmationView/></DataTemplate>
+		<DataTemplate DataType="vm:CourierPickupPromptViewModel"><views:CourierPickupPromptView/></DataTemplate>
+		<DataTemplate DataType="vm:CourierPackagePickupViewModel"><views:CourierPackagePickupView/></DataTemplate>
+		<DataTemplate DataType="vm:CourierBarcodeScanViewModel"><views:CourierBarcodeScanView/></DataTemplate>
 	</Application.DataTemplates>
 
 	<Application.Styles>

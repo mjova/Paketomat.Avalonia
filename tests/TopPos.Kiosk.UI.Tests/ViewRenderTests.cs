@@ -28,7 +28,8 @@ namespace TopPos.Kiosk.UI.Tests
 			=> new(new BarcodeScannerConfiguration { ComPort = new ComPortConfiguration { PortName = "COM-NONE" } }, logger: null, CancellationToken.None);
 
 		public static TheoryData<string> Pages => new() { "Start", "CodeInput", "PhoneInput", "Payment", "FiscalReceipt", "PackagePickup", "DeviceStatus",
-													"CourierManualLogin", "CourierBoxAvailabilityLoading", "CourierBoxAvailability", "CourierPickupConfirmation" };
+													"CourierManualLogin", "CourierBoxAvailabilityLoading", "CourierBoxAvailability", "CourierPickupConfirmation",
+													"CourierPickupPrompt", "CourierPackagePickup", "CourierPackagePickupCloseDoor", "CourierBarcodeScanPickup", "CourierBarcodeScanDeposit" };
 
 		private static (object ViewModel, Type View) Create(string page, LanguageManager languages) => page switch {
 			"Start" => (new StartViewModel(Scanner(), "DX000111", languages, null), typeof(StartView)),
@@ -56,6 +57,12 @@ namespace TopPos.Kiosk.UI.Tests
 						},
 						typeof(CourierLockerBoxAvailabilityView)),
 			"CourierPickupConfirmation" => (new CourierPickupConfirmationViewModel(languages, null), typeof(CourierPickupConfirmationView)),
+			"CourierPickupPrompt" => (new CourierPickupPromptViewModel(languages, null) { RemainingExpiredPackagesCount = 3 }, typeof(CourierPickupPromptView)),
+			"CourierPackagePickup" => (new CourierPackagePickupViewModel(languages, null), typeof(CourierPackagePickupView)),
+			"CourierPackagePickupCloseDoor" => (new CourierPackagePickupViewModel(languages, null) { ShowCloseDoorMessage = true }, typeof(CourierPackagePickupView)),
+			"CourierBarcodeScanPickup" => (new CourierBarcodeScanViewModel(languages, null) { Barcode = "DX123456789RS", PackagePickup = true },
+						typeof(CourierBarcodeScanView)),
+			"CourierBarcodeScanDeposit" => (new CourierBarcodeScanViewModel(languages, null), typeof(CourierBarcodeScanView)),
 			_ => throw new ArgumentOutOfRangeException(nameof(page))
 		};
 

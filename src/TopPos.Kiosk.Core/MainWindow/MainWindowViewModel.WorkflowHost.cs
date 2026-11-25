@@ -36,6 +36,8 @@ namespace TopPos.Kiosk.ViewModels
 		WorkflowMachine IWorkflowHost.WorkflowMachine => _workflowMachine;
 		ILogger? IWorkflowHost.Logger => _logger;
 
+		CourierBarcodeScanViewModel IWorkflowHost.CourierBarcodeScanViewModel => _courierBarcodeScanViewModel;
+
 		string IWorkflowHost.Localize(string key) => this[key];
 		ValueTask IWorkflowHost.DisplayMessage(string message, MessageType messageType, int? displayTimeInSeconds)
 			=> DisplayMessage(message, messageType, displayTimeInSeconds);

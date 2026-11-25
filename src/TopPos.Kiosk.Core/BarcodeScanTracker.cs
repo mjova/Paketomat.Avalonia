@@ -56,15 +56,17 @@ namespace TopPos.Kiosk
 					if (cancellationToken.IsCancellationRequested) {
 						return;
 					}
-					if (!string.IsNullOrEmpty(barcode)) {
-						_logger?.LogInformation($"{nameof(BarcodeScanTracker)}: ocitan barkod '{barcode}'");
+					// v4: sken se preuzima i briše PRE callback-a. Ranije se brisao posle, pa je sken koji stigne dok callback traje
+					// (npr. ispravan barkod dok stoji poruka o pogrešnom) bio izgubljen.
+					var scanned = Interlocked.Exchange(ref barcode, null);
+					if (!string.IsNullOrEmpty(scanned)) {
+						_logger?.LogInformation($"{nameof(BarcodeScanTracker)}: ocitan barkod '{scanned}'");
 						try {
-							(bool stopTracking, TimeSpan? extendTime) = await notifyCompleted(barcode).ConfigureAwait(false);
+							(bool stopTracking, TimeSpan? extendTime) = await notifyCompleted(scanned).ConfigureAwait(false);
 							if (stopTracking) {
 								return;
 							}
-							_logger?.LogWarning($"{nameof(BarcodeScanTracker)}: barkod '{barcode}' nije prihvaćen.");
-							barcode = null;
+							_logger?.LogWarning($"{nameof(BarcodeScanTracker)}: barkod '{scanned}' nije prihvaćen.");
 							lock (_lock) {
 								tracking.StartTimestamp += extendTime ?? _trackLimit;
 							}
