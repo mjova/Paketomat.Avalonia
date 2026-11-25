@@ -58,7 +58,14 @@ namespace TopPos.Kiosk.Tests
 		public IEnumerable<string> Messages => _messages.Select(m => m.Item1);
 		public IEnumerable<(string, MessageType)> MessagesWithType => _messages;
 		/// <summary>Stranice redom kojim ih je aktivator prikazao.</summary>
-		public IReadOnlyList<IWorkflowViewModel> Pages => _pages;
+		public IReadOnlyList<IWorkflowViewModel> Pages
+		{
+			get {
+				lock (_pages) {
+					return [.. _pages];
+				}
+			}
+		}
 
 		public AppConfiguration Configuration { get; }
 		public ILockControllerClient LockControllerClient => _lockController ??= new FakeLockController(this);
@@ -116,7 +123,12 @@ namespace TopPos.Kiosk.Tests
 		}
 
 		public void RemoveMessage() { }
-		public void SetCurrentPage(IWorkflowViewModel page) => _pages.Add(page);
+		public void SetCurrentPage(IWorkflowViewModel page)
+		{
+			lock (_pages) {
+				_pages.Add(page);
+			}
+		}
 		public IWorkflowViewModel? CurrentWorkflowViewModel { get; set; }
 		public void SetCurrentStep(int stepNumber) { }
 		public string MakeCurrentLanguagePath(string filename) => filename;

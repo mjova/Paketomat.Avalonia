@@ -55,6 +55,7 @@ namespace TopPos.Kiosk.ViewModels
 		private readonly CourierLoginActivator _courierLoginActivator;
 		private readonly CourierPickupActivator _courierPickupActivator;
 		private readonly CourierDepositActivator _courierDepositActivator;
+		private readonly SenderDepositActivator _senderDepositActivator;
 		private readonly DepositConfirmationFailedActivator _depositConfirmationFailedActivator;
 
 		/// <param name="audioPlayer">v4: zvuk iz platformskog sloja (v2 ga je pravio ovde, WPF MediaPlayer).</param>
@@ -132,6 +133,7 @@ namespace TopPos.Kiosk.ViewModels
 			_courierLoginActivator = new CourierLoginActivator(this);
 			_courierPickupActivator = new CourierPickupActivator(this);
 			_courierDepositActivator = new CourierDepositActivator(this);
+			_senderDepositActivator = new SenderDepositActivator(this);
 			_depositConfirmationFailedActivator = new DepositConfirmationFailedActivator(this);
 
 			this.LanguageSelectorViewModel = new LanguageSelectorViewModel(langManager, _languageImageFinder, logger);
@@ -567,7 +569,21 @@ namespace TopPos.Kiosk.ViewModels
 			// ishod neuspele potvrde putuje uz triger (ne kroz kontekst)
 			_workflowMachine.OnEntryFrom(WorkflowState.CourierDepositConfirmationFailed, _workflowMachine.DepositConfirmationFailed,
 										_depositConfirmationFailedActivator.GoToCourierDepositConfirmationFailedPage);
-			// v4: ostavljanje pošiljaoca dolazi u F1 koraku 4 (do tada se u ta stanja ne ulazi: IsPackageDepositionEnabled = false).
+
+			// Sender deposit (pošiljalac) — paralelan deposit tok, ulaz sa Start dugmeta.
+			_workflowMachine.OnEntry(WorkflowState.SenderDepositBarcodeScan, _senderDepositActivator.GoToSenderDepositBarcodeScanPage);
+			_workflowMachine.OnEntryFrom(WorkflowState.SenderDepositBarcodeValidating, _workflowMachine.SenderBarcodeScanned, _senderDepositActivator.RequestSenderDepositDoorAndRoute);
+			// barcode+doorNumber putuju uz parametrizovan trigger → upiši ih u kontekst PRE render OnEntry-ja.
+			_workflowMachine.OnEntryFrom(WorkflowState.SenderPackageDeposit, _workflowMachine.SenderBarcodeAccepted,
+				(barcode, doorNumber) => {
+					_workflowContext.DepositBarcode = barcode;
+					_workflowContext.DepositDoorNumber = doorNumber;
+					_workflowContext.Logger = _workflowContext.Logger.ForContext("PackageId", barcode);
+					return ValueTask.CompletedTask;
+				});
+			_workflowMachine.OnEntry(WorkflowState.SenderPackageDeposit, _senderDepositActivator.GoToSenderPackageDepositPage);
+			_workflowMachine.OnEntryFrom(WorkflowState.SenderDepositConfirmationFailed, _workflowMachine.SenderConfirmationFailed,
+										_depositConfirmationFailedActivator.GoToSenderDepositConfirmationFailedPage);
 
 			// Servis (tehničar) — servisni kod sa Start ekrana.
 			_workflowMachine.OnEntry(WorkflowState.ServiceDoorOpening, OpenServiceDoor);
@@ -915,8 +931,9 @@ namespace TopPos.Kiosk.ViewModels
 				// servisna vrata — klik tada odbija koordinator (kiosk ima vlasnika).
 				_startViewModel.BeginRecipientPickUpPackage = () => TryBeginSession(WorkflowState.RecipientCodeInput, "dugme Preuzmi paket",
 																					(guard, rejected) => _workflowMachine.FireGuardedAsync(guard, WorkflowTrigger.RecipientPickupRequested, rejected));
-				// v4: ostavljanje pošiljaoca dolazi u F1 (bez OnEntry handlera kiosk bi ostao u SenderDepositBarcodeScan).
-				_startViewModel.IsPackageDepositionEnabled = false;
+				_startViewModel.IsPackageDepositionEnabled = _configuration.General.EnablePackageDeposition;
+				_startViewModel.BeginSenderDepositPackage = () => TryBeginSession(WorkflowState.SenderDepositBarcodeScan, "dugme Ostavi paket",
+																				(guard, rejected) => _workflowMachine.FireGuardedAsync(guard, WorkflowTrigger.SenderDepositRequested, rejected));
 				_startViewModel.Activate();
 				_currentWorkflowViewModel = _startViewModel;
 				this.CurrentPage = _startViewModel;

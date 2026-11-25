@@ -39,7 +39,7 @@ namespace TopPos.E2E.Tests.Scenarios
 			});
 
 		/// <summary>S04: pošiljalac ne skenira paket → istek skeniranja → Start; dodele vrata nema.</summary>
-		[PendingFlow("pošiljalac", "F1")]	// v4
+		[SkippableFact]
 		public Task SenderDepositScan_NoScan_TimesOutToStart()
 			=> KioskSession.RunAsync(nameof(SenderDepositScan_NoScan_TimesOutToStart), output, __shortScan, async kiosk => {
 				AssertShortScanConfigured(kiosk);

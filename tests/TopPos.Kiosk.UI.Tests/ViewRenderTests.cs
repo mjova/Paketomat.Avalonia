@@ -30,7 +30,8 @@ namespace TopPos.Kiosk.UI.Tests
 		public static TheoryData<string> Pages => new() { "Start", "CodeInput", "PhoneInput", "Payment", "FiscalReceipt", "PackagePickup", "DeviceStatus",
 													"CourierManualLogin", "CourierBoxAvailabilityLoading", "CourierBoxAvailability", "CourierPickupConfirmation",
 													"CourierPickupPrompt", "CourierPackagePickup", "CourierPackagePickupCloseDoor", "CourierBarcodeScanPickup", "CourierBarcodeScanDeposit",
-													"CourierDepositPrompt", "CourierPackageDeposit", "CourierDepositConfirmation", "DepositConfirmationFailedUnknown", "DepositConfirmationFailedRejected" };
+													"CourierDepositPrompt", "CourierPackageDeposit", "CourierDepositConfirmation", "DepositConfirmationFailedUnknown", "DepositConfirmationFailedRejected",
+													"SenderBarcodeScan", "SenderPackageDeposit", "StartWithDeposit" };
 
 		private static (object ViewModel, Type View) Create(string page, LanguageManager languages) => page switch {
 			"Start" => (new StartViewModel(Scanner(), "DX000111", languages, null), typeof(StartView)),
@@ -68,6 +69,9 @@ namespace TopPos.Kiosk.UI.Tests
 			"CourierPackageDeposit" => (new CourierPackageDepositViewModel(languages, null) { Barcode = "DX123456789RS" }, typeof(CourierPackageDepositView)),
 			"CourierDepositConfirmation" => (new CourierDepositConfirmationViewModel(languages, null), typeof(CourierDepositConfirmationView)),
 			"DepositConfirmationFailedUnknown" => (FailedDeposit(languages, DepositConfirmResult.Unknown, null), typeof(DepositConfirmationFailedView)),
+			"StartWithDeposit" => (new StartViewModel(Scanner(), "DX000111", languages, null) { IsPackageDepositionEnabled = true }, typeof(StartView)),
+			"SenderBarcodeScan" => (new SenderBarcodeScanViewModel(languages, null), typeof(SenderBarcodeScanView)),
+			"SenderPackageDeposit" => (new SenderPackageDepositViewModel(languages, null) { Barcode = "DX123456789RS" }, typeof(SenderPackageDepositView)),
 			"DepositConfirmationFailedRejected" => (FailedDeposit(languages, DepositConfirmResult.Rejected, "Pozicija nije rezervisana."), typeof(DepositConfirmationFailedView)),
 			_ => throw new ArgumentOutOfRangeException(nameof(page))
 		};

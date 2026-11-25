@@ -125,7 +125,7 @@ namespace TopPos.E2E.Tests.Scenarios
 		/// S05: vrata pošiljaoca se ne otvore (blokirana) → dva pokušaja, poruka → nazad na skeniranje; prijava greške „N",
 		/// potvrde nema.
 		/// </summary>
-		[PendingFlow("pošiljalac", "F1")]	// v4
+		[SkippableFact]
 		public Task Sender_DoorDoesNotOpen_ReportsDoorError_BackToScan()
 			=> KioskSession.RunAsync(nameof(Sender_DoorDoesNotOpen_ReportsDoorError_BackToScan), output, async kiosk => {
 				var package = kiosk.Data.DepositPackage(size: "M");
@@ -153,7 +153,7 @@ namespace TopPos.E2E.Tests.Scenarios
 			});
 
 		/// <summary>S05: pošiljalac ne zatvori vrata → istek praćenja → prijava greške „O" → Start (Reset), bez potvrde.</summary>
-		[PendingFlow("pošiljalac", "F1")]	// v4
+		[SkippableFact]
 		public Task Sender_DoorLeftOpen_ReportsOpenDoor_Start()
 			=> KioskSession.RunAsync(nameof(Sender_DoorLeftOpen_ReportsOpenDoor_Start), output, async kiosk => {
 				var serverMark = await kiosk.Server.MarkAsync();
@@ -175,7 +175,7 @@ namespace TopPos.E2E.Tests.Scenarios
 		/// S04: „Otkaži" dok je sanduk otvoren → zahtev se pamti, ništa se ne dešava dok su vrata otvorena → zatvaranje →
 		/// Start bez potvrde ostavljanja.
 		/// </summary>
-		[PendingFlow("pošiljalac", "F1")]	// v4
+		[SkippableFact]
 		public Task Sender_CancelWhileDoorOpen_ClosingDoorReturnsToStart_NoConfirmation()
 			=> KioskSession.RunAsync(nameof(Sender_CancelWhileDoorOpen_ClosingDoorReturnsToStart_NoConfirmation), output, async kiosk => {
 				var serverMark = await kiosk.Server.MarkAsync();

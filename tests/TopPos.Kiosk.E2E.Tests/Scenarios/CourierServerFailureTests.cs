@@ -225,7 +225,7 @@ namespace TopPos.E2E.Tests.Scenarios
 			});
 
 		/// <summary>S03: isto za pošiljaoca — odbijena promena veličine → ista vrata → zatvaranje → potvrda → Start.</summary>
-		[PendingFlow("pošiljalac", "F1")]	// v4
+		[SkippableFact]
 		public Task Sender_ChangeBoxRejected_RescanGetsSameDoor()
 			=> KioskSession.RunAsync(nameof(Sender_ChangeBoxRejected_RescanGetsSameDoor), output, async kiosk => {
 				var package = kiosk.Data.DepositPackage(size: "S");

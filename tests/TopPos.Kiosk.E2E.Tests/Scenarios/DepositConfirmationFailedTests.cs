@@ -185,7 +185,7 @@ namespace TopPos.E2E.Tests.Scenarios
 			});
 
 		/// <summary>Pošiljalac, server ne radi (503) → „Preuzmi" → vrata → zatvaranje → Start; server paket ne vodi.</summary>
-		[PendingFlow("pošiljalac", "F1")]	// v4
+		[SkippableFact]
 		public Task Sender_ServerDown_ReturnPackage_Start()
 			=> KioskSession.RunAsync(nameof(Sender_ServerDown_ReturnPackage_Start), output, async kiosk => {
 				var (package, door) = await SenderDepositUntilDoorOpenAsync(kiosk);
@@ -201,7 +201,7 @@ namespace TopPos.E2E.Tests.Scenarios
 			});
 
 		/// <summary>Pošiljalac, server ne radi (503) → server proradi → „Ponovi" → Start; server vodi paket u vratima.</summary>
-		[PendingFlow("pošiljalac", "F1")]	// v4
+		[SkippableFact]
 		public Task Sender_ServerDown_RetrySucceeds_Start()
 			=> KioskSession.RunAsync(nameof(Sender_ServerDown_RetrySucceeds_Start), output, async kiosk => {
 				var (package, door) = await SenderDepositUntilDoorOpenAsync(kiosk);
@@ -279,7 +279,7 @@ namespace TopPos.E2E.Tests.Scenarios
 			});
 
 		/// <summary>S06: pošiljalac, server odbije ostavljanje (400): samo „Preuzmi", bez drugog slanja → vrata → Start.</summary>
-		[PendingFlow("pošiljalac", "F1")]	// v4
+		[SkippableFact]
 		public Task Sender_Rejected_OnlyReturnPackage_Start()
 			=> KioskSession.RunAsync(nameof(Sender_Rejected_OnlyReturnPackage_Start), output, async kiosk => {
 				var (package, door) = await SenderDepositUntilDoorOpenAsync(kiosk);

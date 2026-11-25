@@ -48,6 +48,8 @@
 		<DataTemplate DataType="vm:CourierPackageDepositViewModel"><views:CourierPackageDepositView/></DataTemplate>
 		<DataTemplate DataType="vm:CourierDepositConfirmationViewModel"><views:CourierDepositConfirmationView/></DataTemplate>
 		<DataTemplate DataType="vm:DepositConfirmationFailedViewModel"><views:DepositConfirmationFailedView/></DataTemplate>
+		<DataTemplate DataType="vm:SenderBarcodeScanViewModel"><views:SenderBarcodeScanView/></DataTemplate>
+		<DataTemplate DataType="vm:SenderPackageDepositViewModel"><views:SenderPackageDepositView/></DataTemplate>
 	</Application.DataTemplates>
 
 	<Application.Styles>

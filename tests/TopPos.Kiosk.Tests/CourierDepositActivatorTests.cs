@@ -90,7 +90,9 @@ namespace TopPos.Kiosk.Tests
 		{
 			var host = await AtScan(confirmDeposition, operationTimeout);
 			await host.ScanAsync("PKG9");
-			await WaitUntil(() => host.WorkflowMachine.State == S.CourierPackageDeposit);
+			// stanje se menja pre OnEntry-ja: čeka se i stranica vrata i pokrenuto praćenje
+			await WaitUntil(() => host.Pages[^1] is CourierPackageDepositViewModel && !host.DoorTracks.IsEmpty);
+			Assert.Equal(S.CourierPackageDeposit, host.WorkflowMachine.State);
 			return (host, Assert.IsType<CourierPackageDepositViewModel>(host.Pages[^1]));
 		}
 
