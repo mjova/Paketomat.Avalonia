@@ -266,13 +266,6 @@ namespace TopPos.Kiosk.Workflow
 			=> _machine.OnTransitioned(t => onTransition(t.Source, t.Trigger, t.Destination));
 
 		/// <summary>
-		/// Stanja nepovratne procedure u kojima je Home ugašen: od plaćanja, odnosno dodele vrata, do potvrde serveru da je
-		/// paket izdat, preuzet ili ostavljen. Home tu ne sme da prekine tok — otkup bi ostavio kupca bez paketa, a paket
-		/// ostavljen bez potvrde server bi dodelio sledećem. Iz ovih stanja izlazi se kroz sam tok (zatvaranje vrata, potvrda,
-		/// kvar vrata, istek čekanja). Uz njih i stanja koja ignorišu Reset, jer ih vodi neko drugi (servisna sesija i provera
-		/// zahteva Agenta za preuzimanje).
-		/// </summary>
-		/// <summary>
 		/// v4: Reset sa Home tastera. Uslov (<see cref="IsHomeDisabled"/>) se proverava kad triger dođe na red, ne pri pritisku:
 		/// Home pritisnut dok je dugme još bilo uključeno, a koji stigne posle trigera koji vodi u stanje sa ugašenim Home-om
 		/// (npr. dodela vrata pa otvaranje), ne prekida tok — ranije je Reset vraćao na Start dok su vrata otvorena.
@@ -281,6 +274,13 @@ namespace TopPos.Kiosk.Workflow
 		public Task FireHomeResetAsync(Action? onRejected = null)
 			=> FireGuardedAsync(() => !IsHomeDisabled(_machine.State), WorkflowTrigger.Reset, onRejected);
 
+		/// <summary>
+		/// Stanja nepovratne procedure u kojima je Home ugašen: od plaćanja, odnosno dodele vrata, do potvrde serveru da je
+		/// paket izdat, preuzet ili ostavljen. Home tu ne sme da prekine tok — otkup bi ostavio kupca bez paketa, a paket
+		/// ostavljen bez potvrde server bi dodelio sledećem. Iz ovih stanja izlazi se kroz sam tok (zatvaranje vrata, potvrda,
+		/// kvar vrata, istek čekanja). Uz njih i stanja koja ignorišu Reset, jer ih vodi neko drugi (servisna sesija i provera
+		/// zahteva Agenta za preuzimanje).
+		/// </summary>
 		public static bool IsHomeDisabled(WorkflowState state)
 			=> state is WorkflowState.RecipientPayment or WorkflowState.RecipientFiscalReceipt or WorkflowState.RecipientPackagePickup
 					or WorkflowState.CourierPackagePickup or WorkflowState.CourierPackagePickupBarcodeScan
