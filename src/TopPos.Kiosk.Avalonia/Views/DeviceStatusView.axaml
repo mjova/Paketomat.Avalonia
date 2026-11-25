@@ -24,6 +24,16 @@ drugi prozor nije pouzdan); zatamnjena pozadina preko celog prozora prima dodire
 			<Setter Property="FontSize" Value="12"/>
 			<Setter Property="Foreground" Value="#FF9E9E9E"/>
 		</Style>
+		<!-- Fluent na prelazu i pritisku menja pozadinu i tekst u šablonu (lokalni Background/Foreground ne važe): bez ovoga je
+		     dugme crno sa crnim tekstom. Boje kao podrazumevano WPF dugme u v2. -->
+		<Style Selector="Button#CloseButton:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+			<Setter Property="Background" Value="#FFBEE6FD"/>
+			<Setter Property="Foreground" Value="Black"/>
+		</Style>
+		<Style Selector="Button#CloseButton:pressed /template/ ContentPresenter#PART_ContentPresenter">
+			<Setter Property="Background" Value="#FFC4E5F6"/>
+			<Setter Property="Foreground" Value="Black"/>
+		</Style>
 	</UserControl.Styles>
 
 	<Border Background="#88000000">
