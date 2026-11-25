@@ -16,14 +16,17 @@ namespace Flatsoft.Net.Http
 
         public IEnumerable<string> ExcludeHeaders { get; set; } = ["Authorization"];
 
+		/// <summary>v4: adresa zahteva u logu (npr. bez pristupnog koda u upitu); null = cela adresa.</summary>
+		public Func<Uri?, string?>? FormatRequestUri { get; set; }
+
 		protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken token)
 		{
 			if ((LogFilter?.Invoke(request) ?? true) && _logger?.IsEnabled(LogLevel.Debug) == true) {
-				var messageDump = await request.DumpRequest(ExcludeHeaders, indent: "  ").ConfigureAwait(false);
+				var messageDump = await request.DumpRequest(ExcludeHeaders, indent: "  ", FormatRequestUri).ConfigureAwait(false);
 				_logger.LogDebug($"{nameof(HttpLoggingHandler)}: HTTP request" + messageDump);
 			}
 #if DEBUG
-			await request.DebugDump();
+			await request.DebugDump(FormatRequestUri);
 #endif			
 			var response = await base.SendAsync(request, token).ConfigureAwait(false);
 
@@ -38,10 +41,10 @@ namespace Flatsoft.Net.Http
 
 	public static class LoggingHelpers
 	{
-		public static async ValueTask DebugDump(this HttpRequestMessage request)
+		public static async ValueTask DebugDump(this HttpRequestMessage request, Func<Uri?, string?>? formatUri = null)
 		{
 			Debug.WriteLine("----- HTTP Request -----");
-			Debug.WriteLine($"{request.Method} {request.RequestUri} HTTP/{request.Version}");
+			Debug.WriteLine($"{request.Method} {(formatUri != null ? formatUri(request.RequestUri) : request.RequestUri)} HTTP/{request.Version}");
         
 			foreach (var header in request.Headers)
 			{
@@ -62,7 +65,8 @@ namespace Flatsoft.Net.Http
 			Debug.WriteLine("-----------------------");
 		}
 
-		public static async ValueTask<string> DumpRequest(this HttpRequestMessage message, IEnumerable<string>? excludeHeaders, string indent)
+		public static async ValueTask<string> DumpRequest(this HttpRequestMessage message, IEnumerable<string>? excludeHeaders, string indent,
+															  Func<Uri?, string?>? formatUri = null)
 		{
 			if (message is null) {
 				return string.Empty;
@@ -70,7 +74,7 @@ namespace Flatsoft.Net.Http
 
 			var sb = new StringBuilder()
 				.AppendLine()
-				.Append(indent).Append($"URL: {message.Method} {message.RequestUri}")
+				.Append(indent).Append($"URL: {message.Method} {(formatUri != null ? formatUri(message.RequestUri) : message.RequestUri)}")
 				.AppendLine();
 
 			foreach (var header in message.Headers) {

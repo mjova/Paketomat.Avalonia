@@ -934,7 +934,7 @@ namespace TopPos.Kiosk.ViewModels
 		private ValueTask<bool> TryHandleCourierOrServiceBarcode(string barcode)
 		{
 			if (this.IsLockerOperational != true) {
-				_logger?.LogWarning($"Barkod {barcode} je ignorisan zato sto je paketomat u stanju greske ili je njegova inicijalizacija u toku.");
+				_logger?.LogWarning($"Barkod {LogMask.Credential(barcode)} je ignorisan zato sto je paketomat u stanju greske ili je njegova inicijalizacija u toku.");
 				return new ValueTask<bool>(false);
 			}
 			PendingStart? pending;
@@ -946,11 +946,11 @@ namespace TopPos.Kiosk.ViewModels
 			else {
 				// v4 (F1): ulaz u prijavu kurira (CourierManualLogin / CourierAuthenticating) se uključuje kad stignu preuzimanje i
 				// ostavljanje kurira — bez njihovih OnEntry handlera kiosk bi posle prijave ostao zaglavljen.
-				_logger?.LogWarning($"Barkod {barcode} je ignorisan — tok kurira u v4 još nije ceo.");
+				_logger?.LogWarning($"Barkod {LogMask.Credential(barcode)} je ignorisan — tok kurira u v4 još nije ceo.");
 				return new ValueTask<bool>(false);
 			}
 			if (pending == null) {
-				_logger?.LogWarning($"Barkod {barcode} je ignorisan — kiosk je zauzet.");
+				_logger?.LogWarning($"Barkod {LogMask.Credential(barcode)} je ignorisan — kiosk je zauzet.");	// v4: kurir ili servis — maskiran
 				return new ValueTask<bool>(false);
 			}
 			// Lanac (provera na serveru, otvaranje servisnih vrata) se ne čeka: skener odmah čita dalje, pa barkod skeniran dok

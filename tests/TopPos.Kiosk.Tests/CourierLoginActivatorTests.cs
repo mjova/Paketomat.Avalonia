@@ -2,6 +2,7 @@ using System.Net;
 using Flatsoft.Common.UI;
 using TopPos.Kiosk.ViewModels;
 using TopPos.Kiosk.Workflow;
+using TopPos.Service;
 using Xunit;
 using S = TopPos.Kiosk.Workflow.WorkflowState;
 using T = TopPos.Kiosk.Workflow.WorkflowTrigger;
@@ -264,6 +265,33 @@ namespace TopPos.Kiosk.Tests
 
 			Assert.Equal(next, host.WorkflowMachine.State);
 			Assert.Equal(!confirm, host.WorkflowContext.ExpiredPackagesPickedUp);
+		}
+
+		/// <summary>
+		/// Odgovor za prethodnog kurira stigne kad je ekran već otvoren za sledećeg: ne prikazuje se, sledeći čeka svoj. Uzak
+		/// razmak između provere aktivacije i upisa (Deactivate baš tada) test ne zahvata deterministički — njega štiti lock.
+		/// </summary>
+		[Fact]
+		public async Task Late_box_availability_of_previous_activation_is_not_shown()
+		{
+			static StatusPaketomata Status(string size) => new() { StatusiPoVelicinamaPozicija = [new() { Velicina = size, Slobodno = 1 }] };
+			var page = new CourierLockerBoxAvailabilityViewModel(TimeSpan.FromSeconds(20), new Flatsoft.Common.LanguageManager(null), null);
+			var first = new TaskCompletionSource<StatusPaketomata?>(TaskCreationOptions.RunContinuationsAsynchronously);
+			var second = new TaskCompletionSource<StatusPaketomata?>(TaskCreationOptions.RunContinuationsAsynchronously);
+			page.FuncFetchLockerBoxAvailabilityInfo = _ => new ValueTask<StatusPaketomata?>(first.Task);
+			page.Activate();
+			page.Deactivate();
+			page.FuncFetchLockerBoxAvailabilityInfo = _ => new ValueTask<StatusPaketomata?>(second.Task);
+			page.Activate();
+
+			first.SetResult(Status("S"));
+			await Task.Delay(200);
+			Assert.Null(page.BoxSizeAvailabilityStatuses);
+			Assert.Contains("FetchingLockerBoxAvailability", page.StatusMessage);
+
+			second.SetResult(Status("M"));
+			await WaitUntil(() => page.BoxSizeAvailabilityStatuses != null);
+			Assert.Equal("M", Assert.Single(page.BoxSizeAvailabilityStatuses!).Velicina);
 		}
 
 		private static async Task WaitUntil(Func<bool> condition)

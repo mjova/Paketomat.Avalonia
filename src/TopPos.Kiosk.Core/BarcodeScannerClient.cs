@@ -3,6 +3,7 @@ using System.IO;
 using System.IO.Ports;
 using System.Text;
 using Microsoft.Extensions.Logging;
+using Flatsoft.Common;
 using Flatsoft.Net.Serial;
 
 namespace TopPos.Kiosk
@@ -35,7 +36,7 @@ namespace TopPos.Kiosk
 									CancellationToken cancellationToken)
         {
 			_configuration = configuration;
-            _serialClient = new SerialClient(configuration.ComPort.PortName, logger);
+            _serialClient = new SerialClient(configuration.ComPort.PortName, logger) { LogPayload = false };	// v4: barkod u logu samo maskiran
 			// Ako je threshold > 1, onda ReadAtLeastAsync zadrzi jedan bajt (baš terminator CR)
 			// to uzrokuje da se sledeće čitanje prebaci zapravo završi prethodno čitanje. Ukoliko se očitavaju 
 			// isti kodovi uzastopno, onda problem neće biti primećen, međutim ako se čita drugi kod, to će učiniti
@@ -196,7 +197,9 @@ namespace TopPos.Kiosk
 
 		private async ValueTask SendBarcode(string barcode)
 		{
-			_logger?.LogInformation($"{nameof(BarcodeScannerClient)}[{_serialClient.Port}]: skenirani barkod: '{barcode}'");
+			// v4: maskiran — skener ne zna da li je to kartica kurira ili servisni kod; šifru primaoca i barkod paketa u celini
+			// beleže tokovi koji ih obrađuju.
+			_logger?.LogInformation($"{nameof(BarcodeScannerClient)}[{_serialClient.Port}]: skenirani barkod: '{LogMask.Credential(barcode)}'");
 			Func<string, ValueTask<bool>>? processBarcode = null;
 			lock (_lock) {
 				processBarcode = _processBarcode;

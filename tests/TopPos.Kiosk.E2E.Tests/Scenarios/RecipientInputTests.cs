@@ -96,7 +96,7 @@ namespace TopPos.E2E.Tests.Scenarios
 				var mark = kiosk.Log.Mark();
 				await kiosk.Locker.ScanBarcodeAsync(invalidCode);
 				kiosk.Trace($"skeniran neispravan kod {invalidCode}");
-				await kiosk.WaitForLogLineAsync($"skenirani barkod: '{invalidCode}'", mark);
+				await kiosk.WaitForLogLineAsync($"skenirani barkod: '{Flatsoft.Common.LogMask.Credential(invalidCode)}'", mark);	// v4: maskiran
 				await Task.Delay(TimeSpan.FromSeconds(3));	// namerno: poruka traje 2 s, a prelaza ne sme biti
 				Assert.Empty(kiosk.Log.TransitionsAfter(mark));
 				Assert.DoesNotContain(await kiosk.Server.GetBusinessCallsAsync(serverMark), c => c.Endpoint == "PrimaocPraznjenjePozicije");

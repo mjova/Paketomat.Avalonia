@@ -4,6 +4,8 @@ using System.Net.Http.Json;
 using System.Net.Mime;
 using System.Net.Sockets;
 using System.Text;
+using System.Text.RegularExpressions;
+using Flatsoft.Common;
 using Flatsoft.Common.Text;
 using Flatsoft.Net.Http;
 using Microsoft.Extensions.Http;
@@ -16,6 +18,14 @@ namespace TopPos.Service
 	public class TopPosServiceClient
     {
 		private readonly string _lockerId;
+
+		// v4: kod za prijavu kurira (QrKod u upitu) se u logu maskira (LogMask), i u liniji servisa i u ispisu HTTP zahteva.
+		// QrKod je poslednji parametar, a kod se u URL ne kodira (kao v2), pa vrednost ide do kraja adrese: i deo posle '&'
+		// u kodu ostaje maskiran.
+		private static readonly Regex __courierCredentialInQuery = new($"([?&]{nameof(KurirAutorizacija.QrKod)}=)(.*)$", RegexOptions.IgnoreCase);
+
+		private static string? MaskCourierCredential(string? url)
+			=> url == null ? null : __courierCredentialInQuery.Replace(url, m => m.Groups[1].Value + LogMask.Credential(Uri.UnescapeDataString(m.Groups[2].Value)));
 		private readonly TopPosServiceConfiguration _configuration;
 		private readonly HttpClient _serviceHttpClient;
 		private readonly HttpClient? _heartbeatHttpClient;
@@ -80,7 +90,8 @@ namespace TopPos.Service
 			var httpLoggingHandler = new HttpLoggingHandler(logger)
 										{
 											//LogFilter = request => request.RequestUri?.LocalPath != $"/{__loginPath}" // skip logging credentials
-											ExcludeHeaders = logExcludeHeaders ?? Enumerable.Empty<string>()
+											ExcludeHeaders = logExcludeHeaders ?? Enumerable.Empty<string>(),
+											FormatRequestUri = uri => MaskCourierCredential(uri?.ToString())	// v4
 										};
 			// ProcessingTrackingHandler ispod Polly-ja vidi svaki pokušaj (potvrda ostavljanja razlikuje „sigurno nije upisano" od „ne zna se")
 			var httpClient = HttpClientPipeline.Create(requestHandler, authHandler, retryHandler, httpLoggingHandler, new ProcessingTrackingHandler());
@@ -254,7 +265,7 @@ namespace TopPos.Service
 				using var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(externalCancellationToken, timeoutToken);
 
 				var url = $"{_configuration.PathPrefix}/{nameof(KurirAutorizacija)}/?{nameof(KurirAutorizacija.SifraBenzinskeStanice)}={_lockerId}&{nameof(KurirAutorizacija.QrKod)}={courierId}";
-				_logger?.LogInformation($"{nameof(CourierLogin)}: GET {url}");
+				_logger?.LogInformation($"{nameof(CourierLogin)}: GET {MaskCourierCredential(url)}");
 				var response = await ServiceCall(ct => _serviceHttpClient.GetAsync(url, ct), true, linkedToken.Token).ConfigureAwait(false);
 				if (response == null) { 
 					return (null, null);	// TODO: generic error message

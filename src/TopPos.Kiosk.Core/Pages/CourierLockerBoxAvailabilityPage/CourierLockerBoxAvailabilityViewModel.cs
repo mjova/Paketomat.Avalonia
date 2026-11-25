@@ -24,6 +24,9 @@ namespace TopPos.Kiosk.ViewModels
             public CancellationTokenSource CtsFetch { get; } = new(fetchTimeout);
         }
         private volatile Activation? _activation;
+        // v4: promena aktivacije (Activate, Deactivate) i upis rezultata fetch-a su pod istim lock-om. Bez njega fetch stare
+        // aktivacije koji je prošao proveru može upisati tabelu posle Deactivate, pa sledeći kurir vidi stare brojeve.
+        private readonly Lock _activationLock = new();
 
         public CourierLockerBoxAvailabilityViewModel(TimeSpan fetchTimeout, LanguageManager langManager, ILogger? logger)
 			: base(langManager, logger)
@@ -75,10 +78,12 @@ namespace TopPos.Kiosk.ViewModels
         {
             _logger?.LogInformation($"{GetType().Name}: aktivacija.");
 
-            UpdateStatusMessage("CourierLockerBoxAvailabilityPage.FetchingLockerBoxAvailability");
-
             var activation = new Activation(this.HandleCompleteClicked, this.FuncFetchLockerBoxAvailabilityInfo, _fetchTimeout);
-            _activation = activation;
+            lock (_activationLock) {
+                BoxSizeAvailabilityStatuses = null;     // v4: nikad tabela prethodne aktivacije
+                UpdateStatusMessage("CourierLockerBoxAvailabilityPage.FetchingLockerBoxAvailability");
+                _activation = activation;
+            }
             Task.Run(() => FetchLockerBoxAvailabilityInfo(activation)).ConfigureAwait(false);
         }
 
@@ -92,16 +97,18 @@ namespace TopPos.Kiosk.ViewModels
                     return;
                 }   
                 var lockerBoxAvailability = await funcFetch(activation.CtsFetch.Token); // No ConfigureAwait(false) here, StartCountdownTimer and StartScanTimer must run on the UI thread
-                if (activation != _activation) {
-                    _logger?.LogInformation($"{GetType().Name}: dostupnost sanduka stare aktivacije ekrana se ne prikazuje.");
-                    return;
-                }
-                if (lockerBoxAvailability == null) {
-                    BoxSizeAvailabilityStatuses = null;
-                    UpdateStatusMessage("CourierLockerBoxAvailabilityPage.AvailabilityFetchFailed");
-                }
-                else {
-                    BoxSizeAvailabilityStatuses = [.. lockerBoxAvailability.StatusiPoVelicinamaPozicija];
+                lock (_activationLock) {
+                    if (activation != _activation) {
+                        _logger?.LogInformation($"{GetType().Name}: dostupnost sanduka stare aktivacije ekrana se ne prikazuje.");
+                        return;
+                    }
+                    if (lockerBoxAvailability == null) {
+                        BoxSizeAvailabilityStatuses = null;
+                        UpdateStatusMessage("CourierLockerBoxAvailabilityPage.AvailabilityFetchFailed");
+                    }
+                    else {
+                        BoxSizeAvailabilityStatuses = [.. lockerBoxAvailability.StatusiPoVelicinamaPozicija];
+                    }
                 }
             }
             catch (OperationCanceledException) {
@@ -117,9 +124,12 @@ namespace TopPos.Kiosk.ViewModels
         public void Deactivate()
         {
             _logger?.LogInformation($"{GetType().Name}: deaktivacija.");
-            var activation = _activation;
-            _activation = null;
-            BoxSizeAvailabilityStatuses = null;
+            Activation? activation;
+            lock (_activationLock) {
+                activation = _activation;
+                _activation = null;
+                BoxSizeAvailabilityStatuses = null;
+            }
             // Bez Dispose: Complete iste aktivacije može još da otkazuje (Cancel zatvara i tajmer roka).
             activation?.CtsFetch.Cancel();
         }

@@ -1,4 +1,5 @@
 using System.Linq;
+using Flatsoft.Common;
 using Serilog;
 using TopPos.Kiosk.Workflow;
 
@@ -89,7 +90,7 @@ namespace TopPos.Kiosk.ViewModels
 					return;
 				}
 				_workflowContext.CourierCode = courierCode;
-				_workflowContext.Logger = Serilog.Log.ForContext("CourierId", manualCode);
+				_workflowContext.Logger = Serilog.Log.ForContext("CourierId", LogMask.Credential(manualCode));	// v4: maskiran
 				await _workflowMachine.FireAsync(WorkflowTrigger.CourierLoginSuccessful).ConfigureAwait(false);
 			}
 			catch (Exception ex) {
@@ -115,7 +116,7 @@ namespace TopPos.Kiosk.ViewModels
 					return;
 				}
 				_workflowContext.CourierCode = courierCode;
-				_workflowContext.Logger = Serilog.Log.ForContext("CourierId", barcode);
+				_workflowContext.Logger = Serilog.Log.ForContext("CourierId", LogMask.Credential(barcode));	// v4: maskiran
 				await _workflowMachine.FireAsync(WorkflowTrigger.CourierLoginSuccessful).ConfigureAwait(false);
 			}
 			catch (Exception ex) {

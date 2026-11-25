@@ -46,6 +46,14 @@ namespace Flatsoft.Net.Serial
 		}
 
 		public string Port { get; }
+
+		/// <summary>
+		/// v4: sadržaj bajtova u Debug logu (podrazumevano da). Skener ga gasi: barkod može biti pristupni kod, koji se u logu
+		/// maskira (<see cref="Flatsoft.Common.LogMask"/>); broj bajtova i greške porta ostaju.
+		/// </summary>
+		public bool LogPayload { get; init; } = true;
+
+		private string Payload(byte[] bytes) => LogPayload ? BitConverter.ToString(bytes) : "<skriveno>";
 		public int BaudRate {
 			get => _serialPort?.BaudRate ?? _baudRate;
 			set {
@@ -232,7 +240,7 @@ namespace Flatsoft.Net.Serial
 						}
 						await EnsureSerialPortOpen(_mainCancellation.Token).ConfigureAwait(false);
 						await _serialPort!.WriteAsync(segment, _mainCancellation.Token).ConfigureAwait(false);
-						_logger?.LogDebug($"{nameof(SerialClient)}[{Port}]: {nameof(SendLoop)}: written {segment.Length} byte(s) to the serial port: {BitConverter.ToString(segment.ToArray())}");
+						_logger?.LogDebug($"{nameof(SerialClient)}[{Port}]: {nameof(SendLoop)}: written {segment.Length} byte(s) to the serial port: {Payload(segment.ToArray())}");
 					}
 					_sendPipe.Reader.AdvanceTo(result.Buffer.End);
 				}
@@ -289,7 +297,7 @@ namespace Flatsoft.Net.Serial
 					}
 
 					if (bytesRead > 0) {
-						_logger?.LogDebug($"{nameof(SerialClient)}[{Port}]: {nameof(ReceiveLoop)}: read {bytesRead} byte(s) from the serial port: {BitConverter.ToString(memory.Slice(0, bytesRead).ToArray())}");
+						_logger?.LogDebug($"{nameof(SerialClient)}[{Port}]: {nameof(ReceiveLoop)}: read {bytesRead} byte(s) from the serial port: {Payload(memory.Slice(0, bytesRead).ToArray())}");
 						_receivePipe.Writer.Advance(bytesRead);
 
 						int retries = 1;
@@ -387,7 +395,7 @@ namespace Flatsoft.Net.Serial
 						_logger?.LogDebug($"{nameof(SerialClient)}[{Port}]: {nameof(Write)}: result from the send pipe writer is cancelled, likely from a previous timeout. Retrying.");
 						continue;
 					}
-					_logger?.LogDebug($"{nameof(SerialClient)}[{Port}]: {nameof(Write)}: written {data.Length} byte(s) to the send pipe: {BitConverter.ToString(data.ToArray())}");
+					_logger?.LogDebug($"{nameof(SerialClient)}[{Port}]: {nameof(Write)}: written {data.Length} byte(s) to the send pipe: {Payload(data.ToArray())}");
 					await _sendPipe.Writer.FlushAsync(cancellationToken).ConfigureAwait(false);
 					break;
 				}
@@ -421,12 +429,12 @@ namespace Flatsoft.Net.Serial
 						continue;
 					}
 					ReadOnlySequence<byte> buffer = result.Buffer;
-					_logger?.LogDebug($"{nameof(SerialClient)}[{Port}]: {nameof(Read)}: read {buffer.Length} byte(s) from the receive pipe: {BitConverter.ToString(buffer.ToArray())}");
+					_logger?.LogDebug($"{nameof(SerialClient)}[{Port}]: {nameof(Read)}: read {buffer.Length} byte(s) from the receive pipe: {Payload(buffer.ToArray())}");
 #if DEBUG
 					{
 						SequencePosition position = result.Buffer.Start;
 						while (result.Buffer.TryGet(ref position, out ReadOnlyMemory<byte> segment)) {
-							_logger?.LogDebug($"{nameof(SerialClient)}[{Port}]: {nameof(Read)}: reading {segment.Length} byte(s) from the receive pipe: {BitConverter.ToString(segment.ToArray())}");
+							_logger?.LogDebug($"{nameof(SerialClient)}[{Port}]: {nameof(Read)}: reading {segment.Length} byte(s) from the receive pipe: {Payload(segment.ToArray())}");
 						}
 					}
 #endif
