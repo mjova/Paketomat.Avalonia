@@ -29,7 +29,8 @@ namespace TopPos.Kiosk.UI.Tests
 
 		public static TheoryData<string> Pages => new() { "Start", "CodeInput", "PhoneInput", "Payment", "FiscalReceipt", "PackagePickup", "DeviceStatus",
 													"CourierManualLogin", "CourierBoxAvailabilityLoading", "CourierBoxAvailability", "CourierPickupConfirmation",
-													"CourierPickupPrompt", "CourierPackagePickup", "CourierPackagePickupCloseDoor", "CourierBarcodeScanPickup", "CourierBarcodeScanDeposit" };
+													"CourierPickupPrompt", "CourierPackagePickup", "CourierPackagePickupCloseDoor", "CourierBarcodeScanPickup", "CourierBarcodeScanDeposit",
+													"CourierDepositPrompt", "CourierPackageDeposit", "CourierDepositConfirmation", "DepositConfirmationFailedUnknown", "DepositConfirmationFailedRejected" };
 
 		private static (object ViewModel, Type View) Create(string page, LanguageManager languages) => page switch {
 			"Start" => (new StartViewModel(Scanner(), "DX000111", languages, null), typeof(StartView)),
@@ -63,8 +64,20 @@ namespace TopPos.Kiosk.UI.Tests
 			"CourierBarcodeScanPickup" => (new CourierBarcodeScanViewModel(languages, null) { Barcode = "DX123456789RS", PackagePickup = true },
 						typeof(CourierBarcodeScanView)),
 			"CourierBarcodeScanDeposit" => (new CourierBarcodeScanViewModel(languages, null), typeof(CourierBarcodeScanView)),
+			"CourierDepositPrompt" => (new CourierDepositPromptViewModel(languages, null) { ExpiredPackagesPickedUp = true }, typeof(CourierDepositPromptView)),
+			"CourierPackageDeposit" => (new CourierPackageDepositViewModel(languages, null) { Barcode = "DX123456789RS" }, typeof(CourierPackageDepositView)),
+			"CourierDepositConfirmation" => (new CourierDepositConfirmationViewModel(languages, null), typeof(CourierDepositConfirmationView)),
+			"DepositConfirmationFailedUnknown" => (FailedDeposit(languages, DepositConfirmResult.Unknown, null), typeof(DepositConfirmationFailedView)),
+			"DepositConfirmationFailedRejected" => (FailedDeposit(languages, DepositConfirmResult.Rejected, "Pozicija nije rezervisana."), typeof(DepositConfirmationFailedView)),
 			_ => throw new ArgumentOutOfRangeException(nameof(page))
 		};
+
+		private static DepositConfirmationFailedViewModel FailedDeposit(LanguageManager languages, DepositConfirmResult result, string? serverMessage)
+		{
+			var vm = new DepositConfirmationFailedViewModel(languages, null);
+			vm.SetResult(result, serverMessage);
+			return vm;
+		}
 
 		private static DeviceStatusViewModel CheckedDeviceStatus(LanguageManager languages)
 		{

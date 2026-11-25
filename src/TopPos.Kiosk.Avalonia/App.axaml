@@ -44,6 +44,10 @@
 		<DataTemplate DataType="vm:CourierPickupPromptViewModel"><views:CourierPickupPromptView/></DataTemplate>
 		<DataTemplate DataType="vm:CourierPackagePickupViewModel"><views:CourierPackagePickupView/></DataTemplate>
 		<DataTemplate DataType="vm:CourierBarcodeScanViewModel"><views:CourierBarcodeScanView/></DataTemplate>
+		<DataTemplate DataType="vm:CourierDepositPromptViewModel"><views:CourierDepositPromptView/></DataTemplate>
+		<DataTemplate DataType="vm:CourierPackageDepositViewModel"><views:CourierPackageDepositView/></DataTemplate>
+		<DataTemplate DataType="vm:CourierDepositConfirmationViewModel"><views:CourierDepositConfirmationView/></DataTemplate>
+		<DataTemplate DataType="vm:DepositConfirmationFailedViewModel"><views:DepositConfirmationFailedView/></DataTemplate>
 	</Application.DataTemplates>
 
 	<Application.Styles>

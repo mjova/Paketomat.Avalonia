@@ -54,6 +54,8 @@ namespace TopPos.Kiosk.ViewModels
 		private readonly RecipientFlowActivator _recipientActivator;
 		private readonly CourierLoginActivator _courierLoginActivator;
 		private readonly CourierPickupActivator _courierPickupActivator;
+		private readonly CourierDepositActivator _courierDepositActivator;
+		private readonly DepositConfirmationFailedActivator _depositConfirmationFailedActivator;
 
 		/// <param name="audioPlayer">v4: zvuk iz platformskog sloja (v2 ga je pravio ovde, WPF MediaPlayer).</param>
 		/// <param name="languageImageFinder">v4: slika zastave jezika po <see cref="LanguageData.ImageResourceName"/>, iz prikaza.</param>
@@ -129,6 +131,8 @@ namespace TopPos.Kiosk.ViewModels
 			_recipientActivator = new RecipientFlowActivator(this);
 			_courierLoginActivator = new CourierLoginActivator(this);
 			_courierPickupActivator = new CourierPickupActivator(this);
+			_courierDepositActivator = new CourierDepositActivator(this);
+			_depositConfirmationFailedActivator = new DepositConfirmationFailedActivator(this);
 
 			this.LanguageSelectorViewModel = new LanguageSelectorViewModel(langManager, _languageImageFinder, logger);
 			this.LanguageSelectorViewModel.HandleLanguageSelected = languageId => {
@@ -529,8 +533,6 @@ namespace TopPos.Kiosk.ViewModels
 			// Barkod za manual login putuje uz parametrizovan trigger.
 			// Barkod u kontekst PRE prikaza ekrana (redosled registracije = redosled izvršavanja); ekran ga čita iz konteksta
 			// i pri povratku posle neuspele provere koda.
-			// v4 (F1): ulaz sa Start-a (TryHandleCourierOrServiceBarcode) se uključuje kad stignu preuzimanje i ostavljanje kurira —
-			// izlazi prijave (CourierPickupPrompt, CourierDepositPrompt) do tada nemaju handlere.
 			_workflowMachine.OnEntryFrom(WorkflowState.CourierManualLogin, _workflowMachine.CourierBarcodeScannedRequiringManualLogin,
 				barcode => {
 					_workflowContext.CourierLoginBarcode = barcode;
@@ -546,8 +548,26 @@ namespace TopPos.Kiosk.ViewModels
 			_workflowMachine.OnEntry(WorkflowState.CourierPickupPrompt, _courierPickupActivator.GoToCourierPickupPromptPage);
 			_workflowMachine.OnEntry(WorkflowState.CourierPackagePickup, _courierPickupActivator.GoToCourierPackagePickupPage);
 			_workflowMachine.OnEntry(WorkflowState.CourierPackagePickupBarcodeScan, _courierPickupActivator.GoToCourierPackagePickupBarcodeScanPage);
-			// v4: ostavljanje kurira i pošiljaoca dolaze u sledećim koracima F1 (do tada se u ta stanja ne ulazi:
-			// TryHandleCourierOrServiceBarcode, IsPackageDepositionEnabled = false).
+
+			// Faza 4 — courier deposit interna kroz machine.
+			_workflowMachine.OnEntry(WorkflowState.CourierDepositPrompt, _courierDepositActivator.GoToCourierDepositPromptPage);
+			_workflowMachine.OnEntry(WorkflowState.CourierPackageDepositBarcodeScan, _courierDepositActivator.GoToCourierPackageDepositBarcodeScanPage);
+			// Skenirani barkod putuje uz parametrizovan trigger; dodela vrata na serveru je u virtuelnom stanju.
+			_workflowMachine.OnEntryFrom(WorkflowState.CourierDepositBarcodeValidating, _workflowMachine.DepositBarcodeScanned, _courierDepositActivator.RequestCourierDepositDoorAndRoute);
+			// barcode+doorNumber putuju uz parametrizovan trigger → upiši ih u kontekst PRE render OnEntry-ja.
+			_workflowMachine.OnEntryFrom(WorkflowState.CourierPackageDeposit, _workflowMachine.DepositBarcodeAccepted,
+				(barcode, doorNumber) => {
+					_workflowContext.DepositBarcode = barcode;
+					_workflowContext.DepositDoorNumber = doorNumber;
+					_workflowContext.Logger = _workflowContext.Logger.ForContext("PackageId", barcode);
+					return ValueTask.CompletedTask;
+				});
+			_workflowMachine.OnEntry(WorkflowState.CourierPackageDeposit, _courierDepositActivator.GoToCourierPackageDepositPage);
+			_workflowMachine.OnEntry(WorkflowState.CourierDepositConfirmation, _courierDepositActivator.GoToCourierDepositConfirmationPage);
+			// ishod neuspele potvrde putuje uz triger (ne kroz kontekst)
+			_workflowMachine.OnEntryFrom(WorkflowState.CourierDepositConfirmationFailed, _workflowMachine.DepositConfirmationFailed,
+										_depositConfirmationFailedActivator.GoToCourierDepositConfirmationFailedPage);
+			// v4: ostavljanje pošiljaoca dolazi u F1 koraku 4 (do tada se u ta stanja ne ulazi: IsPackageDepositionEnabled = false).
 
 			// Servis (tehničar) — servisni kod sa Start ekrana.
 			_workflowMachine.OnEntry(WorkflowState.ServiceDoorOpening, OpenServiceDoor);
@@ -954,11 +974,17 @@ namespace TopPos.Kiosk.ViewModels
 				pending = TryBeginSession(WorkflowState.ServiceDoorOpening, "servisni barkod",
 										(guard, rejected) => _workflowMachine.FireGuardedAsync(guard, WorkflowTrigger.ServiceBarcodeScanned, rejected));
 			}
+			else if (_configuration.General.EnableCourierManualLogin) {
+				// In this mode, any scanned barcode is itself ignored and serves only as a trigger to display manual courier login page.
+				// Barkod putuje uz parametrizovan trigger u CourierManualLogin (u kontekst); provera koda je u CourierManualAuthenticating.
+				pending = TryBeginSession(WorkflowState.CourierManualLogin, "barkod kurira (ručna prijava)",
+										(guard, rejected) => _workflowMachine.FireGuardedAsync(guard, _workflowMachine.CourierBarcodeScannedRequiringManualLogin, barcode, rejected));
+			}
 			else {
-				// v4 (F1): ulaz u prijavu kurira (CourierManualLogin / CourierAuthenticating) se uključuje kad stignu preuzimanje i
-				// ostavljanje kurira — bez njihovih OnEntry handlera kiosk bi posle prijave ostao zaglavljen.
-				_logger?.LogWarning($"Barkod {LogMask.Credential(barcode)} je ignorisan — tok kurira u v4 još nije ceo.");
-				return new ValueTask<bool>(false);
+				// Scanned barcode is considered to be a courier code which should be validated as-is.
+				// Provera na serveru je u OnEntry stanja CourierAuthenticating (kiosk je za to vreme zauzet).
+				pending = TryBeginSession(WorkflowState.CourierAuthenticating, "barkod kurira",
+										(guard, rejected) => _workflowMachine.FireGuardedAsync(guard, _workflowMachine.CourierBarcodeScanned, barcode, rejected));
 			}
 			if (pending == null) {
 				_logger?.LogWarning($"Barkod {LogMask.Credential(barcode)} je ignorisan — kiosk je zauzet.");	// v4: kurir ili servis — maskiran

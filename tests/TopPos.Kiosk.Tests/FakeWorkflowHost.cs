@@ -67,7 +67,10 @@ namespace TopPos.Kiosk.Tests
 		/// <summary>Ishod otvaranja vrata po broju (null = kontroler nije odgovorio).</summary>
 		public Func<int, DoorStatusCode?> OpenDoorResult { get; set; } = _ => DoorStatusCode.Open;
 		public ConcurrentQueue<int> OpenedDoors { get; } = new();
-		/// <summary>Pokrenuta praćenja vrata; test javlja ishod kroz <c>Notify</c>.</summary>
+		/// <summary>
+		/// Pokrenuta praćenja vrata; test javlja ishod kroz <c>Notify</c> (callback aktivatora, pa kraj praćenja — Task koji je
+		/// <see cref="TrackDoorStatus"/> vratio).
+		/// </summary>
 		public ConcurrentQueue<(int Door, DoorStatusCode Target, Func<DoorStatusCode?, ValueTask> Notify)> DoorTracks { get; } = new();
 		public ConcurrentQueue<(int Door, DoorStatusCode? Status)> DoorFailures { get; } = new();
 
@@ -126,8 +129,16 @@ namespace TopPos.Kiosk.Tests
 		public Task? RunInSession(KioskLease? session, Func<Task> work) => work();
 		public Task TrackDoorStatus(int doorNumber, DoorStatusCode targetStatusCode, Func<DoorStatusCode?, ValueTask> notifyComplete)
 		{
-			DoorTracks.Enqueue((doorNumber, targetStatusCode, notifyComplete));
-			return Task.CompletedTask;
+			var done = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+			DoorTracks.Enqueue((doorNumber, targetStatusCode, async status => {
+				try {
+					await notifyComplete(status);
+				}
+				finally {
+					done.TrySetResult();
+				}
+			}));
+			return done.Task;
 		}
 
 		public async ValueTask HandleDoorActionFailure(int doorNumber, DoorStatusCode? unexpectedStatusCode, int messageDisplayTime,
