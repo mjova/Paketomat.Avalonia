@@ -14,6 +14,10 @@ namespace TopPos.Kiosk.UI.Controls
 		/// <summary><c>bool?</c> → <c>true</c> samo za <c>true</c> (v2 NullableBooleanConverter: prozor je ugašen dok se ne zna).</summary>
 		public static readonly IValueConverter IsTrue = new FuncValueConverter<bool?, bool>(value => value == true);
 
+		/// <summary>Boja kao tekst (<c>#RRGGBB</c>, npr. stanje boksa u servisnoj sesiji) → četka.</summary>
+		public static readonly IValueConverter ColorToBrush = new FuncValueConverter<string?, IBrush?>(
+			color => string.IsNullOrEmpty(color) ? null : Brush.Parse(color));
+
 		/// <summary>PNG bajtovi (QR fiskalnog računa) → slika.</summary>
 		public static readonly IValueConverter PngToBitmap = new FuncValueConverter<byte[]?, Bitmap?>(
 			bytes => bytes is { Length: > 0 } ? new Bitmap(new MemoryStream(bytes)) : null);

@@ -50,6 +50,8 @@
 		<DataTemplate DataType="vm:DepositConfirmationFailedViewModel"><views:DepositConfirmationFailedView/></DataTemplate>
 		<DataTemplate DataType="vm:SenderBarcodeScanViewModel"><views:SenderBarcodeScanView/></DataTemplate>
 		<DataTemplate DataType="vm:SenderPackageDepositViewModel"><views:SenderPackageDepositView/></DataTemplate>
+		<DataTemplate DataType="vm:RecipientRemoteConfirmationViewModel"><views:RecipientRemoteConfirmationView/></DataTemplate>
+		<DataTemplate DataType="vm:RemoteServiceViewModel"><views:RemoteServiceView/></DataTemplate>
 	</Application.DataTemplates>
 
 	<Application.Styles>

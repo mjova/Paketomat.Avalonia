@@ -1,0 +1,146 @@
+<!-- v2 Pages/RemoteServicePage/RemoteServicePageLayout.xaml (jedan šablon za sve ekrane; stranica preko celog prozora) -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:TopPos.Kiosk.ViewModels"
+             xmlns:c="using:TopPos.Kiosk.UI.Controls"
+             x:Class="TopPos.Kiosk.UI.Views.RemoteServiceView"
+             AutomationProperties.AutomationId="Page.RemoteServicePage"
+             x:DataType="vm:RemoteServiceViewModel">
+	<UserControl.Styles>
+		<!-- Dugme vertikale i boks: bez Fluent pozadine i ivica, izgled daje sadržaj (v2 ControlTemplate) -->
+		<Style Selector="Button.plain">
+			<Setter Property="Focusable" Value="False"/>
+			<Setter Property="Padding" Value="0"/>
+			<Setter Property="Template">
+				<ControlTemplate>
+					<ContentPresenter Content="{TemplateBinding Content}"
+									  HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"/>
+				</ControlTemplate>
+			</Setter>
+		</Style>
+		<Style Selector="Button.column:disabled">
+			<Setter Property="Opacity" Value="0.4"/>
+		</Style>
+		<Style Selector="Button.box:disabled">
+			<Setter Property="Opacity" Value="0.6"/>
+		</Style>
+		<!-- Položaj na crtežu (v2 ItemContainerStyle, Canvas.Left/Top) -->
+		<Style Selector="ItemsControl.columns > ContentPresenter" x:DataType="vm:RemoteServiceColumnViewModel">
+			<Setter Property="Canvas.Left" Value="{Binding X}"/>
+			<Setter Property="Canvas.Top" Value="{Binding Y}"/>
+		</Style>
+		<Style Selector="ItemsControl.boxes > ContentPresenter" x:DataType="vm:RemoteServiceBoxViewModel">
+			<Setter Property="Canvas.Left" Value="{Binding X}"/>
+			<Setter Property="Canvas.Top" Value="{Binding Y}"/>
+		</Style>
+	</UserControl.Styles>
+	<!-- Providna pozadina: i dodir prazne površine pored crteža stiže do stranice (Touch, rok sesije) -->
+	<Panel Background="Transparent">
+		<!-- Prijava servisera: kod sa portala na tastaturi ili QR sa telefona na skeneru -->
+		<Grid ColumnDefinitions="*,*" IsVisible="{Binding IsAwaitingTechnician}">
+			<Border Grid.Column="0" Classes="info" HorizontalAlignment="Center" VerticalAlignment="Top" Padding="24" Margin="32 32 16 4">
+				<StackPanel>
+					<TextBlock Classes="title" Text="{Binding [RemoteServicePage.LoginTitle]}"/>
+					<TextBlock Classes="text" Text="{Binding [RemoteServicePage.LoginInstructions]}" Margin="4 16 4 8"/>
+					<TextBlock Classes="text" Text="{Binding CountdownText}" AutomationProperties.AutomationId="RemoteServicePage.Countdown"/>
+					<TextBlock Classes="text" Text="{Binding AttemptsText}"/>
+					<TextBlock Text="{Binding NoticeText}" TextWrapping="Wrap" FontSize="22" FontWeight="Bold"
+							   Foreground="{DynamicResource AccentedForegroundColor1}"
+							   AutomationProperties.AutomationId="RemoteServicePage.LoginNotice"
+							   Margin="4 12 4 4"/>
+				</StackPanel>
+			</Border>
+			<!-- Jedan šablon za sve ekrane: gde velika tastatura ne staje (npr. 1024×768), Viewbox je smanji -->
+			<Viewbox Grid.Column="1" Stretch="Uniform" StretchDirection="DownOnly" VerticalAlignment="Top" Margin="32">
+				<c:NumericKeypad DataContext="{Binding Keypad}"/>
+			</Viewbox>
+		</Grid>
+
+		<!-- Serviser je prijavljen: raspored vrata, otvaranje i kraj -->
+		<DockPanel IsVisible="{Binding IsActive}" LastChildFill="True">
+			<Border DockPanel.Dock="Top" Background="#1B2733" Padding="16,10">
+				<StackPanel>
+					<TextBlock Text="{Binding ActiveTitle}" AutomationProperties.AutomationId="RemoteServicePage.Title"
+							   FontSize="24" FontWeight="Bold" Foreground="White"/>
+					<TextBlock Text="{Binding InfoText}" FontSize="20" Foreground="#F0D050"
+							   AutomationProperties.AutomationId="RemoteServicePage.Info"/>
+					<TextBlock Text="{Binding ModuleErrorText}" FontSize="20" FontWeight="Bold" Foreground="#FF8A80" TextWrapping="Wrap"
+							   AutomationProperties.AutomationId="RemoteServicePage.ModuleError"/>
+					<TextBlock Text="{Binding CountdownText}" FontSize="16" Foreground="#B7C0CC"/>
+				</StackPanel>
+			</Border>
+
+			<Border DockPanel.Dock="Bottom" Background="#E6EAF0" Padding="16,10">
+				<Grid ColumnDefinitions="Auto,*,Auto">
+					<Button Grid.Column="0" Classes="animated"
+							Content="{Binding [RemoteServicePage.OpenAll]}"
+							IsEnabled="{Binding CanOpen}"
+							AutomationProperties.AutomationId="RemoteServicePage.OpenAll"
+							Command="{Binding OpenAllCommand}"/>
+					<TextBlock Grid.Column="1" Text="{Binding NoticeText}" FontSize="20" FontWeight="Bold" Foreground="#1B2733"
+							   TextWrapping="Wrap" VerticalAlignment="Center" Margin="16,0"
+							   AutomationProperties.AutomationId="RemoteServicePage.Notice"/>
+					<Button Grid.Column="2" Classes="animated"
+							Content="{Binding EndButtonText}"
+							IsEnabled="{Binding CanOpen}"
+							AutomationProperties.AutomationId="RemoteServicePage.End"
+							Command="{Binding EndCommand}"/>
+				</Grid>
+			</Border>
+
+			<Viewbox Stretch="Uniform" Margin="12">
+				<Panel Width="{Binding CanvasWidth}" Height="{Binding CanvasHeight}">
+					<!-- Dugme iznad vertikale: otvara sva vrata te vertikale, jedna po jedna (kao u TopPos.Technician) -->
+					<ItemsControl Classes="columns" ItemsSource="{Binding Columns}">
+						<ItemsControl.ItemsPanel>
+							<ItemsPanelTemplate><Canvas/></ItemsPanelTemplate>
+						</ItemsControl.ItemsPanel>
+						<ItemsControl.ItemTemplate>
+							<DataTemplate x:DataType="vm:RemoteServiceColumnViewModel">
+								<Button Classes="plain column"
+										Width="{Binding Width}" Height="{Binding Height}"
+										IsEnabled="{Binding $parent[ItemsControl].((vm:RemoteServiceViewModel)DataContext).CanOpen}"
+										AutomationProperties.AutomationId="{Binding AutomationId}"
+										Command="{Binding OpenCommand}">
+									<Border Background="#2F4356" CornerRadius="10" Margin="5,5,5,14">
+										<StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+											<TextBlock Text="{Binding Label}" FontSize="30" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center"/>
+											<TextBlock Text="{Binding DoorCountText}" FontSize="20" Foreground="#B7C0CC" HorizontalAlignment="Center"/>
+										</StackPanel>
+									</Border>
+								</Button>
+							</DataTemplate>
+						</ItemsControl.ItemTemplate>
+					</ItemsControl>
+					<!-- Pozicija na crtežu: broj vrata, veličina i ishod poslednjeg otvaranja; cela površina je dodirna -->
+					<ItemsControl Classes="boxes" ItemsSource="{Binding Boxes}">
+						<ItemsControl.ItemsPanel>
+							<ItemsPanelTemplate><Canvas/></ItemsPanelTemplate>
+						</ItemsControl.ItemsPanel>
+						<ItemsControl.ItemTemplate>
+							<DataTemplate x:DataType="vm:RemoteServiceBoxViewModel">
+								<Button Classes="plain box"
+										Width="{Binding Width}" Height="{Binding Height}"
+										IsEnabled="{Binding $parent[ItemsControl].((vm:RemoteServiceViewModel)DataContext).CanOpen}"
+										AutomationProperties.AutomationId="{Binding AutomationId}"
+										Command="{Binding TapCommand}">
+									<Border Background="{Binding Background, Converter={x:Static c:KioskConverters.ColorToBrush}}"
+											BorderBrush="#8A94A6" BorderThickness="2" CornerRadius="10" Margin="5">
+										<Panel>
+											<TextBlock Text="{Binding SizeText}" FontSize="22" Foreground="#5A6675"
+													   HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,6,0,0"/>
+											<StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+												<TextBlock Text="{Binding DoorNumber}" FontSize="48" FontWeight="Bold" Foreground="#1B2733" HorizontalAlignment="Center"/>
+												<TextBlock Text="{Binding StatusText}" FontSize="22" Foreground="#1B2733" HorizontalAlignment="Center"/>
+											</StackPanel>
+										</Panel>
+									</Border>
+								</Button>
+							</DataTemplate>
+						</ItemsControl.ItemTemplate>
+					</ItemsControl>
+				</Panel>
+			</Viewbox>
+		</DockPanel>
+	</Panel>
+</UserControl>

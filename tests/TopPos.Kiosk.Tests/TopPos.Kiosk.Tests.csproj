@@ -17,6 +17,11 @@
     </PackageReference>
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Tekstovi ekrana za testove ViewModel-a (npr. RemoteServiceViewModelTests), iz kioska kao u v2 -->
+    <None Include="../../src/TopPos.Kiosk.Avalonia/Languages/**/*.lang" LinkBase="Languages" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
   <ItemGroup Condition="$([MSBuild]::IsOSPlatform('Windows'))">
     <!-- LibVLC za test zvuka (TOPPOS_AUDIO_TEST_FILE); na Linuxu je sistemska biblioteka -->
     <PackageReference Include="VideoLAN.LibVLC.Windows" />

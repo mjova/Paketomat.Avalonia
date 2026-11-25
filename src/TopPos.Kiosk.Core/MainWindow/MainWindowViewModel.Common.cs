@@ -3,6 +3,7 @@ using Flatsoft.Common.UI;
 using Microsoft.Extensions.Logging;
 using System.IO;
 using System.Windows.Input;
+using TopPos.Kiosk.AgentCommunication;
 using TopPos.Kiosk.Workflow;
 using TopPos.LockController;
 using TopPos.PenPosService;
@@ -57,6 +58,7 @@ namespace TopPos.Kiosk.ViewModels
 		private readonly CourierDepositActivator _courierDepositActivator;
 		private readonly SenderDepositActivator _senderDepositActivator;
 		private readonly DepositConfirmationFailedActivator _depositConfirmationFailedActivator;
+		private readonly RemoteServiceActivator _remoteServiceActivator;
 
 		/// <param name="audioPlayer">v4: zvuk iz platformskog sloja (v2 ga je pravio ovde, WPF MediaPlayer).</param>
 		/// <param name="languageImageFinder">v4: slika zastave jezika po <see cref="LanguageData.ImageResourceName"/>, iz prikaza.</param>
@@ -135,6 +137,7 @@ namespace TopPos.Kiosk.ViewModels
 			_courierDepositActivator = new CourierDepositActivator(this);
 			_senderDepositActivator = new SenderDepositActivator(this);
 			_depositConfirmationFailedActivator = new DepositConfirmationFailedActivator(this);
+			_remoteServiceActivator = new RemoteServiceActivator(this);
 
 			this.LanguageSelectorViewModel = new LanguageSelectorViewModel(langManager, _languageImageFinder, logger);
 			this.LanguageSelectorViewModel.HandleLanguageSelected = languageId => {
@@ -536,7 +539,8 @@ namespace TopPos.Kiosk.ViewModels
 			_workflowMachine.OnEntry(WorkflowState.RecipientFiscalReceipt, _recipientActivator.GoToRecipientFiscalReceiptPage);
 			_workflowMachine.OnEntry(WorkflowState.RecipientPackagePickup, _recipientActivator.GoToRecipientPackagePickupPage);
 
-			// v4: preuzimanje na zahtev Agenta (RecipientRemote*) dolazi u F2.
+			// Preuzimanje na zahtev Agenta: proveru (RecipientRemoteValidating) i ishode registruje WorkflowRecipientPickupHost.
+			_workflowMachine.OnEntry(WorkflowState.RecipientRemoteConfirmation, _recipientActivator.GoToRecipientRemoteConfirmationPage);
 
 			// Faza 3 pod-korak 1 — courier login routing kroz machine.
 			// Barkod za manual login putuje uz parametrizovan trigger.
@@ -884,7 +888,24 @@ namespace TopPos.Kiosk.ViewModels
 		public KioskLease? TryBeginAgentOperation(string source)
 			=> _coordinator.TryBeginOperation(_workflowMachine, WorkflowStatusRules.AgentRole, source);
 
-		// v4: CreateRemoteServiceHost i CreateRecipientPickupHost (veza sa Agentom) dolaze u F2.
+		// v4: hostovi se prave i bez transporta ka Agentu (F2) — obradu komandi pokrivaju testovi.
+		/// <summary>
+		/// Veza servisne sesije Agenta sa workflow-om i DoorWatcher-om. Registruje OnEntry za <see cref="WorkflowState.RemoteService"/>,
+		/// pa se pravi jednom, pri startu.
+		/// </summary>
+		public IRemoteServiceHost CreateRemoteServiceHost()
+			=> new WorkflowRemoteServiceHost(_workflowMachine, _coordinator, _doorWatcher.GetUnavailableModules, PauseDoorWatcherAsync, _logger,
+											 _remoteServiceActivator.GoToRemoteServicePage);
+
+		/// <summary>
+		/// Veza preuzimanja na zahtev Agenta sa workflow-om i serverom. Registruje OnEntry za
+		/// <see cref="WorkflowState.RecipientRemoteValidating"/>, pa se pravi jednom, pri startu.
+		/// </summary>
+		public IRecipientPickupHost CreateRecipientPickupHost()
+			=> new WorkflowRecipientPickupHost(_workflowMachine, _coordinator, _workflowContext,
+											   (phone, code) => _serviceClient.RecipientRequestPackagePickupDetailed(phone, code, CancellationToken.None).AsTask(),
+											   _recipientActivator.ShowRemotePickupNotice, _logger);
+
 
 		/// <summary>
 		/// Izlazak iz aplikacije: provera statusa vrata se zaustavlja pre zatvaranja veze sa kontrolerom, da neuspelo

@@ -1,0 +1,39 @@
+<!-- v2 Pages/RecipientRemoteConfirmationPage/RecipientRemoteConfirmationPageLayout.xaml (jedan šablon za sve ekrane) -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:TopPos.Kiosk.ViewModels"
+             xmlns:c="using:TopPos.Kiosk.UI.Controls"
+             x:Class="TopPos.Kiosk.UI.Views.RecipientRemoteConfirmationView"
+             AutomationProperties.AutomationId="Page.RecipientRemoteConfirmationPage"
+             x:DataType="vm:RecipientRemoteConfirmationViewModel">
+	<!-- Unos koda prisustva koji je operater podrške izdiktirao korisniku -->
+	<Grid ColumnDefinitions="*,*">
+		<StackPanel Grid.Column="0" VerticalAlignment="Top" Margin="32 32 16 4">
+			<Border Classes="info" HorizontalAlignment="Center" Padding="24">
+				<StackPanel>
+					<TextBlock Classes="title" Text="{Binding [RecipientRemoteConfirmationPage.Title]}" TextWrapping="Wrap"/>
+					<TextBlock Classes="text" FontSize="24" Text="{Binding [RecipientRemoteConfirmationPage.Instructions]}" Margin="4 16 4 8"/>
+					<TextBlock Classes="text" FontSize="22" Text="{Binding CountdownText}"
+							   AutomationProperties.AutomationId="RecipientRemoteConfirmationPage.Countdown"/>
+					<TextBlock Classes="text" FontSize="22" Text="{Binding AttemptsText}"
+							   AutomationProperties.AutomationId="RecipientRemoteConfirmationPage.Attempts"/>
+					<TextBlock Text="{Binding NoticeText}" TextWrapping="Wrap" FontSize="24" FontWeight="Bold"
+							   Foreground="{DynamicResource AccentedForegroundColor1}"
+							   AutomationProperties.AutomationId="RecipientRemoteConfirmationPage.Notice"
+							   Margin="4 12 4 4"/>
+				</StackPanel>
+			</Border>
+			<Button Classes="animated"
+					Content="{Binding [RecipientRemoteConfirmationPage.Cancel]}"
+					HorizontalAlignment="Center"
+					MinWidth="200"
+					Margin="4 32 4 4"
+					AutomationProperties.AutomationId="RecipientRemoteConfirmationPage.Cancel"
+					Command="{Binding CancelCommand}"/>
+		</StackPanel>
+		<!-- Gde velika tastatura ne staje (npr. 1024×768), Viewbox je smanji -->
+		<Viewbox Grid.Column="1" Stretch="Uniform" StretchDirection="DownOnly" VerticalAlignment="Top" Margin="32">
+			<c:NumericKeypad DataContext="{Binding Keypad}"/>
+		</Viewbox>
+	</Grid>
+</UserControl>

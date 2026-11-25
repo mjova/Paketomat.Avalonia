@@ -1,6 +1,7 @@
 using Flatsoft.Common.UI;
 using Serilog;
 using TopPos.Agent.Contracts;
+using TopPos.Kiosk.AgentCommunication;
 using TopPos.Kiosk.Workflow;
 using TopPos.LockController;
 using static TopPos.Kiosk.PosClient;
@@ -11,8 +12,7 @@ namespace TopPos.Kiosk.ViewModels
 	/// Recipient (preuzimanje paketa) flow — OnEntry handleri za RecipientCodeInput, RecipientPhoneInput,
 	/// RecipientValidating, RecipientPayment, RecipientFiscalReceipt, RecipientPackagePickup. Premešteno iz MainWindowViewModel
 	/// (Faza 5). Tela su nepromenjena — deljeni servisi/operacije dolaze iz <see cref="WorkflowActivatorBase"/>.
-	/// v4: stranica je ViewModel (bez WPF Page objekata); ekran potvrde i poruke preuzimanja na zahtev Agenta
-	/// (RecipientRemoteConfirmation, ShowRemotePickupNotice) dolaze sa Agent kanalom u F2.
+	/// v4: stranica je ViewModel (bez WPF Page objekata).
 	/// </summary>
 	internal sealed class RecipientFlowActivator : WorkflowActivatorBase
 	{
@@ -21,6 +21,7 @@ namespace TopPos.Kiosk.ViewModels
 		private readonly RecipientPackagePickupViewModel _recipientPackagePickupViewModel;
 		private readonly RecipientPaymentViewModel _recipientPaymentViewModel;
 		private readonly RecipientFiscalReceiptViewModel _recipientFiscalReceiptViewModel;
+		private readonly RecipientRemoteConfirmationViewModel _recipientRemoteConfirmationViewModel;
 		private readonly ExternalMessageLocalizer _posMessageLocalizer;
 		private readonly ExternalMessageLocalizer _serverMessageLocalizer;
 
@@ -34,6 +35,7 @@ namespace TopPos.Kiosk.ViewModels
 			_recipientPackagePickupViewModel = SetUpRecipientPackagePickupViewModel();
 			_recipientPaymentViewModel = SetUpRecipientPaymentViewModel();
 			_recipientFiscalReceiptViewModel = SetUpRecipientFiscalReceiptViewModel();
+			_recipientRemoteConfirmationViewModel = new RecipientRemoteConfirmationViewModel(_languageManager, _logger);
 		}
 
         private RecipientCodeInputViewModel SetUpRecipientCodeInputViewModel()
@@ -185,6 +187,106 @@ namespace TopPos.Kiosk.ViewModels
 				contextLogger.Error($"{nameof(MainWindowViewModel)}: {nameof(ValidateRecipientAndRoute)} exception: {ex.Message}");
 				await _workflowMachine.FireAsync(WorkflowTrigger.RecipientValidationFailed).ConfigureAwait(false);
 			}
+		}
+
+		// ──────────────────────────────────────────────────────────────────────
+		// Poruke tokom provere zahteva Agenta (WorkflowState.RecipientRemoteValidating). Proveru i ishode vodi
+		// WorkflowRecipientPickupHost; Start ekran ostaje prikazan, uz poruku.
+		// ──────────────────────────────────────────────────────────────────────
+		public ValueTask ShowRemotePickupNotice(RecipientPickupNotice notice, string? serverMessage)
+		{
+			switch (notice) {
+				case RecipientPickupNotice.Checking:
+					return DisplayMessage(this["RecipientRemotePickup.Checking"], MessageType.Information, displayTimeInSeconds: 0);
+				case RecipientPickupNotice.PaymentCheck:
+					return DisplayMessage(this["RecipientRemotePickup.PaymentCheck"], MessageType.Information);
+				case RecipientPickupNotice.Failed:
+					return DisplayMessage(_serverMessageLocalizer.Localize(serverMessage) ?? this["RecipientPhoneInputPage.AuthorizationFailed.Default"], MessageType.Error);
+				default:
+					RemoveMessage();
+					return ValueTask.CompletedTask;
+			}
+		}
+
+		// ──────────────────────────────────────────────────────────────────────
+		// OnEntry handler za WorkflowState.RecipientRemoteConfirmation (preuzimanje na zahtev Agenta).
+		// Korisnik kuca kod prisustva koji mu je operater izdiktirao. Kod i broj pokušaja proverava operacija Agenta
+		// (_workflowContext.RemotePickup); ishod izlaska sa stranice WorkflowRecipientPickupHost čita iz trigera.
+		// Opšti rok ekrana se ne koristi: rok za unos teče od ulaska i dodir ga ne produžava, a njegov istek je
+		// RecipientRemoteNoAnswer, ne Reset (koji host beleži kao odustajanje). Sa stranice se izlazi jednom: prvi od tačnog
+		// koda, iscrpljenih pokušaja, Otkaži i isteka roka. Home (Reset) ostaje „Odustani".
+		// ──────────────────────────────────────────────────────────────────────
+		public ValueTask GoToRecipientRemoteConfirmationPage()
+		{
+			var session = CurrentSession;
+			var remotePickup = _workflowContext.RemotePickup;
+			var contextLogger = _workflowContext.Logger;
+			_currentWorkflowViewModel?.Deactivate();
+			_currentWorkflowViewModel = null;
+			_operationCountdownTimer.Stop();
+			if (remotePickup == null) {
+				contextLogger.Error($"{nameof(MainWindowViewModel)}: {nameof(GoToRecipientRemoteConfirmationPage)}: u kontekstu nema operacije Agenta; preuzimanje se prekida.");
+				return new(_workflowMachine.FireAsync(WorkflowTrigger.RecipientRemoteDeclined));
+			}
+
+			int exited = 0;
+			// Poruka ide posle trigera: ishod je tada već zabeležen, pa Home dok poruka stoji ne menja ishod.
+			async ValueTask Exit(WorkflowTrigger trigger, string? messageKey, MessageType messageType = MessageType.Error)
+			{
+				if (!IsSessionActive(session) || Interlocked.Exchange(ref exited, 1) != 0) {
+					return;
+				}
+				try {
+					await FireInSession(session, trigger).ConfigureAwait(false);
+				}
+				catch (Exception ex) {
+					// Ovaj poziv prazni red trigera, pa do njega stiže i izuzetak iz OnEntry-ja preuzimanja; pozivaoci su async void
+					// handler tastature, dugme i tajmer — neuhvaćen izuzetak bi oborio proces.
+					contextLogger.Error($"{nameof(MainWindowViewModel)}: {nameof(GoToRecipientRemoteConfirmationPage)} exception: {ex.Message}");
+					await ResetInSession(session).ConfigureAwait(false);
+					return;
+				}
+				if (messageKey != null) {
+					await DisplayMessage(this[messageKey], messageType).ConfigureAwait(false);
+				}
+			}
+
+			var viewModel = _recipientRemoteConfirmationViewModel;
+			viewModel.HandleCodeConfirmed = async code => {
+						if (!IsSessionActive(session)) {
+							return false;
+						}
+						PresenceCodeResult result;
+						try {
+							result = await remotePickup.SubmitPresenceCodeAsync(code).ConfigureAwait(false);
+						}
+						catch (Exception ex) {
+							contextLogger.Error($"{nameof(MainWindowViewModel)}: provera koda prisustva nije uspela: {ex.Message}");
+							return false;
+						}
+						switch (result) {
+							case PresenceCodeResult.Accepted:
+								await Exit(WorkflowTrigger.RecipientRemoteAccepted, null).ConfigureAwait(false);
+								return true;
+							case PresenceCodeResult.Rejected:
+								viewModel.ShowWrongCode(remotePickup.RemainingCodeAttempts);
+								return false;
+							case PresenceCodeResult.Failed:
+								await Exit(WorkflowTrigger.RecipientRemoteCodeFailed, "RecipientRemoteConfirmationPage.CodeFailed").ConfigureAwait(false);
+								return false;
+							default:
+								return false;
+						}
+					};
+			viewModel.HandleCancelClicked = InSession(session, () => Exit(WorkflowTrigger.RecipientRemoteDeclined, null));
+			viewModel.HandleExpired = () => Exit(WorkflowTrigger.RecipientRemoteNoAnswer, "RecipientRemoteConfirmationPage.Expired", MessageType.Information);
+			viewModel.Prepare(TimeSpan.FromSeconds(RecipientPickupLimits.CodeTimeoutSeconds), remotePickup.RemainingCodeAttempts);
+			viewModel.Activate();
+			_currentWorkflowViewModel = viewModel;
+
+			this.CurrentPage = _recipientRemoteConfirmationViewModel;
+			SetCurrentStep(0);
+			return ValueTask.CompletedTask;
 		}
 
 		// ──────────────────────────────────────────────────────────────────────
