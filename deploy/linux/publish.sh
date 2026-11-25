@@ -50,10 +50,10 @@ mv "$stage/app/serilog.json" "$stage/serilog.json"
 # Natpis verzije u logu i zaglavlju (KioskHost čita paketomat.ver uz program), kao v2.
 printf '%s\n' "$label" > "$stage/app/paketomat.ver"
 
-cp deploy/linux/install.sh deploy/linux/boot-mode.sh deploy/linux/toppos-kiosk.service "$stage/"
+cp deploy/linux/install.sh deploy/linux/paketi.txt deploy/linux/boot-mode.sh deploy/linux/podesi-kiosk.sh deploy/linux/toppos-kiosk.service "$stage/"
 cp deploy/linux/kiosk-session.sh "$stage/app/"
 # Prava izvršavanja ne zavise od checkout-a (Windows ih ne čuva); install.sh ih ionako postavlja na uređaju.
-chmod 755 "$stage/install.sh" "$stage/boot-mode.sh" "$stage/app/kiosk-session.sh" "$stage/app/TopPos.Kiosk"
+chmod 755 "$stage/install.sh" "$stage/boot-mode.sh" "$stage/podesi-kiosk.sh" "$stage/app/kiosk-session.sh" "$stage/app/TopPos.Kiosk"
 
 tar -C artifacts -czf "artifacts/$name.tar.gz" "$name"
 echo "Paket: artifacts/$name.tar.gz"

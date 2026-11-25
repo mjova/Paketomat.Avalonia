@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-# Instalacija kioska iz paketa (publish.sh) na Debian 12 / Ubuntu 24.04 — pokreće root iz raspakovanog paketa.
+# Instalacija kioska iz paketa (publish.sh) na Debian 13 / 12 ili Ubuntu 24.04 — pokreće root iz raspakovanog paketa.
+# Radi i u chroot-u Debian instalera (iso/toppos-late.sh, apt iz lokalnog repozitorijuma ISO-a): servise tamo samo
+# uključuje, ne pokreće.
 #   sudo ./install.sh [--config <app-configuration.json>] [--kiosk-boot]
 # Bez --kiosk-boot: program, servis, korisnik i podešavanja su na mestu, ali se pri boot-u i dalje diže postojeći desktop;
 # servis se pokreće ručno (systemctl start toppos-kiosk). Sa --kiosk-boot: boot-mode.sh kiosk (multi-user.target sa
@@ -41,27 +43,41 @@ if [ -e "$release" ]; then
 	exit 1
 fi
 
-# Zavisnosti: cage + XWayland (Avalonia na Linuxu crta kroz X11), seatd (ekran i ulaz bez logind sesije), kbd (chvt), ICU
-# (globalizacija .NET-a), LibVLC (zvuk; dinamički, LGPL-2.1), fontconfig (Skia). Ime ICU paketa zavisi od izdanja
-# (libicu72 na Debianu 12, libicu74 na Ubuntu 24.04). X11 biblioteke koje Avalonia.X11 učitava (libICE/libSM bez desktopa
-# nisu instalirane — start pada sa DllNotFoundException; GTK je samo za dijaloge, kiosk ga ne koristi).
+# Zavisnosti: paketi.txt (isti spisak koristi iso/napravi-iso.sh za lokalni repozitorijum ISO-a) i ICU (globalizacija
+# .NET-a), čije ime zavisi od izdanja (libicu76 na Debianu 13, libicu72 na Debianu 12, libicu74 na Ubuntu 24.04).
 apt-get update
 icu=$(apt-cache search --names-only '^libicu[0-9]+$' | awk '{ print $1 }' | sort -V | tail -n 1)
 if [ -z "$icu" ]; then
 	echo "Paket libicuNN nije nađen u apt izvorima." >&2
 	exit 1
 fi
-DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-	cage xwayland seatd kbd "$icu" libvlc5 vlc-plugin-base libfontconfig1 \
-	libx11-6 libice6 libsm6 libxcursor1 libxext6 libxfixes3 libxi6 libxrandr2 libgl1
+# shellcheck disable=SC2046
+DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends $(grep -v '^#' paketi.txt) "$icu"
+
+# U chroot-u instalera systemd ne radi: systemctl cat i enable --now tamo padaju (systemd 257), pa se jedinica čita sa
+# diska, a servisi se samo uključuju (pokreće ih prvi boot).
+running=0
+if [ -d /run/systemd/system ]; then
+	running=1
+fi
 
 # seatd daje ekran i ulaz članovima grupe iz svog servisa (seatd -g <grupa>; Debian: video).
-seat_group=$(systemctl cat seatd.service | sed -n 's/^ExecStart=.*[[:space:]]-g[[:space:]]*\([^[:space:]]*\).*/\1/p' | tail -n 1)
+if [ "$running" -eq 1 ]; then
+	seatd_unit=$(systemctl cat seatd.service)
+else
+	# Redosled kao kod systemd-a: jedinica paketa, zamena u /etc, pa dopune (poslednji ExecStart važi).
+	seatd_unit=$(cat /usr/lib/systemd/system/seatd.service /etc/systemd/system/seatd.service \
+		/etc/systemd/system/seatd.service.d/*.conf 2> /dev/null || true)
+fi
+seat_group=$(printf '%s\n' "$seatd_unit" | sed -n 's/^ExecStart=.*[[:space:]]-g[[:space:]]*\([^[:space:]]*\).*/\1/p' | tail -n 1)
 if [ -z "$seat_group" ]; then
 	echo "seatd.service nema grupu (-g): soket bi bio samo za root-a. Podesiti seatd ili dopuniti install.sh." >&2
 	exit 1
 fi
-systemctl enable --now seatd.service
+systemctl enable seatd.service
+if [ "$running" -eq 1 ]; then
+	systemctl start seatd.service
+fi
 
 # Korisnik programa: dialout za serijske uređaje (kontroler vrata, skener, POS), grupa seatd-a za ekran i touch, audio
 # za zvuk (LibVLC preko ALSA, bez korisničke sesije i PipeWire-a).
@@ -85,6 +101,7 @@ trap - EXIT
 ln -sfn "$release" "$prefix/.current-new"
 mv -T "$prefix/.current-new" "$prefix/current"
 install -m 755 boot-mode.sh "$prefix/boot-mode.sh"
+install -m 755 podesi-kiosk.sh "$prefix/podesi-kiosk.sh"
 
 # Konfiguracija: postojeći fajlovi se ne diraju (podešavanja mašine); app-configuration.json samo uz --config.
 mkdir -p "$etc"
@@ -92,9 +109,14 @@ if [ ! -f "$etc/serilog.json" ]; then
 	install -m 644 serilog.json "$etc/serilog.json"
 fi
 if [ -n "$config" ]; then
-	install -m 644 "$config" "$etc/app-configuration.json"
+	install -m 640 -o root -g toppos "$config" "$etc/app-configuration.json.novo"
+	mv "$etc/app-configuration.json.novo" "$etc/app-configuration.json"
 fi
-if [ ! -f "$etc/app-configuration.json" ]; then
+if [ -f "$etc/app-configuration.json" ]; then
+	# Lozinke servisa i ključevi POS-a: čita samo kiosk (grupa toppos). I za konfiguraciju iz ranije instalacije (bila 644).
+	chown root:toppos "$etc/app-configuration.json"
+	chmod 640 "$etc/app-configuration.json"
+else
 	echo "UPOZORENJE: nema $etc/app-configuration.json — kiosk neće startovati dok se ne doda (--config)." >&2
 fi
 
@@ -104,7 +126,9 @@ rm -f /etc/pam.d/toppos-kiosk
 
 # Uređaj ne sme da zaspi (Debian VM: KDE je posle 15 min bez unosa uspavao gosta usred rada kioska).
 systemctl mask sleep.target suspend.target hibernate.target hybrid-sleep.target
-systemctl daemon-reload
+if [ "$running" -eq 1 ]; then
+	systemctl daemon-reload
+fi
 
 if [ "$kiosk_boot" -eq 1 ]; then
 	"$prefix/boot-mode.sh" kiosk

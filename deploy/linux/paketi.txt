@@ -1,0 +1,24 @@
+# Paketi koje kiosk traži na uređaju (install.sh; iso/napravi-iso.sh ih sa zavisnostima stavlja u lokalni repozitorijum
+# ISO-a). ICU (libicuNN) se bira posebno, po izdanju. Jedan paket po redu; redovi sa # se preskaču.
+# cage + XWayland: Avalonia na Linuxu crta kroz X11
+cage
+xwayland
+# ekran i ulaz bez logind sesije; chvt
+seatd
+kbd
+# zvuk (LibVLC, dinamički, LGPL-2.1)
+libvlc5
+vlc-plugin-base
+# Skia
+libfontconfig1
+# X11 biblioteke koje Avalonia.X11 učitava (libICE/libSM bez desktopa nisu instalirane — start pada sa
+# DllNotFoundException; GTK je samo za dijaloge, kiosk ga ne koristi)
+libx11-6
+libice6
+libsm6
+libxcursor1
+libxext6
+libxfixes3
+libxi6
+libxrandr2
+libgl1

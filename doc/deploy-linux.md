@@ -2,14 +2,17 @@
 
 Kiosk radi kao systemd servis `toppos-kiosk`: kiosk kompozitor **cage** na `tty1` (servis pre starta prelazi na njega i
 gasi getty tog VT-a), kiosk unutra kroz XWayland (Avalonia na Linuxu crta kroz X11). Ekran i ulaz daje **seatd**. Bez desktopa,
-bez prozora i bez prelaska na drugi VT. Podržano: Debian 12 i Ubuntu 24.04 (apt).
+bez prozora i bez prelaska na drugi VT. Podržano: Debian 13 (ciljni sistem paketomata), Debian 12 i Ubuntu 24.04 (apt).
 
 Fajlovi u `deploy/linux/`:
 - `publish.sh` — pravi paket;
 - `install.sh` — instalacija;
 - `boot-mode.sh` — bira šta se diže pri boot-u, kiosk ili desktop;
 - `toppos-kiosk.service` — servis;
-- `kiosk-session.sh` — glavni proces servisa (cage + kiosk, uredno gašenje).
+- `kiosk-session.sh` — glavni proces servisa (cage + kiosk, uredno gašenje);
+- `paketi.txt` — paketi koje kiosk traži (`install.sh` i ISO);
+- `podesi-kiosk.sh` — podešavanje mašine posle instalacije sa ISO-a;
+- `iso/` — ISO za instalaciju bez pitanja (odeljak „Instalacija sa ISO-a“).
 
 ## Paket
 
@@ -38,14 +41,14 @@ sudo ./install.sh --config /putanja/app-configuration.json [--kiosk-boot]
 | Logovi (kiosk, `ECR/`) | `/var/log/toppos-kiosk` (`LogsDirectory`); izlaz procesa u `journalctl -u toppos-kiosk` |
 
 `install.sh`:
-- instalira zavisnosti: `cage`, `xwayland`, `seatd`, `kbd` (`chvt`), `libicuNN`, `libvlc5`, `vlc-plugin-base`, `libfontconfig1`, X11 biblioteke koje Avalonia učitava (`libx11-6`, `libice6`,
-  `libsm6`, `libxcursor1`, `libxext6`, `libxfixes3`, `libxi6`, `libxrandr2`, `libgl1`), i
-  uključuje `seatd.service`;
+- instalira zavisnosti iz `paketi.txt` (`cage`, `xwayland`, `seatd`, `kbd` za `chvt`, `libvlc5`, `vlc-plugin-base`,
+  `libfontconfig1`, X11 biblioteke koje Avalonia učitava) i `libicuNN`, i uključuje `seatd.service`;
 - pravi sistemskog korisnika `toppos` sa grupama `dialout` (serijski uređaji), `audio` (zvuk preko ALSA) i grupom
   seatd-a (`seatd -g`, na Debianu `video`: ekran i touch);
 - instalirano izdanje ne prepisuje. Novo izdanje kopira u privremeni folder pa ga preimenuje, a `current` menja atomski,
   pa prekinuta instalacija ne ostavlja `current` na nepotpunom izdanju;
-- postojeću konfiguraciju ne menja. `app-configuration.json` upisuje samo uz `--config`, a `serilog.json` samo ako ga nema;
+- postojeću konfiguraciju ne menja. `app-configuration.json` upisuje samo uz `--config` (prava 640, grupa `toppos`: u
+  njoj su lozinke i ključevi POS-a), a `serilog.json` samo ako ga nema;
 - maskira `sleep`, `suspend`, `hibernate` i `hybrid-sleep`. Na Debian VM-u je KDE uspavao gosta usred rada kioska;
 - bez `--kiosk-boot` desktop ostaje, a servis se ručno pokreće sa `sudo systemctl start toppos-kiosk` (prelazi na
   tty1). Sa `--kiosk-boot` poziva `boot-mode.sh kiosk`.
@@ -71,6 +74,52 @@ restart. Na uređaju desktop ne radi pored kioska, pa ovo važi samo za probu po
 
 Vraćanje na prethodno izdanje: `sudo ln -sfn /opt/toppos-kiosk/releases/<staro> /opt/toppos-kiosk/current` i
 `sudo systemctl restart toppos-kiosk`. Čuvanje stanja pri nadogradnji i potpis paketa dolaze u F5.
+
+## Instalacija sa ISO-a (bez pitanja)
+
+Za nove paketomate: ISO od zvaničnog Debian 13 netinst-a sa odgovorima instalera (preseed), lokalnim repozitorijumom sa
+svim paketima kioska i paketom kioska. Instalacija ne preuzima ništa sa mreže. Jedino pitanje je **izbor diska koji se
+briše** (model, serijski broj, veličina; podrazumevano „Prekini“), pre bilo kakve izmene diska, da slučajan boot sa USB-a
+ne obriše pogrešan računar. „Prekini“, greška pri izboru, izabran disk sa LVM-om, RAID-om ili btrfs-om (briše se samo
+ručno), RAID na bilo kom disku računara (instaler bi ga pokrenuo), nečitljiv disk ili disk zamenjen dok je pitanje
+otvoreno gase računar bez izmene diskova. Servisni korisnik ne sme biti rezervisano ni sistemsko ime (proverava
+`napravi-iso.sh`). Na kraju se računar ugasi;
+pre sledećeg uključivanja izvaditi USB, inače kreće nova instalacija.
+
+Pravljenje (Linux ili WSL, običan korisnik; jednom `sudo apt-get install xorriso cpio debian-archive-keyring`):
+```
+deploy/linux/publish.sh
+deploy/linux/iso/napravi-iso.sh --paket artifacts/toppos-kiosk-<oznaka>-linux-x64.tar.gz [--korisnik servis]
+```
+- netinst se preuzima sa cdimage.debian.org i proverava (SHA256SUMS sa potpisom Debian CD ključa, otisak u skripti); isto
+  važi za ISO dat sa `--iso` (ranija tačkasta izdanja iz `cdimage/archive`);
+- paketi iz `paketi.txt`, `libicuNN` i `iso/dodatni-paketi.txt` (`openssh-server`, `sudo`, `ifupdown`, `dhcpcd-base`,
+  `python3`, `alsa-utils`) se
+  sa svim zavisnostima preuzimaju preko apt-a (potpis Debian arhive) u lokalni repozitorijum na ISO-u;
+- lozinka servisnog korisnika se kuca pri pravljenju; u ISO ide samo heš. ISO zato nije za javno deljenje. Ishod je
+  `Installer/iso/toppos-paketomat-debian13-<oznaka>.iso` (van git-a) sa `.sha256`;
+- BIOS i UEFI: meni bez čekanja kreće instalaciju (tekstualni instaler).
+
+Šta instalacija uradi (`iso/preseed.cfg`, `iso/toppos-early.sh`, `iso/toppos-late.sh`):
+
+| Šta | Kako |
+|---|---|
+| Jezik, tastatura, vreme | `en_US.UTF-8` (+ `sr_RS.UTF-8`), `us`, Europe/Belgrade, NTP |
+| Mreža | isključena tokom instalacije (ni tuđ preseed preko DHCP-a); na instaliranom sistemu žičani interfejsi dobijaju DHCP čim se kabl priključi |
+| Disk | ceo izabrani disk, bez LVM-a (`atomic`), GRUB na isti; nude se samo unutrašnji diskovi (SATA, NVMe, eMMC; ne USB, prenosivi, instalacioni medij, eMMC boot oblasti, samo za čitanje) |
+| Korisnici | root zaključan; servisni korisnik (podrazumevano `servis`) sa `sudo` |
+| Paketi | osnovni sistem sa ISO-a, nadograđen iz lokalnog repozitorijuma (u njemu su i osnovni paketi u aktuelnim verzijama), bez desktopa; paketi kioska i SSH |
+| Kiosk | `install.sh` bez konfiguracije i bez boot-a u kiosk; ime računara `paketomat` |
+| Izvori za ažuriranja | `deb.debian.org` i `security.debian.org`, uključuju se pri prvom boot-u (`toppos-apt-izvori.service`) |
+| Log | `/var/log/toppos-instalacija.log` |
+
+Posle prvog boot-a (lokalno ili preko SSH-a, `ssh servis@<adresa>`):
+```
+sudo /opt/toppos-kiosk/podesi-kiosk.sh --config /putanja/app-configuration.json [--ime <ime računara>]
+sudo systemctl reboot
+```
+`podesi-kiosk.sh` upisuje konfiguraciju (provera JSON-a), nudi izbor serijskih portova (kao `hw-proba`), menja ime
+računara i uključuje boot u kiosk. Privremeno je, dok ne stigne konačan način podešavanja mašine.
 
 ## Kiosk ili desktop pri boot-u
 

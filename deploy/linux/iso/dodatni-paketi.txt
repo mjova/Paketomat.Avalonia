@@ -1,0 +1,12 @@
+# Paketi sistema paketomata pored onih koje traži kiosk (paketi.txt): D-Bus i logind sesije (hostnamectl, SSH sesije;
+# minimalna instalacija bez preporuka ih nema), daljinski pristup, mreža i kad je instalacija bila
+# bez mreže (ifupdown + DHCP klijent; instaler ih dodaje samo kad DHCP uspe), podešavanje posle prvog boot-a
+# (podesi-kiosk.sh koristi python3 za JSON), provera zvuka. Jedan paket po redu; redovi sa # se preskaču.
+dbus
+libpam-systemd
+openssh-server
+sudo
+ifupdown
+dhcpcd-base
+python3
+alsa-utils
