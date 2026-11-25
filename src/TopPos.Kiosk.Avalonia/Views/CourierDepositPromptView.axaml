@@ -14,7 +14,7 @@
 			<StackPanel>
 				<TextBlock Text="{Binding [CourierDepositPromptPage.AllExpiredPackagesPickedUp]}"
 						   FontSize="32" Foreground="{DynamicResource InformationForegroundColor}"
-						   IsVisible="{Binding ExpiredPackagesPickedUp}"/>
+						   IsVisible="{Binding AllExpiredPackagesPickedUp}"/>
 				<TextBlock Text="{Binding [CourierDepositPromptPage.NoExpiredPackages]}"
 						   FontSize="32" Foreground="{DynamicResource InformationForegroundColor}"
 						   IsVisible="{Binding NoExpiredPackages}"/>

@@ -19,9 +19,12 @@ namespace TopPos.Service
     {
 		private readonly string _lockerId;
 
+		// v4: vrednost u upitu se kodira. Ranije (v2) je išla sirova: sa '&', '#' ili '+' (telefon) server je dobijao skraćenu ili
+		// izmenjenu vrednost — npr. barkod paketa pri dodeli vrata drugačiji od barkoda u potvrdi ostavljanja.
+		private static string Q(object? value) => Uri.EscapeDataString(Convert.ToString(value, System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty);
+
 		// v4: kod za prijavu kurira (QrKod u upitu) se u logu maskira (LogMask), i u liniji servisa i u ispisu HTTP zahteva.
-		// QrKod je poslednji parametar, a kod se u URL ne kodira (kao v2), pa vrednost ide do kraja adrese: i deo posle '&'
-		// u kodu ostaje maskiran.
+		// QrKod je poslednji parametar, pa vrednost (kodirana) ide do kraja adrese.
 		// Singleline: skener sklanja samo CR, pa LF unutar QR koda ostaje; bez nje regex ne nađe vrednost i kod ostaje ceo.
 		private static readonly Regex __courierCredentialInQuery = new($"([?&]{nameof(KurirAutorizacija.QrKod)}=)(.*)$", RegexOptions.IgnoreCase | RegexOptions.Singleline);
 
@@ -243,7 +246,7 @@ namespace TopPos.Service
 			{
 				_logger?.LogDebug($"Sending a heartbeat to {_serviceHttpClient.BaseAddress}");
 				// HTTP client for heartbeats is already configured with a short timeout (_configuration.HeartbeatFrequency)
-				var url = $"{_configuration.PathPrefix}/{nameof(HeartbeatPaketomata)}/?{nameof(HeartbeatPaketomata.SifraBenzinskeStanice)}={_lockerId}";
+				var url = $"{_configuration.PathPrefix}/{nameof(HeartbeatPaketomata)}/?{nameof(HeartbeatPaketomata.SifraBenzinskeStanice)}={Q(_lockerId)}";
 				// using: oslobađa konekciju kad je HttpLoggingHandler ne pročita (logovanje ispod Debug nivoa)
 				using var response = await _heartbeatHttpClient!.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, externalCancellationToken).ConfigureAwait(false);
 				if (response?.IsSuccessStatusCode == true) {
@@ -265,7 +268,7 @@ namespace TopPos.Service
 
 				using var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(externalCancellationToken, timeoutToken);
 
-				var url = $"{_configuration.PathPrefix}/{nameof(KurirAutorizacija)}/?{nameof(KurirAutorizacija.SifraBenzinskeStanice)}={_lockerId}&{nameof(KurirAutorizacija.QrKod)}={courierId}";
+				var url = $"{_configuration.PathPrefix}/{nameof(KurirAutorizacija)}/?{nameof(KurirAutorizacija.SifraBenzinskeStanice)}={Q(_lockerId)}&{nameof(KurirAutorizacija.QrKod)}={Q(courierId)}";
 				_logger?.LogInformation($"{nameof(CourierLogin)}: GET {MaskCourierCredential(url)}");
 				var response = await ServiceCall(ct => _serviceHttpClient.GetAsync(url, ct), true, linkedToken.Token).ConfigureAwait(false);
 				if (response == null) { 
@@ -295,7 +298,7 @@ namespace TopPos.Service
 
 				using var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(externalCancellationToken, timeoutToken);
 
-				var url = $"{_configuration.PathPrefix}/{nameof(KurirPozicijeZaPraznjenje)}/?{nameof(KurirPozicijeZaPraznjenje.SifraBenzinskeStanice)}={_lockerId}&{nameof(KurirPozicijeZaPraznjenje.SifraKurira)}={courierCode}";
+				var url = $"{_configuration.PathPrefix}/{nameof(KurirPozicijeZaPraznjenje)}/?{nameof(KurirPozicijeZaPraznjenje.SifraBenzinskeStanice)}={Q(_lockerId)}&{nameof(KurirPozicijeZaPraznjenje.SifraKurira)}={Q(courierCode)}";
 				_logger?.LogInformation($"{nameof(GetExpiredPackagesForPickup)}: GET {url}");
 				var response = await ServiceCall(ct => _serviceHttpClient.GetAsync(url, ct), true, linkedToken.Token).ConfigureAwait(false);
 				if (response == null) {
@@ -358,7 +361,7 @@ namespace TopPos.Service
 
 				using var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(externalCancellationToken, timeoutToken);
 
-				var url = $"{_configuration.PathPrefix}/{nameof(KurirPunjenjePozicije)}/?{nameof(KurirPunjenjePozicije.SifraBenzinskeStanice)}={_lockerId}&{nameof(KurirPunjenjePozicije.SifraKurira)}={courierCode}&{nameof(KurirPunjenjePozicije.Barkod)}={packageBarcode}";
+				var url = $"{_configuration.PathPrefix}/{nameof(KurirPunjenjePozicije)}/?{nameof(KurirPunjenjePozicije.SifraBenzinskeStanice)}={Q(_lockerId)}&{nameof(KurirPunjenjePozicije.SifraKurira)}={Q(courierCode)}&{nameof(KurirPunjenjePozicije.Barkod)}={Q(packageBarcode)}";
 				_logger?.LogInformation($"{nameof(CourierRequestPackageDeposit)}: GET {url}");
 				var response = await ServiceCall(ct => _serviceHttpClient.GetAsync(url, ct), true, linkedToken.Token).ConfigureAwait(false);
 				if (response == null) {
@@ -489,7 +492,7 @@ namespace TopPos.Service
 
 				using var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(externalCancellationToken, timeoutToken);
 
-				var url = $"{_configuration.PathPrefix}/{nameof(PrimaocPraznjenjePozicije)}/?{nameof(PrimaocPraznjenjePozicije.SifraBenzinskeStanice)}={_lockerId}&{nameof(PrimaocPraznjenjePozicije.TelefonPrimaoca)}={telephoneNumber}&{nameof(PrimaocPraznjenjePozicije.KodZaOtvaranje)}={unlockCode}";
+				var url = $"{_configuration.PathPrefix}/{nameof(PrimaocPraznjenjePozicije)}/?{nameof(PrimaocPraznjenjePozicije.SifraBenzinskeStanice)}={Q(_lockerId)}&{nameof(PrimaocPraznjenjePozicije.TelefonPrimaoca)}={Q(telephoneNumber)}&{nameof(PrimaocPraznjenjePozicije.KodZaOtvaranje)}={Q(unlockCode)}";
 				_logger?.LogInformation($"{nameof(RecipientRequestPackagePickup)}: GET {url}");
 				var response = await ServiceCall(ct => _serviceHttpClient.GetAsync(url, ct), true, linkedToken.Token).ConfigureAwait(false);
 				if (response == null) {
@@ -617,7 +620,7 @@ namespace TopPos.Service
 				using var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(externalCancellationToken, timeoutToken);
 
 				// No path prefix!
-				var url = $"/KurirskaSluzba/StatusPaketomata/?SifraBenzinskeStanice={_lockerId}";
+				var url = $"/KurirskaSluzba/StatusPaketomata/?SifraBenzinskeStanice={Q(_lockerId)}";
 				_logger?.LogInformation($"{nameof(GetLockerBoxesAvailability)}: GET {url}");
 				var response = await ServiceCall(ct => _serviceHttpClient.GetAsync(url, ct), true, linkedToken.Token).ConfigureAwait(false);
 				if (response == null) {

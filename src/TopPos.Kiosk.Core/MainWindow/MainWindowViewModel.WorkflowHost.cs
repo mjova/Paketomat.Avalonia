@@ -42,6 +42,7 @@ namespace TopPos.Kiosk.ViewModels
 		ValueTask IWorkflowHost.DisplayMessage(string message, MessageType messageType, int? displayTimeInSeconds)
 			=> DisplayMessage(message, messageType, displayTimeInSeconds);
 		void IWorkflowHost.RemoveMessage() => RemoveMessage();
+		void IWorkflowHost.RemoveMessage(string message) => RemoveMessage(message);
 		void IWorkflowHost.SetCurrentPage(IWorkflowViewModel page) => this.CurrentPage = page;
 		IWorkflowViewModel? IWorkflowHost.CurrentWorkflowViewModel
 		{

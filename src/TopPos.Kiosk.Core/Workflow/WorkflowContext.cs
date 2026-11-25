@@ -47,6 +47,12 @@ namespace TopPos.Kiosk.Workflow
 		/// </summary>
 		public bool ExpiredPackagesPickedUp { get; set; }
 
+		/// <summary>
+		/// v4: preuzimanje isteklih paketa nije potpuno — kurir je odbio preuzimanje, vrata se nisu otvorila ili paket nije
+		/// potvrđen (pogrešan barkod). Ekran za ostavljanje tada ne kaže „Svi paketi su uspešno preuzeti“.
+		/// </summary>
+		public bool ExpiredPickupIncomplete { get; set; }
+
 		// ─── Courier deposit ────────────────────────────────────────────────────
 		public string? DepositBarcode { get; set; }
 		public int? DepositDoorNumber { get; set; }
@@ -69,6 +75,7 @@ namespace TopPos.Kiosk.Workflow
 			RemainingExpiredPackages = null;
 			CurrentPickupPackage = null;
 			ExpiredPackagesPickedUp = false;
+			ExpiredPickupIncomplete = false;
 			DepositBarcode = null;
 			DepositDoorNumber = null;
 		}

@@ -144,7 +144,7 @@ namespace TopPos.Kiosk.Tests
 
 			Assert.Empty(host.Messages);
 			Assert.Equal("K7", host.WorkflowContext.CourierCode);
-			Assert.Contains($"QrKod={Barcode};4321", Assert.Single(_server.Requests).RequestLine);
+			Assert.Contains($"QrKod={Uri.EscapeDataString($"{Barcode};4321")}", Assert.Single(_server.Requests).RequestLine);
 		}
 
 		[Fact]
@@ -162,7 +162,7 @@ namespace TopPos.Kiosk.Tests
 			Assert.Equal(2, host.Pages.Count(p => p == page));
 			Server();
 			await EnterCode(host, page, "5555", S.CourierFetchingExpiredPackages);
-			Assert.Contains($"QrKod={Barcode};5555", _server.LastRequestLine);
+			Assert.Contains($"QrKod={Uri.EscapeDataString($"{Barcode};5555")}", _server.LastRequestLine);
 		}
 
 		// ─── Istekli paketi (CourierFetchingExpiredPackages) ──────────────────
@@ -265,6 +265,24 @@ namespace TopPos.Kiosk.Tests
 
 			Assert.Equal(next, host.WorkflowMachine.State);
 			Assert.Equal(!confirm, host.WorkflowContext.ExpiredPackagesPickedUp);
+			Assert.Equal(!confirm, host.WorkflowContext.ExpiredPickupIncomplete);	// v4: „Ne“ — istekli paketi nisu preuzeti
+		}
+
+		/// <summary>v4: „Ne“ posle „Da“ (dok server vraća spisak) mašina odbacuje, pa preuzimanje ne postaje „nepotpuno“.</summary>
+		[Fact]
+		public async Task Rejected_no_after_yes_does_not_mark_pickup_incomplete()
+		{
+			var host = await Started(confirmPickup: true);
+			await Mk.CourierLogin(host.WorkflowMachine);
+			await new CourierLoginActivator(host).GoToCourierPickupConfirmationPage();
+			var page = Assert.IsType<CourierPickupConfirmationViewModel>(host.Pages[^1]);
+
+			await page.ConfirmCommand.ExecuteAsync(null);
+			Assert.Equal(S.CourierFetchingExpiredPackages, host.WorkflowMachine.State);
+			await ((IAsyncCommand) page.CancelCommand).ExecuteAsync(null);
+
+			Assert.Equal(S.CourierFetchingExpiredPackages, host.WorkflowMachine.State);
+			Assert.False(host.WorkflowContext.ExpiredPickupIncomplete);
 		}
 
 		/// <summary>

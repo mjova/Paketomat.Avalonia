@@ -15,6 +15,7 @@
     "General.Close": "Close",
     "General.ServiceDoorOpeningFailed.Template": "Couldn’t open service door [{doorNumber}].",
     "General.DoorOpeningFailed.Courier.Template": "Couldn’t open door [{doorNumber}].",
+    "General.DoorOpening.Template": "Opening door [{doorNumber}]…",
     "General.DoorOpeningFailed.User.Template": "Couldn’t open door [{doorNumber}]. Please call support.",
     "General.DepositConfirmationSending": "Sending confirmation to the server…",
     "General.LockerInitialization": "Initializing locker...",

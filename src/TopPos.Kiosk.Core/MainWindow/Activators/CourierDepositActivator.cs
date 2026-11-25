@@ -48,6 +48,7 @@ namespace TopPos.Kiosk.ViewModels
 			_courierDepositPromptViewModel.HandleCancelClicked = () => new ValueTask(FireInSession(session, WorkflowTrigger.DepositPromptCancelled));
 			_courierDepositPromptViewModel.HandleDepositPackageClicked = () => new ValueTask(FireInSession(session, WorkflowTrigger.DepositPromptDepositClicked));
 			_courierDepositPromptViewModel.ExpiredPackagesPickedUp = fromPickup;	// Affects displayed text only
+			_courierDepositPromptViewModel.ExpiredPickupIncomplete = _workflowContext.ExpiredPickupIncomplete;	// v4
 			_courierDepositPromptViewModel.Activate();
 			_currentWorkflowViewModel = _courierDepositPromptViewModel;
 
@@ -166,16 +167,7 @@ namespace TopPos.Kiosk.ViewModels
 			{
 				_operationCountdownTimer.Stop();	// No plain timeouts here; the timeout will eventually come from a door not being locked back.
 
-				DoorStatusCode? doorStatusCode = null;
-				int retries = 0;
-				do {
-					if (retries > 0) {
-						await Task.Delay(TimeSpan.FromSeconds(5), CancellationToken.None).ConfigureAwait(false);
-					}
-					doorStatusCode = await OpenDoorSingle(depositDoorNumber,
-																				TimeSpan.FromMilliseconds(_configuration.General.DoorStatusResponseTimeout),
-																				CancellationToken.None).ConfigureAwait(false);	// TODO: operation cancellation token
-				} while (doorStatusCode?.IsOpen != true && ++retries < 2);
+				var doorStatusCode = await OpenDepositDoor(depositDoorNumber, contextLogger).ConfigureAwait(false);	// v4: poruka dok traje
 
 				if (doorStatusCode?.IsOpen != true)
 				{

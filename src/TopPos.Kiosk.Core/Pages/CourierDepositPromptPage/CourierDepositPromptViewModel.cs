@@ -33,10 +33,26 @@ namespace TopPos.Kiosk.ViewModels
 			{
 				SetProperty(ref _expiredPackagesPickedUp, value);
 				OnPropertyChanged(nameof(NoExpiredPackages));
+				OnPropertyChanged(nameof(AllExpiredPackagesPickedUp));
 			}
 		}
 
         public bool NoExpiredPackages => !_expiredPackagesPickedUp;
+
+		private bool _expiredPickupIncomplete;
+		/// <summary>v4: preuzimanje isteklih paketa nije potpuno (vidi <c>WorkflowContext.ExpiredPickupIncomplete</c>).</summary>
+		public bool ExpiredPickupIncomplete
+		{
+			get => _expiredPickupIncomplete;
+			set
+			{
+				SetProperty(ref _expiredPickupIncomplete, value);
+				OnPropertyChanged(nameof(AllExpiredPackagesPickedUp));
+			}
+		}
+
+		/// <summary>v4: „Svi paketi su uspešno preuzeti“ samo posle potpunog preuzimanja (v2: posle svakog izlaska iz preuzimanja).</summary>
+		public bool AllExpiredPackagesPickedUp => _expiredPackagesPickedUp && !_expiredPickupIncomplete;
 
         public IAsyncCommand DepositCommand { get; set; } 
 

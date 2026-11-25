@@ -15,6 +15,7 @@
     "General.Close": "Zatvori",
     "General.ServiceDoorOpeningFailed.Template": "Otvaranje servisnih vrata [{doorNumber}] nije uspelo.",
     "General.DoorOpeningFailed.Courier.Template": "Otvaranje vrata [{doorNumber}] nije uspelo.",
+    "General.DoorOpening.Template": "Otvaranje vrata [{doorNumber}] u toku…",
     "General.DoorOpeningFailed.User.Template": "Otvaranje vrata [{doorNumber}] nije uspelo. Pozovite tehničku podršku.",
     "General.DepositConfirmationSending": "Slanje potvrde serveru…",
     "General.LockerInitialization": "Inicijalizacija paketomata u toku...",

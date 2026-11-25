@@ -134,16 +134,7 @@ namespace TopPos.Kiosk.ViewModels
 			{
 				_operationCountdownTimer.Stop();	// No plain timeouts here; the timeout will eventually come from a door not being locked back.
 
-				DoorStatusCode? doorStatusCode = null;
-				int retries = 0;
-				do {
-					if (retries > 0) {
-						await Task.Delay(TimeSpan.FromSeconds(5), CancellationToken.None).ConfigureAwait(false);
-					}
-					doorStatusCode = await OpenDoorSingle(depositDoorNumber,
-																				TimeSpan.FromMilliseconds(_configuration.General.DoorStatusResponseTimeout),
-																				CancellationToken.None).ConfigureAwait(false);
-				} while (doorStatusCode?.IsOpen != true && ++retries < 2);
+				var doorStatusCode = await OpenDepositDoor(depositDoorNumber, contextLogger).ConfigureAwait(false);	// v4: poruka dok traje
 
 				if (doorStatusCode?.IsOpen != true)
 				{

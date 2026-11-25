@@ -59,6 +59,7 @@ namespace TopPos.Kiosk.ViewModels
 		protected ValueTask DisplayMessage(string message, MessageType messageType, int? displayTimeInSeconds = null)
 			=> _host.DisplayMessage(message, messageType, displayTimeInSeconds);
 		protected void RemoveMessage() => _host.RemoveMessage();
+		protected void RemoveMessage(string message) => _host.RemoveMessage(message);
 		protected void SetCurrentStep(int stepNumber) => _host.SetCurrentStep(stepNumber);
 		protected string MakeCurrentLanguagePath(string filename) => _host.MakeCurrentLanguagePath(filename);
 		protected ValueTask FireResetAsync() => _host.FireResetAsync();
@@ -158,6 +159,34 @@ namespace TopPos.Kiosk.ViewModels
 				contextLogger.Warning($"{GetType().Name}: potvrda ostavljanja nije uspela: {result} (sifra {depositorCode}, barkod {barcode}, vrata {doorNumber}, poruka servera: {serverMessage ?? "-"}).");
 			}
 			return (result, serverMessage);
+		}
+
+		/// <summary>
+		/// v4: otvaranje vrata za ostavljanje (do dva pokušaja, 5 s između). Za to vreme poruka prekriva ekran: ranije je ostajao
+		/// ekran za skeniranje sa „Izloguj se“, koje mašina tada odbacuje (kurir ode, a vrata se otvore drugim pokušajem). Na kraju
+		/// se uklanja samo ta poruka — novija (npr. kvar paketomata) ostaje.
+		/// </summary>
+		protected async ValueTask<DoorStatusCode?> OpenDepositDoor(int doorNumber, Serilog.ILogger contextLogger)
+		{
+			var message = this["General.DoorOpening.Template"].Replace("{doorNumber}", doorNumber.ToString());
+			await DisplayMessage(message, MessageType.Information, 0).ConfigureAwait(false);
+			try {
+				DoorStatusCode? doorStatusCode = null;
+				int retries = 0;
+				do {
+					if (retries > 0) {
+						contextLogger.Warning($"{GetType().Name}: vrata {doorNumber} se nisu otvorila; novi pokusaj za 5 s.");
+						await Task.Delay(TimeSpan.FromSeconds(5), CancellationToken.None).ConfigureAwait(false);
+					}
+					doorStatusCode = await OpenDoorSingle(doorNumber,
+														TimeSpan.FromMilliseconds(_configuration.General.DoorStatusResponseTimeout),
+														CancellationToken.None).ConfigureAwait(false);	// TODO: operation cancellation token
+				} while (doorStatusCode?.IsOpen != true && ++retries < 2);
+				return doorStatusCode;
+			}
+			finally {
+				RemoveMessage(message);
+			}
 		}
 
 		private async Task<bool> ShowDepositConfirmationSendingMessage(Serilog.ILogger contextLogger, CancellationToken cancellationToken)

@@ -123,6 +123,8 @@ namespace TopPos.Kiosk.Tests
 		}
 
 		public void RemoveMessage() { }
+		public void RemoveMessage(string message) => RemovedMessages.Enqueue(message);
+		public ConcurrentQueue<string> RemovedMessages { get; } = new();
 		public void SetCurrentPage(IWorkflowViewModel page)
 		{
 			lock (_pages) {

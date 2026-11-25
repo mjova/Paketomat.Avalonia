@@ -70,6 +70,7 @@ namespace TopPos.Kiosk.ViewModels
 																				CancellationToken.None).ConfigureAwait(false);	// TODO: operation cancellation token
 				if (doorStatusCode?.IsOpen != true)
 				{
+					_workflowContext.ExpiredPickupIncomplete = true;	// v4: paket ostaje u vratima
 					await DisplayMessage(this["General.DoorOpeningFailed.Courier.Template"].Replace("{doorNumber}", currentPackage.BrojPozicije.ToString()),
 										MessageType.Error, _configuration.General.CourierMessageDisplayTimeInSeconds)
 						.ConfigureAwait(false);
@@ -205,6 +206,9 @@ namespace TopPos.Kiosk.ViewModels
 													// HasMoreExpiredPackages: ima još → PickupPrompt (sledeći paket); nema → DepositPrompt.
 													if (barcodeConfirmed || retriesOnIncorrectBarcode == 0)
 													{
+														if (!barcodeConfirmed) {
+															_workflowContext.ExpiredPickupIncomplete = true;	// v4: preuzimanje nije potvrđeno
+														}
 														await FireInSession(session, WorkflowTrigger.PickupBarcodeResolved).ConfigureAwait(false);
 														return (true, null);
 													}

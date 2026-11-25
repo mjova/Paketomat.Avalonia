@@ -13,14 +13,23 @@ namespace TopPos.Kiosk.ViewModels
 			this.ConfirmCommand = new AsyncCommand<object?>(async (o, ct) =>
 				{
 					_logger?.LogDebug($"{nameof(CourierDepositConfirmationViewModel)}: executing {nameof(ConfirmCommand)}.");
-					await InvokeAfterClickFeedback(this.HandleConfirmClicked, ct);
+					// v4: „Da“ odlučuje odmah, kao i „Ne“ — inače bi „Ne“ pritisnuto posle „Da“ u 200 ms odziva poništilo potvrdu.
+					var handler = this.HandleConfirmClicked;
+					if (handler != null) {
+						await handler();
+					}
 					return null;
 				});
 
 			this.CancelCommand = new AsyncCommand<object?>(async (o, ct) =>
 				{
 					_logger?.LogDebug($"{nameof(CourierDepositConfirmationViewModel)}: executing {nameof(CancelCommand)}.");
-					await InvokeAfterClickFeedback(this.HandleCancelClicked, ct);
+					// v4: „Ne“ odlučuje odmah, bez čekanja odziva klika (200 ms): istek roka u tom razmaku je ranije slao potvrdu,
+					// a prvo „Da“ ostaje odluka (TryDecide u aktivatoru).
+					var handler = this.HandleCancelClicked;
+					if (handler != null) {
+						await handler();
+					}
 					return null;
 				});
 		}

@@ -132,8 +132,23 @@ namespace TopPos.Kiosk.Tests
 
 			await ((IAsyncCommand) page.CancelCommand).ExecuteAsync(null);
 			Assert.Equal(S.SenderPackageDeposit, host.WorkflowMachine.State);
-			Assert.Equal("SenderPackageDepositPage.CancelRequestPending.Template", Assert.Single(host.Messages));
+			Assert.Equal(["General.DoorOpening.Template", "SenderPackageDepositPage.CancelRequestPending.Template"], host.Messages);
 			await CloseDoor(host);
+
+			Assert.Equal(S.Start, host.WorkflowMachine.State);
+			Assert.Empty(Confirmations);
+		}
+
+		/// <summary>v4: odustajanje odlučuje odmah — vrata zatvorena odmah posle klika (ranije u 200 ms odziva) ne šalju potvrdu.</summary>
+		[Fact]
+		public async Task Cancel_right_before_door_closes_wins_over_confirmation()
+		{
+			Server();
+			var (host, page) = await AtOpenDoor();
+
+			var cancel = ((IAsyncCommand) page.CancelCommand).ExecuteAsync(null);
+			await CloseDoor(host);
+			await cancel;
 
 			Assert.Equal(S.Start, host.WorkflowMachine.State);
 			Assert.Empty(Confirmations);

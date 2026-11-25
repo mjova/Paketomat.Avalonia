@@ -272,6 +272,15 @@ namespace TopPos.Kiosk.Workflow
 		/// kvar vrata, istek čekanja). Uz njih i stanja koja ignorišu Reset, jer ih vodi neko drugi (servisna sesija i provera
 		/// zahteva Agenta za preuzimanje).
 		/// </summary>
+		/// <summary>
+		/// v4: Reset sa Home tastera. Uslov (<see cref="IsHomeDisabled"/>) se proverava kad triger dođe na red, ne pri pritisku:
+		/// Home pritisnut dok je dugme još bilo uključeno, a koji stigne posle trigera koji vodi u stanje sa ugašenim Home-om
+		/// (npr. dodela vrata pa otvaranje), ne prekida tok — ranije je Reset vraćao na Start dok su vrata otvorena.
+		/// </summary>
+		/// <param name="onRejected">Poziva se kad Home odbijen (vidi <see cref="FireGuardedAsync(Func{bool}, WorkflowTrigger, Action?)"/>).</param>
+		public Task FireHomeResetAsync(Action? onRejected = null)
+			=> FireGuardedAsync(() => !IsHomeDisabled(_machine.State), WorkflowTrigger.Reset, onRejected);
+
 		public static bool IsHomeDisabled(WorkflowState state)
 			=> state is WorkflowState.RecipientPayment or WorkflowState.RecipientFiscalReceipt or WorkflowState.RecipientPackagePickup
 					or WorkflowState.CourierPackagePickup or WorkflowState.CourierPackagePickupBarcodeScan
@@ -504,7 +513,10 @@ namespace TopPos.Kiosk.Workflow
 				// ExpiredPackagesPickedUp utiče na UI tekst (jesu li paketi već pokupljeni ili ne):
 				//  - True: ulaz iz pickup-a (cancel confirmation, ili pickup loop završen)
 				//  - False: ulaz direktno (nije bilo isteklih paketa za pickup)
-				.OnEntryFrom(WorkflowTrigger.PickupConfirmationCancelled, () => _context.ExpiredPackagesPickedUp = true)
+				.OnEntryFrom(WorkflowTrigger.PickupConfirmationCancelled, () => {
+					_context.ExpiredPackagesPickedUp = true;
+					_context.ExpiredPickupIncomplete = true;	// v4: istekli paketi nisu preuzeti
+				})
 				.OnEntryFrom(WorkflowTrigger.PickupBarcodeResolved, () => _context.ExpiredPackagesPickedUp = true)
 				.OnEntryFrom(WorkflowTrigger.PickupDoorActionFailed, () => _context.ExpiredPackagesPickedUp = true)
 				.OnEntryFrom(WorkflowTrigger.NoExpiredPackages, () => _context.ExpiredPackagesPickedUp = false)

@@ -51,6 +51,8 @@ namespace TopPos.Kiosk.ViewModels
 		string Localize(string key);
 		ValueTask DisplayMessage(string message, MessageType messageType, int? displayTimeInSeconds = null);
 		void RemoveMessage();
+		/// <summary>v4: uklanja poruku samo ako je i dalje prikazana baš ona (novija poruka, npr. o kvaru, ostaje).</summary>
+		void RemoveMessage(string message);
 		/// <summary>v4: stranica je njen ViewModel; prikaz bira View po tipu ViewModel-a (v2: WPF UserControl).</summary>
 		void SetCurrentPage(IWorkflowViewModel page);
 		IWorkflowViewModel? CurrentWorkflowViewModel { get; set; }

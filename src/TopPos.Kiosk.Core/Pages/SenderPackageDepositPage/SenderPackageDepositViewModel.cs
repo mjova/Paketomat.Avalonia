@@ -24,8 +24,9 @@ namespace TopPos.Kiosk.ViewModels
 			this.CancelCommand = new AsyncCommand<object?>(async (o, ct) =>
 				{
 					_logger?.LogDebug($"{nameof(SenderPackageDepositViewModel)}: executing {nameof(CancelCommand)}.");
-					var handler = this.HandleCancelClicked;	// pre odziva: pripada ekranu na kome je kliknuto
-					await DelayForClickFeedback(ct);
+					var handler = this.HandleCancelClicked;
+					// v4: bez čekanja odziva klika (200 ms) pre handlera — ekran se ne menja, a zatvaranje vrata u tom razmaku je
+					// ranije odlučivalo umesto odustajanja (potvrda ostavljanja za moguće prazno sanduče).
 					if (handler != null) {
 						// Prevent subsequent clicks (so that the handler code doesn't get executed multiple times). Also disable ChangeBoxSize button, operation is cancelled.
 						this.CanCancel = false;

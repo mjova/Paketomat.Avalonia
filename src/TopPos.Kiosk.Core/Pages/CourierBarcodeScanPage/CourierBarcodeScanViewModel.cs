@@ -12,7 +12,12 @@ namespace TopPos.Kiosk.ViewModels
 		{
 			this.CancelCommand = new AsyncCommand<bool>(async (o, ct) => {
 					_logger?.LogDebug($"{nameof(CourierBarcodeScanViewModel)}: executing {nameof(CancelCommand)}.");
-					await InvokeAfterClickFeedback(this.HandleCancelClicked, ct);
+					// v4: odustajanje odmah prekida i zahtev za dodelu vrata koji je u toku — odgovor servera u 200 ms odziva klika je
+					// ranije otvarao vrata posle klika (odustajanje se zatim odbacivalo).
+					var handler = this.HandleCancelClicked;
+					if (handler != null) {
+						await handler();
+					}
 					return true;
 				});
 		}

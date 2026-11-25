@@ -140,6 +140,24 @@ namespace TopPos.Kiosk.Tests
 			await WaitUntil(() => host.WorkflowMachine.State == S.CourierPackageDeposit);
 		}
 
+		/// <summary>v4: odustajanje dok server dodeljuje vrata prekida zahtev odmah — odgovor ubrzo posle klika ne otvara vrata.</summary>
+		[Fact]
+		public async Task Log_out_while_server_assigns_door_does_not_open_it()
+		{
+			Server();
+			_server.ResponseDelay = TimeSpan.FromMilliseconds(100);
+			var host = await AtScan();
+			var scan = Assert.IsType<CourierBarcodeScanViewModel>(host.Pages[^1]);
+
+			await host.ScanAsync("PKG9");
+			await WaitUntil(() => host.WorkflowMachine.State == S.CourierDepositBarcodeValidating);
+			await ((IAsyncCommand) scan.CancelCommand).ExecuteAsync(null);
+			await Task.Delay(400);
+
+			Assert.Equal(S.Start, host.WorkflowMachine.State);
+			Assert.Empty(host.OpenedDoors);
+		}
+
 		[Fact]
 		public async Task Log_out_on_scan_returns_to_start()
 		{
@@ -180,7 +198,87 @@ namespace TopPos.Kiosk.Tests
 			await WaitUntil(() => host.DoorFailures.Any() && host.WorkflowMachine.State == S.CourierPackageDepositBarcodeScan);
 
 			Assert.Equal([Door, Door], host.OpenedDoors);   // drugi pokušaj posle 5 s
-			Assert.Equal("General.DoorOpeningFailed.Courier.Template", Assert.Single(host.Messages));
+			// v4: dok otvaranje traje poruka prekriva ekran (skener sa „Izloguj se“ bi inače ostao dostupan), pa greška
+			Assert.Equal(["General.DoorOpening.Template", "General.DoorOpeningFailed.Courier.Template"], host.Messages);
+			Assert.Empty(Confirmations);
+		}
+
+		[Fact]
+		public async Task Door_opened_on_second_attempt_shows_opening_message_then_deposit_page()
+		{
+			Server();
+			var host = await AtScan();
+			var attempts = 0;
+			host.OpenDoorResult = _ => ++attempts == 1 ? null : DoorStatusCode.Open;
+
+			await host.ScanAsync("PKG9");
+			await WaitUntil(() => host.Pages[^1] is CourierPackageDepositViewModel && !host.DoorTracks.IsEmpty);
+
+			Assert.Equal(["General.DoorOpening.Template"], host.Messages);
+			Assert.Equal(["General.DoorOpening.Template"], host.RemovedMessages);	// samo ta poruka (novija ostaje)
+			Assert.Equal([Door, Door], host.OpenedDoors);
+			Assert.Empty(host.DoorFailures);
+		}
+
+		/// <summary>v4: poruka o otvaranju prekriva ekran od početka otvaranja (i kad se vrata otvore iz prvog pokušaja).</summary>
+		[Fact]
+		public async Task Opening_message_covers_screen_while_door_opens()
+		{
+			Server();
+			var (host, _) = await AtOpenDoor();
+
+			Assert.Equal(["General.DoorOpening.Template"], host.Messages);
+			Assert.Equal(["General.DoorOpening.Template"], host.RemovedMessages);
+		}
+
+		/// <summary>v4: „Da“ pa „Ne“ odmah posle — računa se prvo „Da“, potvrda se šalje tačno jednom.</summary>
+		[Theory]
+		[InlineData(true, 1)]
+		[InlineData(false, 0)]
+		public async Task First_answer_on_confirmation_question_wins(bool yesFirst, int confirmations)
+		{
+			Server();
+			var (host, _) = await AtOpenDoor(confirmDeposition: true);
+			await CloseDoor(host);
+			var question = Assert.IsType<CourierDepositConfirmationViewModel>(host.Pages[^1]);
+			IAsyncCommand yes = question.ConfirmCommand, no = (IAsyncCommand) question.CancelCommand;
+
+			var first = (yesFirst ? yes : no).ExecuteAsync(null);
+			var second = (yesFirst ? no : yes).ExecuteAsync(null);
+			await Task.WhenAll(first, second);
+
+			Assert.Equal(S.CourierPackageDepositBarcodeScan, host.WorkflowMachine.State);
+			Assert.Equal(confirmations, Confirmations.Count());
+		}
+
+		/// <summary>v4: odjava odlučuje odmah — vrata zatvorena odmah posle klika (ranije u 200 ms odziva) ne šalju potvrdu.</summary>
+		[Fact]
+		public async Task Log_out_right_before_door_closes_wins_over_confirmation()
+		{
+			Server();
+			var (host, page) = await AtOpenDoor();
+
+			var logout = ((IAsyncCommand) page.CancelCommand).ExecuteAsync(null);
+			await CloseDoor(host);
+			await logout;
+
+			Assert.Equal(S.Start, host.WorkflowMachine.State);
+			Assert.Empty(Confirmations);
+		}
+
+		/// <summary>v4: „Ne“ odlučuje odmah — istek roka odmah posle klika (ranije u 200 ms odziva) ne šalje potvrdu.</summary>
+		[Fact]
+		public async Task No_right_before_confirmation_timeout_wins()
+		{
+			Server();
+			var (host, _) = await AtOpenDoor(confirmDeposition: true, operationTimeout: 100);
+			await CloseDoor(host);
+			var question = Assert.IsType<CourierDepositConfirmationViewModel>(host.Pages[^1]);
+
+			await ((IAsyncCommand) question.CancelCommand).ExecuteAsync(null);
+			await Task.Delay(300);
+
+			Assert.Equal(S.CourierPackageDepositBarcodeScan, host.WorkflowMachine.State);
 			Assert.Empty(Confirmations);
 		}
 
@@ -205,7 +303,7 @@ namespace TopPos.Kiosk.Tests
 
 			await ((IAsyncCommand) page.CancelCommand).ExecuteAsync(null);
 			Assert.Equal(S.CourierPackageDeposit, host.WorkflowMachine.State);
-			Assert.Equal("CourierPackageDepositPage.CancelRequestPending.Template", Assert.Single(host.Messages));
+			Assert.Equal(["General.DoorOpening.Template", "CourierPackageDepositPage.CancelRequestPending.Template"], host.Messages);
 			await CloseDoor(host);
 
 			Assert.Equal(S.Start, host.WorkflowMachine.State);
@@ -225,7 +323,7 @@ namespace TopPos.Kiosk.Tests
 			Assert.Equal(S.CourierPackageDepositBarcodeScan, host.WorkflowMachine.State);
 			Assert.Contains(_server.Requests, r => r.RequestLine.Contains("KurirPromenaVelicinePosiljke"));
 			Assert.Empty(Confirmations);
-			Assert.Equal(["CourierPackageDepositPage.PackageSizeChangeRequestPending.Template", "CourierPackageDepositPage.NewPackageSize.Template"],
+			Assert.Equal(["General.DoorOpening.Template", "CourierPackageDepositPage.PackageSizeChangeRequestPending.Template", "CourierPackageDepositPage.NewPackageSize.Template"],
 						 host.Messages);
 		}
 

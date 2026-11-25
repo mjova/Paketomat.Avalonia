@@ -49,13 +49,13 @@ namespace TopPos.Kiosk.Tests
 		{
 			var (requestLine, log) = await LogCourierLogin("KARTICA-998877;WXYZ", status, body);
 
-			Assert.Contains("QrKod=KARTICA-998877;WXYZ", requestLine);    // server dobija ceo kod
+			Assert.Contains("QrKod=KARTICA-998877%3BWXYZ", requestLine);    // server dobija ceo kod (kodiran)
 			Assert.DoesNotContain(log, m => m.Contains("KARTICA-998877") || m.Contains("WXYZ"));
 			Assert.Contains(log, m => m.Contains("CourierLogin: GET") && m.Contains("QrKod=*****CA-998877;*****YZ"));
 			Assert.Contains(log, m => m.Contains("HTTP request") && m.Contains("QrKod=*****CA-998877;*****YZ"));
 		}
 
-		/// <summary>Kod sa '&amp;' se u URL ne kodira (kao v2), pa je deo posle njega za server drugi parametar — u logu ostaje maskiran.</summary>
+		/// <summary>Kod sa '&amp;': server dobija ceo kod (kodiran), a u logu je maskiran do kraja adrese.</summary>
 		[Fact]
 		public async Task Courier_login_code_with_ampersand_is_masked_to_the_end()
 		{

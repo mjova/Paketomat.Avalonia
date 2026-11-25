@@ -123,6 +123,7 @@ namespace TopPos.Kiosk.Tests
 			Assert.Equal((4, (DoorStatusCode?) null), Assert.Single(host.DoorFailures));
 			Assert.Empty(host.DoorTracks);
 			Assert.Equal(next, host.WorkflowMachine.State);
+			Assert.True(host.WorkflowContext.ExpiredPickupIncomplete);
 		}
 
 		[Fact]
@@ -176,6 +177,7 @@ namespace TopPos.Kiosk.Tests
 			await WaitUntil(() => host.WorkflowMachine.State == next);
 
 			Assert.Empty(host.Messages);
+			Assert.False(host.WorkflowContext.ExpiredPickupIncomplete);
 			var (requestLine, body) = Assert.Single(_server.Requests);
 			Assert.Contains("KurirPraznjenjePozicijePotvrda", requestLine);
 			var request = System.Text.Json.JsonDocument.Parse(body).RootElement;
@@ -200,6 +202,7 @@ namespace TopPos.Kiosk.Tests
 
 			Assert.Equal(["CourierBarcodeScanPage.BarcodeMismatch.Template", "CourierBarcodeScanPage.BarcodeMismatch.Template"], host.Messages);
 			Assert.Empty(_server.Requests);
+			Assert.True(host.WorkflowContext.ExpiredPickupIncomplete);
 		}
 
 		/// <summary>Ispravan sken dok još stoji poruka o pogrešnom se obrađuje posle nje (ranije ga je tracker brisao).</summary>

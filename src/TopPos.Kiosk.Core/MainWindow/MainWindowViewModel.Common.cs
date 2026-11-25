@@ -146,15 +146,22 @@ namespace TopPos.Kiosk.ViewModels
 
 			this.GoToStartPageCommand = new AsyncCommand<bool>(async (o, ct) => {
 				_logger?.LogDebug($"{nameof(MainWindowViewModel)}: executing {nameof(GoToStartPageCommand)}.");
-				await FireResetAsync(); return true;
+				await _workflowMachine.FireHomeResetAsync(); return true;	// v4: uslov kad triger dođe na red
 			});
 
 			this.DisplayDeviceStatusCommand = new AsyncCommand<bool>(async (o, ct) => {
 				_logger?.LogDebug($"{nameof(MainWindowViewModel)}: executing {nameof(DisplayDeviceStatusCommand)}.");
-				await FireResetAsync();
+				// v4: uslov kad triger dođe na red. Odbijen Home (tok u stanju sa ugašenim Home-om) ne otvara status ni kad se sesija
+				// sama završi u roku čekanja — odluka pada pre trigera koji bi oslobodio kiosk (isti red).
+				var homeRejected = 0;
+				await _workflowMachine.FireHomeResetAsync(() => Interlocked.Exchange(ref homeRejected, 1));
 				// Prozor je lokalna servisna operacija: kiosk je zauzet (uloga Service) dok je otvoren, a skener i Agent se odbijaju.
 				if (!await _coordinator.WaitUntilFreeAsync(TimeSpan.FromSeconds(5))) {
 					_logger?.LogWarning($"{nameof(DisplayDeviceStatusCommand)}: prozor statusa uređaja se ne otvara — prethodna sesija se nije završila za 5 s.");
+					return true;
+				}
+				if (Volatile.Read(ref homeRejected) != 0) {
+					_logger?.LogWarning($"{nameof(DisplayDeviceStatusCommand)}: prozor statusa uređaja se ne otvara — Home nije dozvoljen u toku koji je bio u radu.");
 					return true;
 				}
 				var operation = _coordinator.TryBegin(_workflowMachine, KioskLeaseMode.StandaloneOperation, WorkflowStatusRules.ServiceRole, "prozor statusa uređaja");
@@ -826,6 +833,27 @@ namespace TopPos.Kiosk.ViewModels
 					this.MessageKind = null;
 					this.ShowMessage = false;
 				}
+			});
+		}
+
+		/// <summary>
+		/// v4: uklanja poruku samo ako je i dalje prikazana baš ona (kao <see cref="RemoveLockerStatusMessage"/>). Ako je paketomat
+		/// u međuvremenu van funkcije, umesto nje ostaje poruka o tome (poruka toka ju je mogla prekriti, a ne ponavlja se).
+		/// </summary>
+		private void RemoveMessage(string message)
+		{
+			UIThreadSwitcher.RunOnUiThread(() => {
+				if (this.Message != message) {
+					return;
+				}
+				if (this.IsLockerOperational == false && _lockerStatusMessage is { } lockerStatusMessage) {
+					this.Message = lockerStatusMessage;
+					this.MessageKind = MessageType.Error;
+					return;
+				}
+				this.Message = null;
+				this.MessageKind = null;
+				this.ShowMessage = false;
 			});
 		}
 
