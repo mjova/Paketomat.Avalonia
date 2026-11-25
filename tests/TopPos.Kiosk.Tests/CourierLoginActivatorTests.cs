@@ -294,6 +294,21 @@ namespace TopPos.Kiosk.Tests
 			Assert.Equal("M", Assert.Single(page.BoxSizeAvailabilityStatuses!).Velicina);
 		}
 
+		/// <summary>Aktivacija bez prethodne deaktivacije ne pokazuje tabelu prethodne (nalaz iz v2; bez praznjenja u Activate pada).</summary>
+		[Fact]
+		public void Activation_starts_without_previous_table()
+		{
+			var page = new CourierLockerBoxAvailabilityViewModel(TimeSpan.FromSeconds(20), new Flatsoft.Common.LanguageManager(null), null) {
+				BoxSizeAvailabilityStatuses = [new() { Velicina = "S", Slobodno = 1 }],
+				FuncFetchLockerBoxAvailabilityInfo = _ => new ValueTask<StatusPaketomata?>(new TaskCompletionSource<StatusPaketomata?>().Task)
+			};
+
+			page.Activate();
+
+			Assert.Null(page.BoxSizeAvailabilityStatuses);
+			Assert.Contains("FetchingLockerBoxAvailability", page.StatusMessage);
+		}
+
 		private static async Task WaitUntil(Func<bool> condition)
 		{
 			var deadline = DateTime.UtcNow.AddSeconds(5);

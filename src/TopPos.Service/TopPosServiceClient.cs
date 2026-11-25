@@ -22,7 +22,8 @@ namespace TopPos.Service
 		// v4: kod za prijavu kurira (QrKod u upitu) se u logu maskira (LogMask), i u liniji servisa i u ispisu HTTP zahteva.
 		// QrKod je poslednji parametar, a kod se u URL ne kodira (kao v2), pa vrednost ide do kraja adrese: i deo posle '&'
 		// u kodu ostaje maskiran.
-		private static readonly Regex __courierCredentialInQuery = new($"([?&]{nameof(KurirAutorizacija.QrKod)}=)(.*)$", RegexOptions.IgnoreCase);
+		// Singleline: skener sklanja samo CR, pa LF unutar QR koda ostaje; bez nje regex ne nađe vrednost i kod ostaje ceo.
+		private static readonly Regex __courierCredentialInQuery = new($"([?&]{nameof(KurirAutorizacija.QrKod)}=)(.*)$", RegexOptions.IgnoreCase | RegexOptions.Singleline);
 
 		private static string? MaskCourierCredential(string? url)
 			=> url == null ? null : __courierCredentialInQuery.Replace(url, m => m.Groups[1].Value + LogMask.Credential(Uri.UnescapeDataString(m.Groups[2].Value)));
