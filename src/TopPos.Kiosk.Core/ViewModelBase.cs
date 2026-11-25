@@ -21,6 +21,12 @@ namespace TopPos.Kiosk.ViewModels
 
 		protected virtual void OnLanguageChanged() => OnPropertyChanged(__indexerChangedArgs);
 
+		/// <summary>
+		/// v4: odjava sa promene jezika za ViewModel kraćeg veka od <see cref="LanguageManager"/>-a (npr. status uređaja, nov
+		/// pri svakom otvaranju) — inače ga pretplata zadržava do kraja programa. Idempotentno.
+		/// </summary>
+		protected void StopTrackingLanguage() => _languageManager.LanguageChanged -= OnLanguageChanged;
+
 		// Language translation lookup. UI controls bind to this property using "Binding [<key>]" syntax.
 		public string this[string key] 
 		{ 

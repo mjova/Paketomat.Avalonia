@@ -26,7 +26,7 @@ namespace TopPos.Kiosk.UI.Tests
 		private static BarcodeScannerClient Scanner()
 			=> new(new BarcodeScannerConfiguration { ComPort = new ComPortConfiguration { PortName = "COM-NONE" } }, logger: null, CancellationToken.None);
 
-		public static TheoryData<string> Pages => new() { "Start", "CodeInput", "PhoneInput", "Payment", "FiscalReceipt", "PackagePickup" };
+		public static TheoryData<string> Pages => new() { "Start", "CodeInput", "PhoneInput", "Payment", "FiscalReceipt", "PackagePickup", "DeviceStatus" };
 
 		private static (object ViewModel, Type View) Create(string page, LanguageManager languages) => page switch {
 			"Start" => (new StartViewModel(Scanner(), "DX000111", languages, null), typeof(StartView)),
@@ -39,8 +39,20 @@ namespace TopPos.Kiosk.UI.Tests
 						typeof(RecipientFiscalReceiptView)),
 			"PackagePickup" => (new RecipientPackagePickupViewModel(languages, null) { PickupInstructions = "Molimo Vas, preuzmite paket iz pretinca 5 i zatvorite vrata" },
 						typeof(RecipientPackagePickupView)),
+			// sloj preko glavnog prozora (dug pritisak na Home), posle provera: bez skenera i POS-a obe se završe odmah
+			"DeviceStatus" => (CheckedDeviceStatus(languages), typeof(DeviceStatusView)),
 			_ => throw new ArgumentOutOfRangeException(nameof(page))
 		};
+
+		private static DeviceStatusViewModel CheckedDeviceStatus(LanguageManager languages)
+		{
+			var vm = new DeviceStatusViewModel(barcodeScannerClient: null, posClient: null,
+												new ApplicationContext { VersionLabel = "1.3.4", GitHash = "0123456789abcdef" }, languages, null) {
+				CheckDelay = TimeSpan.Zero
+			};
+			Assert.True(vm.Initialize().IsCompleted);
+			return vm;
+		}
 
 		public static TheoryData<string> Brands => new() { "Ananas", "CityExpress", "DailyExpress", "EuroExpress", "MNM", "Posta", "TopPos", "XExpress" };
 

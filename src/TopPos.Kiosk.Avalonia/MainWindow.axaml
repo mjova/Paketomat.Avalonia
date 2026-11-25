@@ -47,10 +47,17 @@ F0 ima jedan layout; ostalih pet (v2 LayoutTemplateSelector) dolazi u F3.
 				   HorizontalAlignment="Center"
 				   VerticalAlignment="Center"/>
 
-		<!-- Kiosk (sadržaj i slojevi) se prikazuje tek sa ViewModel-om; ugašen je dok paketomat nije u funkciji (v2: ceo prozor). -->
+		<!-- Kiosk (sadržaj i slojevi) se prikazuje tek sa ViewModel-om; ugašen je dok paketomat nije u funkciji (v2: ceo prozor)
+			 i dok je otvoren status uređaja (v2: modalni prozor) — pozadina sloja zaustavlja dodir, a ovo i tastaturu. Posle
+			 zatvaranja ostaje ugašen dok otkazane provere drže kiosk zauzetim. -->
 		<Panel x:Name="Kiosk"
-			   IsVisible="False"
-			   IsEnabled="{Binding IsLockerOperational, Converter={x:Static c:KioskConverters.IsTrue}}">
+			   IsVisible="False">
+			<Panel.IsEnabled>
+				<MultiBinding Converter="{x:Static BoolConverters.And}">
+					<Binding Path="IsLockerOperational" Converter="{x:Static c:KioskConverters.IsTrue}"/>
+					<Binding Path="IsDeviceStatusActive" Converter="{x:Static BoolConverters.Not}"/>
+				</MultiBinding>
+			</Panel.IsEnabled>
 		<Grid RowDefinitions="Auto,*,Auto">
 			<!-- Zaglavlje: logo, jezik, Home -->
 			<Grid Grid.Row="0" IsVisible="{Binding IsPageChromeVisible}">
@@ -187,5 +194,8 @@ F0 ima jedan layout; ostalih pet (v2 LayoutTemplateSelector) dolazi u F3.
 				   Text="{Binding CurrentPageName}"
 				   IsVisible="{Binding IsDebugMode}"/>
 		</Panel>
+
+		<!-- Status uređaja (dug pritisak na Home; v2 DeviceStatusWindow): van panela kioska, da ga ne ugasi paketomat van funkcije. -->
+		<ContentControl Content="{Binding DeviceStatus}"/>
 	</Panel>
 </Window>

@@ -219,7 +219,7 @@ namespace TopPos.Kiosk.UI
 			// Prikaz: tema brenda i ViewModel na UI niti (posle await-a smo na njoj — StartAsync je pozvan sa UI niti).
 			BrandTheme.Apply(brandDirectory, App.Current!.Resources);
 			_viewModel = new MainWindowViewModel(appConfiguration, lockClient, barcodeScannerClient, serviceClient, posClient, penPosClient,
-												 langManager, statusSource, coordinator, audioPlayer, App.FindLanguageImage, microsoftLogger);
+												 langManager, statusSource, coordinator, audioPlayer, App.FindLanguageImage, appContext, microsoftLogger);
 			window.Attach(_viewModel, appConfiguration.ScreenResolution);
 
 			// systemd stop (SIGTERM) i Ctrl+C: uredan izlazak na UI niti, kao kraj Windows sesije u v2.
@@ -255,6 +255,7 @@ namespace TopPos.Kiosk.UI
 
 			_statusSource?.SetLifecycle(Agent.Contracts.KioskLifecycles.ShuttingDown);
 			_coordinator?.Close();      // nove sesije i operacije se više ne primaju
+			_viewModel?.CloseDeviceStatus();
 
 			if (_lockClient != null) {
 				if (_lockControllerShutdown == null) {

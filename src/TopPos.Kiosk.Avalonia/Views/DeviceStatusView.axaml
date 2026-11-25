@@ -1,0 +1,100 @@
+<!--
+v2 Controls/DeviceStatusWindow/DeviceStatusWindow.xaml. v4: sloj preko glavnog prozora umesto zasebnog prozora (pod cage-om
+drugi prozor nije pouzdan); zatamnjena pozadina preko celog prozora prima dodire, pa kiosk ispod ne prima unos dok je sloj otvoren.
+-->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:TopPos.Kiosk.ViewModels"
+             x:Class="TopPos.Kiosk.UI.Views.DeviceStatusView"
+             AutomationProperties.AutomationId="DeviceStatusWindow"
+             x:DataType="vm:DeviceStatusViewModel">
+	<UserControl.Styles>
+		<Style Selector="TextBlock.device">
+			<Setter Property="FontSize" Value="24"/>
+			<Setter Property="Foreground" Value="White"/>
+			<Setter Property="VerticalAlignment" Value="Center"/>
+		</Style>
+		<Style Selector="TextBlock.status">
+			<Setter Property="FontSize" Value="20"/>
+			<Setter Property="Foreground" Value="LimeGreen"/>
+			<Setter Property="HorizontalAlignment" Value="Center"/>
+			<Setter Property="VerticalAlignment" Value="Center"/>
+		</Style>
+		<Style Selector="TextBlock.info">
+			<Setter Property="FontSize" Value="12"/>
+			<Setter Property="Foreground" Value="#FF9E9E9E"/>
+		</Style>
+	</UserControl.Styles>
+
+	<Border Background="#88000000">
+		<Border Width="500"
+				MinHeight="300"
+				HorizontalAlignment="Center"
+				VerticalAlignment="Center"
+				Background="#FF2D2D30"
+				BorderBrush="#FF3F3F46"
+				BorderThickness="2"
+				CornerRadius="8"
+				Padding="24">
+			<Grid RowDefinitions="Auto,*,Auto">
+				<!-- Naslov, verzija | vreme, git hash -->
+				<StackPanel Grid.Row="0" Margin="0 0 0 24">
+					<TextBlock Text="{Binding [DeviceStatus.Title]}"
+							   FontSize="32"
+							   FontWeight="Bold"
+							   Foreground="White"
+							   HorizontalAlignment="Center"/>
+					<StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0 8 0 0">
+						<TextBlock Classes="info" Text="{Binding AppVersion}"/>
+						<TextBlock Classes="info" Text=" | "/>
+						<TextBlock Classes="info" Text="{Binding CurrentTime}"/>
+					</StackPanel>
+					<TextBlock Text="{Binding BuildId}"
+							   FontSize="10"
+							   TextAlignment="Center"
+							   Foreground="#AA9E9E9E"/>
+				</StackPanel>
+
+				<!-- Uređaji: spinner dok provera traje, pa status -->
+				<StackPanel Grid.Row="1" VerticalAlignment="Center">
+					<Grid ColumnDefinitions="*,120" Margin="0 8">
+						<TextBlock Grid.Column="0" Classes="device" Text="{Binding [DeviceStatus.BarcodeScanner]}"/>
+						<Panel Grid.Column="1" Width="24" Height="24" IsVisible="{Binding IsBarcodeScannerChecking}">
+							<Ellipse Stroke="#FF0078D7" StrokeThickness="3" Opacity="0.3"/>
+							<Ellipse Classes="spinner" Stroke="#FF0078D7" StrokeThickness="3" StrokeDashArray="2,3" StrokeLineCap="Round"/>
+						</Panel>
+						<TextBlock Grid.Column="1" Classes="status"
+								   AutomationProperties.AutomationId="DeviceStatus.BarcodeScanner"
+								   Text="{Binding BarcodeScannerStatus}"
+								   IsVisible="{Binding !IsBarcodeScannerChecking}"/>
+					</Grid>
+					<Grid ColumnDefinitions="*,120" Margin="0 8">
+						<TextBlock Grid.Column="0" Classes="device" Text="{Binding [DeviceStatus.POSTerminal]}"/>
+						<Panel Grid.Column="1" Width="24" Height="24" IsVisible="{Binding IsPosTerminalChecking}">
+							<Ellipse Stroke="#FF0078D7" StrokeThickness="3" Opacity="0.3"/>
+							<Ellipse Classes="spinner" Stroke="#FF0078D7" StrokeThickness="3" StrokeDashArray="2,3" StrokeLineCap="Round"/>
+						</Panel>
+						<TextBlock Grid.Column="1" Classes="status"
+								   AutomationProperties.AutomationId="DeviceStatus.POSTerminal"
+								   Text="{Binding PosTerminalStatus}"
+								   IsVisible="{Binding !IsPosTerminalChecking}"/>
+					</Grid>
+				</StackPanel>
+
+				<Button Grid.Row="2"
+						x:Name="CloseButton"
+						Content="{Binding [General.Close]}"
+						AutomationProperties.AutomationId="DeviceStatus.Close"
+						Command="{Binding CloseCommand}"
+						MinWidth="120"
+						Padding="16 8"
+						Background="#FFDDDDDD"
+						Foreground="Black"
+						FontSize="16"
+						HorizontalAlignment="Center"
+						HorizontalContentAlignment="Center"
+						Margin="0 24 0 0"/>
+			</Grid>
+		</Border>
+	</Border>
+</UserControl>

@@ -36,6 +36,7 @@ namespace TopPos.Kiosk.ViewModels
 		private readonly ServerConfirmationSender _serverConfirmationSender;
 		private readonly IAudioPlayer _audioPlayer;
 		private readonly Func<string?, object?> _languageImageFinder;
+		private readonly ApplicationContext? _applicationContext;
 		private CancellationTokenSource? _ctsCheckDeviceStatus;
 
 		private readonly WorkflowContext _workflowContext;
@@ -53,6 +54,7 @@ namespace TopPos.Kiosk.ViewModels
 
 		/// <param name="audioPlayer">v4: zvuk iz platformskog sloja (v2 ga je pravio ovde, WPF MediaPlayer).</param>
 		/// <param name="languageImageFinder">v4: slika zastave jezika po <see cref="LanguageData.ImageResourceName"/>, iz prikaza.</param>
+		/// <param name="applicationContext">v4: verzija i git hash za status uređaja (v2: <c>App.ApplicationContext</c>).</param>
 		public MainWindowViewModel(AppConfiguration configuration,
 									ILockControllerClient lockControllerClient,
 									BarcodeScannerClient barcodeScannerClient,
@@ -64,11 +66,13 @@ namespace TopPos.Kiosk.ViewModels
 									KioskOperationCoordinator coordinator,
 									IAudioPlayer audioPlayer,
 									Func<string?, object?> languageImageFinder,
+									ApplicationContext? applicationContext,
 									ILogger? logger)
 			: base(langManager, logger)
 		{
 			_audioPlayer = audioPlayer;
 			_languageImageFinder = languageImageFinder;
+			_applicationContext = applicationContext;
 			_configuration = configuration;
 			_lockControllerClient = lockControllerClient;
 			_barcodeScannerClient = barcodeScannerClient;
@@ -133,12 +137,46 @@ namespace TopPos.Kiosk.ViewModels
 				await FireResetAsync(); return true;
 			});
 
-			// v4: prozor statusa uređaja (v2 DeviceStatusWindow, dug pritisak na Home) još ne postoji; dug pritisak samo vraća
-			// na Start, kao kratak.
 			this.DisplayDeviceStatusCommand = new AsyncCommand<bool>(async (o, ct) => {
 				_logger?.LogDebug($"{nameof(MainWindowViewModel)}: executing {nameof(DisplayDeviceStatusCommand)}.");
 				await FireResetAsync();
-				_logger?.LogInformation($"{nameof(DisplayDeviceStatusCommand)}: prozor statusa uređaja u v4 još ne postoji.");
+				// Prozor je lokalna servisna operacija: kiosk je zauzet (uloga Service) dok je otvoren, a skener i Agent se odbijaju.
+				if (!await _coordinator.WaitUntilFreeAsync(TimeSpan.FromSeconds(5))) {
+					_logger?.LogWarning($"{nameof(DisplayDeviceStatusCommand)}: prozor statusa uređaja se ne otvara — prethodna sesija se nije završila za 5 s.");
+					return true;
+				}
+				var operation = _coordinator.TryBegin(_workflowMachine, KioskLeaseMode.StandaloneOperation, WorkflowStatusRules.ServiceRole, "prozor statusa uređaja");
+				if (operation == null || !_coordinator.TryActivate(operation)) {
+					if (operation != null) {
+						_coordinator.ReleaseIfReserved(operation);
+					}
+					_logger?.LogWarning($"{nameof(DisplayDeviceStatusCommand)}: prozor statusa uređaja se ne otvara — kiosk je zauzet.");
+					return true;
+				}
+				this.IsDeviceStatusActive = true;
+				// Signal oslobađanja baš ove rezervacije, uzet dok je ona vlasnik: posle End kiosk može odmah da zauzme drugi
+				// (npr. servisni barkod), a njegova sesija ne sme da produži gašenje kioska ispod sloja.
+				var released = _coordinator.WaitUntilFreeAsync(Timeout.InfiniteTimeSpan);
+				try {
+					// v4: sloj preko glavnog prozora umesto WPF ShowDialog — komanda čeka zatvaranje sloja. Provere uređaja su
+					// posao operacije: End posle zatvaranja oslobađa kiosk tek kad se (otkazane) provere završe.
+					var deviceStatus = new DeviceStatusViewModel(_barcodeScannerClient, _posClient, _applicationContext, _languageManager, _logger);
+					this.DeviceStatus = deviceStatus;
+					var checks = _coordinator.TryRun(operation, deviceStatus.Initialize);	// prati ga koordinator (End čeka njegov kraj)
+					await deviceStatus.Closed;
+				}
+				finally {
+					this.DeviceStatus = null;
+					_coordinator.End(operation);
+				}
+				try {
+					// Sloj je odmah sklonjen, ali kiosk ostaje ugašen dok se servisna rezervacija ne oslobodi: inače bi Start bio
+					// omogućen, a dodir odbačen (kiosk zauzet) bez poruke.
+					await released;
+				}
+				finally {
+					this.IsDeviceStatusActive = false;
+				}
 				return true;
 			});
 
@@ -605,6 +643,26 @@ namespace TopPos.Kiosk.ViewModels
 		public IAsyncCommand GoToStartPageCommand { get; }
 
 		public IAsyncCommand DisplayDeviceStatusCommand { get; }
+
+		private DeviceStatusViewModel? _deviceStatus;
+		/// <summary>v4: status uređaja (dug pritisak na Home) kao sloj preko glavnog prozora; null = zatvoren (v2: DeviceStatusWindow).</summary>
+		public DeviceStatusViewModel? DeviceStatus {
+			get => _deviceStatus;
+			private set => SetProperty(ref _deviceStatus, value);
+		}
+
+		private bool _isDeviceStatusActive;
+		/// <summary>
+		/// v4: status uređaja je otvoren ili njegove (otkazane) provere još drže kiosk; kiosk ispod sloja je tada ugašen
+		/// (v2: modalni prozor).
+		/// </summary>
+		public bool IsDeviceStatusActive {
+			get => _isDeviceStatusActive;
+			private set => SetProperty(ref _isDeviceStatusActive, value);
+		}
+
+		/// <summary>Gašenje programa: zatvara otvoren status uređaja i otkazuje njegove provere (v2: WPF zatvara prozor).</summary>
+		public void CloseDeviceStatus() => _deviceStatus?.Close();
 
 		private bool _isHomeButtonEnabled = true;
 		/// <summary>

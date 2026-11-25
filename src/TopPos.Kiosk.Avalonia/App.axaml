@@ -36,6 +36,7 @@
 		<DataTemplate DataType="vm:RecipientPaymentViewModel"><views:RecipientPaymentView/></DataTemplate>
 		<DataTemplate DataType="vm:RecipientFiscalReceiptViewModel"><views:RecipientFiscalReceiptView/></DataTemplate>
 		<DataTemplate DataType="vm:RecipientPackagePickupViewModel"><views:RecipientPackagePickupView/></DataTemplate>
+		<DataTemplate DataType="vm:DeviceStatusViewModel"><views:DeviceStatusView/></DataTemplate>
 	</Application.DataTemplates>
 
 	<Application.Styles>
