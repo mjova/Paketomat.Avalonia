@@ -1,5 +1,6 @@
 using System.IO;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using TopPos.Agent.Contracts;
 using TopPos.Kiosk.AgentCommunication;
 using TopPos.Kiosk.Workflow;
@@ -88,7 +89,8 @@ namespace TopPos.Kiosk.Tests
 				Payload = JsonSerializer.SerializeToElement(new GetCommandResultPayload { RequestId = requestId, AfterSequence = afterSequence }, AgentJson.Options),
 			};
 
-			public AgentRequest Shutdown() => Request(AgentCommands.ShutdownApplication, new ShutdownApplicationPayload { Purpose = ShutdownPurposes.Restart });
+			public AgentRequest Shutdown(string? requestId = null)
+				=> Request(AgentCommands.ShutdownApplication, new ShutdownApplicationPayload { Purpose = ShutdownPurposes.Restart }, requestId);
 
 			/// <summary>Odgovor kakav ide u pipe: odložen odgovor se čeka.</summary>
 			public async Task<AgentCommandResult> Send(AgentRequest request)
@@ -435,6 +437,63 @@ namespace TopPos.Kiosk.Tests
 			Assert.Equal(0, k.ShutdownRequests);
 			Assert.Null(k.C.TryBegin(k.M, KioskLeaseMode.WorkflowSession, "Client", "test"));
 			Assert.Equal(AgentResultCodes.Busy, (await k.Send(k.Begin())).ResultCode);
+		}
+
+		/// <summary>
+		/// <c>RequestId</c> važi za sve komande (Codex v4 F1, 26.11.2026): ID završene servisne sesije za drugu komandu je
+		/// <see cref="AgentResultCodes.DuplicateConflict"/>. Ranije je dispatcher tražio ID samo u izvoru te komande, pa je
+		/// <c>ShutdownApplication</c> (pamti se u memoriji) prošao i zakazao gašenje.
+		/// </summary>
+		[Fact]
+		public async Task Request_id_of_a_finished_session_is_a_conflict_for_another_command()
+		{
+			var k = await StartKiosk();
+			var sessionId = await k.BeginActive();
+			Assert.Equal(AgentResultCodes.Completed, (await k.Send(k.End(sessionId))).ResultCode);
+			await WaitUntilAsync(() => k.C.Owner == null && k.M.State == S.Start);
+
+			var shutdown = await k.Send(k.Shutdown(sessionId));
+
+			Assert.Equal(AgentResultCodes.DuplicateConflict, shutdown.ResultCode);
+			Assert.Null(shutdown.AfterResponse);
+			Assert.Equal(0, k.ShutdownRequests);
+			Assert.Equal(KioskLifecycles.Ready, k.Status.Current.Lifecycle);
+		}
+
+		/// <summary>Obrnuto: ID prihvaćenog <c>ShutdownApplication</c> (memorija) za komandu koja se pamti u dnevniku.</summary>
+		[Fact]
+		public async Task Request_id_of_an_accepted_shutdown_is_a_conflict_for_Begin()
+		{
+			var k = await StartKiosk();
+			var shutdown = k.Shutdown();
+			Assert.Equal(AgentResultCodes.Completed, (await k.Send(shutdown)).ResultCode);
+
+			Assert.Equal(AgentResultCodes.DuplicateConflict, (await k.Send(k.Begin(requestId: shutdown.RequestId))).ResultCode);
+		}
+
+		/// <summary>
+		/// JSON <c>null</c> u payload-u (Codex v4 F1, 26.11.2026): ugovoren odgovor umesto izuzetka iz <c>Dispatch</c> — kod
+		/// prisustva → <see cref="AgentResultCodes.InvalidRequest"/>, stavka rasporeda → <see cref="AgentResultCodes.InvalidDoor"/>.
+		/// </summary>
+		[Theory]
+		[InlineData("presenceCode", AgentResultCodes.InvalidRequest)]
+		[InlineData("layout[]", AgentResultCodes.InvalidDoor)]
+		public async Task Begin_with_explicit_json_null_is_rejected_by_contract(string nulled, string expected)
+		{
+			var k = await StartKiosk();
+			var payload = JsonNode.Parse(k.Begin().Payload!.Value.GetRawText())!.AsObject();
+			if (nulled == "layout[]") {
+				payload["layout"]!.AsArray().Add(null);
+			}
+			else {
+				payload[nulled] = null;
+			}
+
+			var result = await k.Send(k.Request(AgentCommands.BeginRemoteService, payload));
+
+			Assert.Equal(expected, result.ResultCode);
+			Assert.Null(k.C.Owner);
+			Assert.Equal(S.Start, k.M.State);
 		}
 
 		[Fact]

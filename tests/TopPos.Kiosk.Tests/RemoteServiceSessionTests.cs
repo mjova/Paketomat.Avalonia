@@ -555,6 +555,62 @@ namespace TopPos.Kiosk.Tests
 			Assert.Equal(_time.Now.AddSeconds(600), session.IdleDeadline);
 		}
 
+		/// <summary>
+		/// Rok je prošao, a tajmer (otkucaj) to još nije video: dodir ne produžava sesiju (Codex v4 F1, 26.11.2026). Ranije je
+		/// dodir pomerao rok za ceo interval, pa je istekla sesija nastavljala da radi.
+		/// </summary>
+		[Fact]
+		public async Task Touch_after_the_idle_deadline_does_not_extend_the_session()
+		{
+			var session = await Active(new FakeController(8));
+			var deadline = session.IdleDeadline;
+
+			_time.Now = deadline + TimeSpan.FromSeconds(1);
+			session.Touch();
+
+			Assert.Equal(deadline, session.IdleDeadline);
+			await session.CheckDeadlinesAsync();
+			Assert.Equal(RemoteServiceEndModes.IdleTimeout, session.GetResult().EndMode);
+		}
+
+		/// <summary>Otvaranje (ekran ili portal) posle roka, pre otkucaja tajmera: vrata se ne otvaraju, sesija se završava odmah.</summary>
+		[Theory]
+		[InlineData(DoorOpenSources.Screen)]
+		[InlineData(DoorOpenSources.Portal)]
+		public async Task Opening_after_the_idle_deadline_is_refused_and_ends_the_session(string source)
+		{
+			var controller = new FakeController(8);
+			var session = await Active(controller);
+			_time.Now = session.IdleDeadline + TimeSpan.FromSeconds(1);
+
+			var start = await session.StartOpenDoorsAsync([1], all: false, source, source == DoorOpenSources.Portal ? "r1" : null);
+
+			Assert.Equal(AgentResultCodes.NoServiceSession, start.ResultCode);
+			await WaitUntilAsync(() => Volatile.Read(ref _endedCalls) == 1);	// kraj upisan u dnevnik
+			Assert.Equal(RemoteServiceEndModes.IdleTimeout, session.GetResult().EndMode);
+			Assert.Empty(controller.Opened);
+		}
+
+		/// <summary>
+		/// Kraj sa ekrana važi samo za spisak vrata koji je serviser video (Codex v4 F1, 26.11.2026): otvaranje iz portala
+		/// završeno između prikaza spiska i potvrde vraća <see cref="RemoteServiceSession.EndPromptOutdated"/>, a sesija traje.
+		/// </summary>
+		[Fact]
+		public async Task Screen_end_with_an_outdated_door_list_does_not_end_the_session()
+		{
+			var session = await Active(new FakeController(8));
+			Assert.Empty(session.DoorsPossiblyOpen(out var shown));
+			await OpenAndWait(session, [3]);
+
+			var (code, result) = await session.EndFromScreenAsync(shown);
+
+			Assert.Equal(RemoteServiceSession.EndPromptOutdated, code);
+			Assert.Null(result);
+			Assert.Equal(RemoteServicePhases.Active, session.Phase);
+			Assert.Equal([3], session.DoorsPossiblyOpen(out var current));
+			Assert.Equal(AgentResultCodes.Completed, (await session.EndFromScreenAsync(current)).ResultCode);
+		}
+
 		// --- kraj ---
 
 		[Fact]

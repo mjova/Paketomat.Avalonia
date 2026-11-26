@@ -34,15 +34,14 @@ namespace TopPos.Kiosk.ViewModels
 								MinimumCodeLength = RecipientPickupLimits.MinPresenceCodeLength,
 								MaximumCodeLength = RecipientPickupLimits.MaxPresenceCodeLength,
 							};
+			// Otkaži odlučuje pri kliku, bez odziva od 200 ms: tačan kod potvrđen u tom razmaku otvarao je vrata posle otkazivanja.
+			// Posle roka je ishod istek (Agent dobija NoAnswer, ne Declined), čak i pre otkucaja tajmera.
 			this.CancelCommand = new AsyncCommand<bool>(async (o, ct) => {
 					_logger?.LogDebug($"{nameof(RecipientRemoteConfirmationViewModel)}: executing {nameof(CancelCommand)}.");
-					// v4: „Otkaži“ zauzima izlaz odmah, bez 200 ms odziva klika: tačan kod potvrđen u tom razmaku je ranije otvarao vrata.
-					// Posle roka (tajmer ga još nije video) ishod je istek, ne odustajanje — isti rok kao pri potvrdi koda.
 					if (IsExpiredNow()) {
 						return true;
 					}
-					var handler = this.HandleCancelClicked;
-					if (handler != null) {
+					if (this.HandleCancelClicked is { } handler) {
 						await handler();
 					}
 					return true;
@@ -132,7 +131,7 @@ namespace TopPos.Kiosk.ViewModels
 			if (handler == null || Interlocked.Exchange(ref _submitting, 1) == 1) {
 				return false;
 			}
-			// v4: rok se proverava i pri potvrdi (ne samo tajmerom, jednom u sekundi): kod posle roka pokreće istek, ne proveru.
+			// Kod potvrđen posle roka, pre otkucaja tajmera: istek, ne provera.
 			if (IsExpiredNow()) {
 				Volatile.Write(ref _submitting, 0);
 				this.Keypad.Clear();
@@ -147,7 +146,7 @@ namespace TopPos.Kiosk.ViewModels
 			}
 		}
 
-		/// <summary>v4: osvežava rok (posle roka jednom javlja istek) i kaže da li je rok prošao.</summary>
+		/// <summary>Rok je istekao: osvežava odmah (istek se javlja jednom, kao iz tajmera), pa vraća stanje.</summary>
 		private bool IsExpiredNow()
 		{
 			Refresh();

@@ -572,9 +572,15 @@ namespace TopPos.Kiosk.ViewModels
 			var session = CurrentSession;
 			var remotePickup = _workflowContext.RemotePickup;	// null u lokalnom toku
 			bool trackingStarted = false;
+			string? openingMessage = null;
 			try
 			{
 				_operationCountdownTimer.Stop();	// No plain timeouts here; the timeout will eventually come from a door not being locked back.
+
+				// Od ovog trenutka ishod je otvaranje: poruka prekriva prethodnu stranicu (na potvrdi na zahtev Agenta tastaturu i
+				// „Otkaži“, koje tada više ne rade) do stranice preuzimanja ili poruke o neuspehu. Ranije je „Otkaži“ ostajalo
+				// vidljivo kroz oba pokušaja i potvrdu serveru, pa je primalac mogao da ode pre nego što se vrata otvore.
+				openingMessage = await ShowDoorOpeningMessage(packageDoorNumber).ConfigureAwait(false);
 
 				// Preuzimanje na zahtev Agenta: faza otvaranja se upisuje pre otvaranja (restart posle otvaranja tako ne
 				// prijavljuje da ništa nije otvoreno). Vrata se otvaraju i kad upis ne uspe: korisnik je pred paketomatom
@@ -583,16 +589,7 @@ namespace TopPos.Kiosk.ViewModels
 					contextLogger.Error($"{nameof(GoToRecipientPackagePickupPage)}: {unlockCode}: faza otvaranja preuzimanja na zahtev Agenta nije upisana u dnevnik; vrata se ipak otvaraju.");
 				}
 
-				DoorStatusCode? doorStatusCode = null;
-				int retries = 0;
-				do {
-					if (retries > 0) {
-						await Task.Delay(TimeSpan.FromSeconds(5), CancellationToken.None).ConfigureAwait(false);
-					}
-					doorStatusCode = await OpenDoorSingle(packageDoorNumber,
-																				TimeSpan.FromMilliseconds(_configuration.General.DoorStatusResponseTimeout),
-																				CancellationToken.None).ConfigureAwait(false);
-				} while (doorStatusCode?.IsOpen != true && ++retries < 2);
+				var doorStatusCode = await OpenDoorWithRetry(packageDoorNumber, contextLogger).ConfigureAwait(false);
 
 				if (doorStatusCode?.IsOpen != true)
 				{
@@ -664,6 +661,12 @@ namespace TopPos.Kiosk.ViewModels
 				contextLogger.Error($"{nameof(MainWindowViewModel)}: {nameof(GoToRecipientPackagePickupPage)} exception: {ex.Message}");
 				if (!trackingStarted) {
 					await FireResetAsync().ConfigureAwait(false);
+				}
+			}
+			finally {
+				// Samo ova poruka: novija (neuspeh otvaranja, kvar paketomata) ostaje.
+				if (openingMessage != null) {
+					RemoveMessage(openingMessage);
 				}
 			}
 		}

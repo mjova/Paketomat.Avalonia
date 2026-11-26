@@ -188,15 +188,8 @@ namespace TopPos.Kiosk.AgentCommunication
 			var fingerprint = FingerprintOf(request, content);
 			lock (_lock) {
 				// Ponovljen zahtev pre roka: istekao duplikat dobija raniji ishod, ali ne novo izvršavanje (plan §5).
-				if (handler.RemembersRequests) {
-					if (handler.Repeat(request, fingerprint) is { } repeated) {
-						return repeated with { AfterResponse = null };
-					}
-				}
-				else if (_accepted.TryGetValue(request.RequestId, out var earlier)) {
-					return earlier.Fingerprint == fingerprint
-							? earlier.Result with { AfterResponse = null }
-							: Rejected(AgentResultCodes.DuplicateConflict, "Isti RequestId je već prihvaćen sa drugačijim sadržajem.");
+				if (Repeated(request, handler, fingerprint) is { } repeated) {
+					return repeated with { AfterResponse = null };
 				}
 				if (_timeProvider.GetUtcNow() > request.ExpiresAtUtc!.Value + __clockSkew) {
 					return Rejected(AgentResultCodes.Expired, "Rok zahteva je istekao.");
@@ -207,6 +200,31 @@ namespace TopPos.Kiosk.AgentCommunication
 				}
 				return result;
 			}
+		}
+
+		/// <summary>
+		/// Raniji ishod istog <see cref="AgentRequest.RequestId"/> ili null. ID važi za sve komande, pa se traži u oba izvora
+		/// prihvaćenih zahteva: u memoriji (<see cref="_accepted"/>) i u dnevniku handler-a koji pamte. ID prihvaćen za drugu
+		/// komandu → <see cref="AgentResultCodes.DuplicateConflict"/> (ranije: npr. <c>ShutdownApplication</c> sa ID-em završene
+		/// servisne sesije zakazivao je gašenje). Pod <see cref="_lock"/>-om.
+		/// </summary>
+		private AgentCommandResult? Repeated(AgentRequest request, IAgentCommandHandler handler, string fingerprint)
+		{
+			if (_accepted.TryGetValue(request.RequestId, out var earlier)) {
+				return earlier.Fingerprint == fingerprint
+						? earlier.Result
+						: Rejected(AgentResultCodes.DuplicateConflict, "Isti RequestId je već prihvaćen sa drugačijim sadržajem.");
+			}
+			if (handler.RemembersRequests && handler.Repeat(request, fingerprint) is { } repeated) {
+				return repeated;
+			}
+			// Dnevnik drugih komandi: ID koji tamo postoji pripada drugoj komandi (Repeat poredi i komandu).
+			foreach (var other in _handlers.Values) {
+				if (other != handler && other.RemembersRequests && other.Repeat(request, fingerprint) is not null) {
+					return Rejected(AgentResultCodes.DuplicateConflict, "Isti RequestId je već prihvaćen za drugu komandu.");
+				}
+			}
+			return null;
 		}
 
 		private static AgentCommandResult Rejected(string resultCode, string message) => new(resultCode, message);

@@ -25,8 +25,10 @@ namespace TopPos.Kiosk.AgentCommunication
 			if (payload!.IdleTimeoutSeconds is < RemoteServiceLimits.MinIdleTimeoutSeconds or > RemoteServiceLimits.MaxIdleTimeoutSeconds) {
 				return $"IdleTimeoutSeconds mora biti {RemoteServiceLimits.MinIdleTimeoutSeconds}..{RemoteServiceLimits.MaxIdleTimeoutSeconds}.";
 			}
-			if (payload.PresenceCode.Length is < RemoteServiceLimits.MinPresenceCodeLength or > RemoteServiceLimits.MaxPresenceCodeLength
-				|| !payload.PresenceCode.All(char.IsAsciiDigit)) {
+			// JSON null prolazi deserijalizaciju uprkos podrazumevanoj vrednosti "".
+			if (payload.PresenceCode is not { } presenceCode
+				|| presenceCode.Length is < RemoteServiceLimits.MinPresenceCodeLength or > RemoteServiceLimits.MaxPresenceCodeLength
+				|| !presenceCode.All(char.IsAsciiDigit)) {
 				return $"PresenceCode mora imati {RemoteServiceLimits.MinPresenceCodeLength}..{RemoteServiceLimits.MaxPresenceCodeLength} cifara.";
 			}
 			if (payload.Layout == null) {

@@ -116,6 +116,10 @@ namespace TopPos.Kiosk.AgentCommunication
 			if (layout.Count == 0) {
 				return "Raspored je prazan.";
 			}
+			// JSON null kao stavka niza: deserijalizacija ga propušta.
+			if (layout.Any(b => b is null)) {
+				return "Raspored ima praznu stavku (null).";
+			}
 			var bad = layout.Where(b => b.DoorNumber <= 0 || b.Column <= 0 || b.Row <= 0).Select(b => b.DoorNumber).ToList();
 			if (bad.Count > 0) {
 				return $"Raspored ima vrata, vertikalu ili red manji od 1 (vrata {string.Join(", ", bad)}).";

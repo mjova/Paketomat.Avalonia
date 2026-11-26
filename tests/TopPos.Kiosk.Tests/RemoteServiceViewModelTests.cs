@@ -197,7 +197,10 @@ namespace TopPos.Kiosk.Tests
 			Assert.Equal(RemoteServicePhases.Active, session.Phase);
 		}
 
-		/// <summary>v4: otvaranje iz portala posle prvog dodira na kraj poništava potvrdu — prikazani spisak vrata više ne važi.</summary>
+		/// <summary>
+		/// Otvaranje iz portala posle prvog dodira na kraj poništava potvrdu: prikazani spisak vrata više ne važi (v4 84548f0).
+		/// Ranije je potvrdu poništavao samo kraj, pa je drugi dodir završavao sesiju za spisak koji serviser nije video.
+		/// </summary>
 		[Fact]
 		public async Task Opening_from_portal_resets_a_pending_end_confirmation()
 		{
@@ -206,8 +209,9 @@ namespace TopPos.Kiosk.Tests
 
 			vm.EndCommand.Execute(null);
 			await WaitUntilAsync(() => vm.EndButtonText == "Potvrdi kraj");
-			await session.StartOpenDoorsAsync([9], all: false, DoorOpenSources.Portal);
-			await WaitUntilAsync(() => vm.CanOpen && _controller.Opened.Contains(9));
+			var start = await session.StartOpenDoorsAsync([9], all: false, DoorOpenSources.Portal);
+			await start.Completion!;
+			await WaitUntilAsync(() => vm.CanOpen);
 
 			Assert.Equal("Zatvorio sam sva vrata", vm.EndButtonText);
 			Assert.Equal(RemoteServicePhases.Active, session.Phase);

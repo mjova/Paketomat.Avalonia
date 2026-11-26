@@ -112,6 +112,7 @@ namespace TopPos.Kiosk.AgentCommunication
 		private int _sequence;              // poslednji dodeljen redni broj
 		private int _lastVisibleSequence;   // poslednji završen upis (RemoteServiceResult.LastSequence)
 		private OpenDoorsRun? _currentRun;
+		private int _openingVersion;        // broj započetih otvaranja; potvrda kraja važi samo za spisak iz iste verzije
 		private int? _doorInProgress;
 		private TaskCompletionSource<RemoteServiceResult>? _ended;
 		private DateTimeOffset _idleDeadline;
@@ -209,12 +210,29 @@ namespace TopPos.Kiosk.AgentCommunication
 		/// Vrata koja su po poslednjem poznatom stanju možda otvorena (<see cref="DoorOpenOutcomes.OpenConfirmed"/> ili
 		/// <see cref="DoorOpenOutcomes.OutcomeUnknown"/>); prvi dodir na „Zatvorio sam sva vrata" ih pokazuje.
 		/// </summary>
-		public IReadOnlyList<int> DoorsPossiblyOpen()
+		public IReadOnlyList<int> DoorsPossiblyOpen() => DoorsPossiblyOpen(out _);
+
+		/// <inheritdoc cref="DoorsPossiblyOpen()"/>
+		/// <param name="openingVersion">Za <see cref="EndFromScreenAsync"/>: kraj se potvrđuje samo ako posle ovog spiska nije
+		/// počelo novo otvaranje.</param>
+		public IReadOnlyList<int> DoorsPossiblyOpen(out int openingVersion)
 		{
 			lock (_lock) {
+				openingVersion = _openingVersion;
 				return _possiblyOpen.Order().ToList();
 			}
 		}
+
+		/// <summary>
+		/// Ishod <see cref="EndFromScreenAsync"/> (samo za ekran, ne ide Agentu): posle prikazanog spiska počelo je novo
+		/// otvaranje, pa serviser treba da vidi novi spisak.
+		/// </summary>
+		public const string EndPromptOutdated = "EndPromptOutdated";
+
+		// Pod _lock-om: rok neaktivnosti je prošao (ne teče dok otvaranje traje). Tajmer to vidi tek na otkucaju, pa ga
+		// proveravaju i dodir i otvaranje.
+		private bool IsIdleExpired()
+			=> _phase == RemoteServicePhases.Active && _currentRun == null && _timeProvider.GetUtcNow() >= _idleDeadline;
 
 		/// <summary>
 		/// Početak sesije: status dobija operaciju, a dnevnik zapis sesije. Vraća da li je zapis upisan na disk; bez upisa
@@ -289,7 +307,8 @@ namespace TopPos.Kiosk.AgentCommunication
 		public void Touch()
 		{
 			lock (_lock) {
-				if (_phase == RemoteServicePhases.Active && _ended == null) {
+				// Istekla sesija se ne produžava: kraj je na sledećem otkucaju tajmera.
+				if (_phase == RemoteServicePhases.Active && _ended == null && !IsIdleExpired()) {
 					var deadline = _timeProvider.GetUtcNow() + _options.IdleTimeout;
 					if (deadline > _idleDeadline) {
 						_idleDeadline = deadline;
@@ -309,7 +328,7 @@ namespace TopPos.Kiosk.AgentCommunication
 			IReadOnlyList<int> doors = all
 				? Enumerable.Range(1, LockerBoxCount).ToList()
 				: (doorNumbers ?? []).Distinct().ToList();
-			OpenDoorsRun run;
+			OpenDoorsRun? run = null;
 			lock (_lock) {
 				if (_phase == RemoteServicePhases.Ended || _ended != null) {
 					return new(AgentResultCodes.NoServiceSession, "Servisna sesija je završena.");
@@ -320,18 +339,27 @@ namespace TopPos.Kiosk.AgentCommunication
 				if (_currentRun != null) {
 					return new(AgentResultCodes.Busy, "Otvaranje je u toku.");
 				}
-				if (doors.Count == 0) {
-					return new(AgentResultCodes.InvalidDoor, "Nije zadato nijedno vrata.");
+				if (!IsIdleExpired()) {
+					if (doors.Count == 0) {
+						return new(AgentResultCodes.InvalidDoor, "Nije zadato nijedno vrata.");
+					}
+					var invalid = doors.Where(d => d < 1 || d > LockerBoxCount).ToList();
+					if (invalid.Count > 0) {
+						return new(AgentResultCodes.InvalidDoor, $"Vrata van 1..{LockerBoxCount}: {string.Join(", ", invalid)}.");
+					}
+					run = new OpenDoorsRun(requestId, source, doors) { CreatedUtc = _timeProvider.GetUtcNow(), Fingerprint = fingerprint };
+					_currentRun = run;
+					_openingVersion++;
+					if (requestId != null) {
+						_runs[requestId] = run;
+					}
 				}
-				var invalid = doors.Where(d => d < 1 || d > LockerBoxCount).ToList();
-				if (invalid.Count > 0) {
-					return new(AgentResultCodes.InvalidDoor, $"Vrata van 1..{LockerBoxCount}: {string.Join(", ", invalid)}.");
-				}
-				run = new OpenDoorsRun(requestId, source, doors) { CreatedUtc = _timeProvider.GetUtcNow(), Fingerprint = fingerprint };
-				_currentRun = run;
-				if (requestId != null) {
-					_runs[requestId] = run;
-				}
+			}
+			if (run == null) {
+				// Rok neaktivnosti je prošao pre otkucaja tajmera: vrata se ne otvaraju, a sesija se završava odmah (IdleTimeout).
+				// Kraj van lock-a: EndAsync javlja promenu i čita vrata.
+				_ = CheckDeadlinesSafeAsync();
+				return new(AgentResultCodes.NoServiceSession, "Servisna sesija je istekla (rok neaktivnosti).");
 			}
 			_logger?.LogInformation($"{nameof(RemoteServiceSession)} {SessionId}: otvaranje ({source}{(requestId != null ? $", {requestId}" : "")}) " +
 									$"vrata [{string.Join(", ", doors)}].");
@@ -360,8 +388,13 @@ namespace TopPos.Kiosk.AgentCommunication
 			}
 		}
 
-		/// <summary>Serviser je na ekranu potvrdio da je zatvorio sva vrata.</summary>
-		public Task<(string ResultCode, RemoteServiceResult? Result)> EndFromScreenAsync() => EndAsync(RemoteServiceEndModes.ScreenConfirmed);
+		/// <summary>
+		/// Serviser je na ekranu potvrdio da je zatvorio sva vrata. Sa <paramref name="openingVersion"/> iz
+		/// <see cref="DoorsPossiblyOpen(out int)"/> kraj počinje samo ako od prikazanog spiska nije počelo novo otvaranje (npr.
+		/// iz portala); inače <see cref="EndPromptOutdated"/>.
+		/// </summary>
+		public Task<(string ResultCode, RemoteServiceResult? Result)> EndFromScreenAsync(int? openingVersion = null)
+			=> EndAsync(RemoteServiceEndModes.ScreenConfirmed, openingVersion);
 
 		/// <summary><see cref="AgentCommands.EndRemoteService"/>: pre prijave servisera sesija se završava kao <see cref="RemoteServiceEndModes.PortalCancelled"/>.</summary>
 		public Task<(string ResultCode, RemoteServiceResult? Result)> EndFromPortalAsync() => EndAsync(RemoteServiceEndModes.PortalConfirmed);
@@ -409,7 +442,7 @@ namespace TopPos.Kiosk.AgentCommunication
 		/// Kraj sesije. Dok otvaranje traje → <see cref="AgentResultCodes.Busy"/>. Prvi zahtev određuje način kraja; svi zahtevi
 		/// dobijaju isti rezultat, posle upisa kraja.
 		/// </summary>
-		private async Task<(string ResultCode, RemoteServiceResult? Result)> EndAsync(string requestedMode)
+		private async Task<(string ResultCode, RemoteServiceResult? Result)> EndAsync(string requestedMode, int? expectedOpeningVersion = null)
 		{
 			TaskCompletionSource<RemoteServiceResult> ended;
 			string mode = requestedMode;
@@ -422,6 +455,9 @@ namespace TopPos.Kiosk.AgentCommunication
 				else {
 					if (_currentRun != null) {
 						return (AgentResultCodes.Busy, null);
+					}
+					if (expectedOpeningVersion is { } version && version != _openingVersion) {
+						return (EndPromptOutdated, null);
 					}
 					runEnd = true;
 					mode = requestedMode == RemoteServiceEndModes.PortalConfirmed && _phase == RemoteServicePhases.AwaitingTechnician

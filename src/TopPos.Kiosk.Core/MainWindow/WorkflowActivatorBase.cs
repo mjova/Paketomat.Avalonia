@@ -168,25 +168,41 @@ namespace TopPos.Kiosk.ViewModels
 		/// </summary>
 		protected async ValueTask<DoorStatusCode?> OpenDepositDoor(int doorNumber, Serilog.ILogger contextLogger)
 		{
-			var message = this["General.DoorOpening.Template"].Replace("{doorNumber}", doorNumber.ToString());
-			await DisplayMessage(message, MessageType.Information, 0).ConfigureAwait(false);
+			var message = await ShowDoorOpeningMessage(doorNumber).ConfigureAwait(false);
 			try {
-				DoorStatusCode? doorStatusCode = null;
-				int retries = 0;
-				do {
-					if (retries > 0) {
-						contextLogger.Warning($"{GetType().Name}: vrata {doorNumber} se nisu otvorila; novi pokusaj za 5 s.");
-						await Task.Delay(TimeSpan.FromSeconds(5), CancellationToken.None).ConfigureAwait(false);
-					}
-					doorStatusCode = await OpenDoorSingle(doorNumber,
-														TimeSpan.FromMilliseconds(_configuration.General.DoorStatusResponseTimeout),
-														CancellationToken.None).ConfigureAwait(false);	// TODO: operation cancellation token
-				} while (doorStatusCode?.IsOpen != true && ++retries < 2);
-				return doorStatusCode;
+				return await OpenDoorWithRetry(doorNumber, contextLogger).ConfigureAwait(false);
 			}
 			finally {
 				RemoveMessage(message);
 			}
+		}
+
+		/// <summary>
+		/// „Otvaranje vrata [n] u toku…“ bez roka; prekriva ekran (i dugmad prethodne stranice) dok je pozivalac ne ukloni sa
+		/// <see cref="RemoveMessage"/>. Vraća tekst poruke za uklanjanje.
+		/// </summary>
+		protected async ValueTask<string> ShowDoorOpeningMessage(int doorNumber)
+		{
+			var message = this["General.DoorOpening.Template"].Replace("{doorNumber}", doorNumber.ToString());
+			await DisplayMessage(message, MessageType.Information, 0).ConfigureAwait(false);
+			return message;
+		}
+
+		/// <summary>Otvaranje vrata: do dva pokušaja, 5 s između.</summary>
+		protected async ValueTask<DoorStatusCode?> OpenDoorWithRetry(int doorNumber, Serilog.ILogger contextLogger)
+		{
+			DoorStatusCode? doorStatusCode = null;
+			int retries = 0;
+			do {
+				if (retries > 0) {
+					contextLogger.Warning($"{GetType().Name}: vrata {doorNumber} se nisu otvorila; novi pokusaj za 5 s.");
+					await Task.Delay(TimeSpan.FromSeconds(5), CancellationToken.None).ConfigureAwait(false);
+				}
+				doorStatusCode = await OpenDoorSingle(doorNumber,
+													TimeSpan.FromMilliseconds(_configuration.General.DoorStatusResponseTimeout),
+													CancellationToken.None).ConfigureAwait(false);	// TODO: operation cancellation token
+			} while (doorStatusCode?.IsOpen != true && ++retries < 2);
+			return doorStatusCode;
 		}
 
 		private async Task<bool> ShowDepositConfirmationSendingMessage(Serilog.ILogger contextLogger, CancellationToken cancellationToken)

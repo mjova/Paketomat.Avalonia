@@ -27,6 +27,7 @@ namespace TopPos.Kiosk.ViewModels
 		private Dictionary<int, RemoteServiceBoxViewModel> _boxesByDoor = [];
 		private ITimer? _refreshTimer;
 		private bool _endConfirmPending;
+		private int _endConfirmVersion;     // verzija otvaranja uz prikazani spisak vrata (RemoteServiceSession.DoorsPossiblyOpen)
 
 		public RemoteServiceViewModel(BarcodeScannerClient barcodeScannerClient, LanguageManager langManager, string lockerId, ILogger? logger,
 									  TimeProvider? timeProvider = null)
@@ -228,8 +229,8 @@ namespace TopPos.Kiosk.ViewModels
 				bool ending = session.IsEnding || phase == RemoteServicePhases.Ended;
 				bool opening = session.IsOpening;
 				var now = _timeProvider.GetUtcNow();
-				// Kraj iz portala ili zbog isteka dok stoji poziv na potvrdu: dugme „Potvrdi kraj" više ne postoji.
-				// v4: isto i za otvaranje (i iz portala) — prikazani spisak vrata koja su možda otvorena više ne važi.
+				// Kraj iz portala ili zbog isteka dok stoji poziv na potvrdu: dugme „Potvrdi kraj" više ne postoji. Otvaranje (i iz
+				// portala) menja vrata koja su možda otvorena, pa prikazani spisak više ne važi.
 				if ((ending || opening) && _endConfirmPending) {
 					_endConfirmPending = false;
 					this.NoticeText = null;
@@ -323,22 +324,33 @@ namespace TopPos.Kiosk.ViewModels
 			}
 			session.Touch();
 			if (!_endConfirmPending) {
-				_endConfirmPending = true;
-				var possiblyOpen = session.DoorsPossiblyOpen();
-				this.NoticeText = possiblyOpen.Count == 0
-					? this["RemoteServicePage.EndPrompt"]
-					: this["RemoteServicePage.EndPromptDoorsOpen"].Replace("%s", string.Join(", ", possiblyOpen));
-				Refresh();
+				ShowEndPrompt(session);
 				return;
 			}
 			// Dok se čita stanje vrata (na Serial-u sekundama) ostaje samo „Proveravam stanje vrata…", bez poziva na potvrdu.
+			// Kraj počinje samo za prikazani spisak: sesija proverava verziju otvaranja pod svojim lock-om (portal je mogao da
+			// otvori i završi otvaranje posle ovog dodira).
 			_endConfirmPending = false;
 			this.NoticeText = null;
-			var (code, _) = await session.EndFromScreenAsync().ConfigureAwait(false);
-			if (code == AgentResultCodes.Busy) {
+			var (code, _) = await session.EndFromScreenAsync(_endConfirmVersion).ConfigureAwait(false);
+			if (code == RemoteServiceSession.EndPromptOutdated) {
+				ShowEndPrompt(session);
+			}
+			else if (code == AgentResultCodes.Busy) {
 				this.NoticeText = this["RemoteServicePage.Busy"];
 				Refresh();
 			}
+		}
+
+		// Prvi dodir: vrata koja su možda otvorena i verzija otvaranja za koju potvrda važi.
+		private void ShowEndPrompt(RemoteServiceSession session)
+		{
+			var possiblyOpen = session.DoorsPossiblyOpen(out _endConfirmVersion);
+			_endConfirmPending = true;
+			this.NoticeText = possiblyOpen.Count == 0
+				? this["RemoteServicePage.EndPrompt"]
+				: this["RemoteServicePage.EndPromptDoorsOpen"].Replace("%s", string.Join(", ", possiblyOpen));
+			Refresh();
 		}
 
 		private static RemoteServiceBoxState StateOf(string outcome) => outcome switch {
