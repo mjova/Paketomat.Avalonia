@@ -163,9 +163,10 @@ Cilj: na ciljnom Linux uređaju dokazati najrizičnije delove jednim kompletnim 
 
 ## 6. Nastavak posle odluke klijenta
 
-### F1 — Ostatak jezgra (2–3 nedelje)
-- [ ] Svi tokovi: kurirsko preuzimanje i ostavljanje, ostavljanje pošiljaoca, servisni režim
-- [ ] Čisti workflow testovi kopirani i zeleni na Linuxu
+### F1 — Ostatak jezgra (2–3 nedelje) — urađeno 25–26.11.2026, čeka pun E2E u VM-u (sekcija 11)
+- [x] Svi tokovi: kurirsko preuzimanje i ostavljanje, ostavljanje pošiljaoca, servisni režim (servis i preuzimanje na
+      zahtev Agenta bez transporta — transport je F2)
+- [x] Čisti workflow testovi kopirani i zeleni na Linuxu
 
 ### F2 — Platformski servisi i Agent (2–3 nedelje)
 - [ ] Stavke 1–5 i 8 iz sekcije 3 u celini
@@ -327,3 +328,59 @@ Kalendarski rok i dalje određuju hardver, ServiceAgent za Linux (nije u proceni
 
 **Nastavak sa Avalonia Free (opcija A)**, bez Pro paketa i bez XPF probe: tok primaoca radi na obe platforme sa istim
 kodom, a nijedna prepreka nije tražila plaćeni paket. Uslov: F0b na ciljnom uređaju potvrdi touch i kiosk sesiju.
+
+## 11. Ishod F1 (26.11.2026)
+
+F1 = svi tokovi osim primaoca, preneti iz v2 (`0029647`) istim postupkom kao F0a: aktivator i ViewModel kopirani sa što
+manje izmena, Avalonia stranica po v2 `*LandscapeLayout.xaml`, isti `AutomationId`. Plan po koracima i dokazi:
+`tasks/todo.md` (F1). **Pun E2E u VM-u (Windows i Debian) još nije pušten** — ishod je uslovan dok ne prođe.
+
+### Urađeno
+
+| Korak | Commit | Šta |
+|---|---|---|
+| 1. Prijava kurira | `ab5536d`, `45bbb69` | ručna i barkodom, dostupnost sanduka, pitanje o isteklim paketima; kod kurira maskiran u logu |
+| 2. Istekli paketi (kurir) | `b125154` | pitanje, vrata, skeniranje |
+| 3. Ostavljanje (kurir) | `13cb683`, `69bbb38` | ostavljanje, neuspela potvrda, ulaz u kurirski tok sa Start-a; E2E kurira iz v2 |
+| 4. Ostavljanje (pošiljalac) | `cd660a9` | dugme „Ostavi paket“ po konfiguraciji; E2E pošiljaoca iz v2 |
+| 4a. Ispravke nasleđene iz v2 | `1064469`, `d3e4d2a` | kodiran upit ka serveru, Home bez trke, odustajanje bez 200 ms, poruka pri otvaranju vrata |
+| 5. Servis i preuzimanje na zahtev Agenta | `84548f0`, `0b60b19` | logika, ekrani i testovi iz v2 **bez transporta**; ispravke Agenta iz v2 `8a42c1d` |
+
+Testovi: Windows 1035 + Release build, Linux 859 + 42 UI (F0a: 571 + 12 i 573 + 12). Svaki korak: test aktivatora sa
+lažnim hostom, `ViewRenderTests` za nove stranice, Codex pregled (1–2 prolaza).
+
+### Odstupanja od plana
+
+- **Transport ka Agentu prešao u F2.** Logika Agenta (obrada komandi, dnevnik operacija, servisna sesija, preuzimanje na
+  zahtev, gašenje) ne zavisi od transporta i preneta je u F1; named pipe (Windows) i Unix socket (Linux) idu u F2. Ugovor
+  „Transport na Linuxu“ je prihvaćen i upisan u v2 26.11.2026 (`status: prihvaćen, izvedba v4 F2`).
+- **Ispravke u oba smera.** Codex pregledi prenetog koda našli su greške koje postoje i u v2 (trke klika, Home, kodiranje
+  upita, servisna sesija, `RequestId`, poruka pri otvaranju vrata). Po odluci korisnika ispravljane su u v4 pa prenete u v2
+  (`06a754f`, `a12b8dd`), odnosno u v2 pa prenete u v4 (`8a42c1d` → `0b60b19`). v2 pun E2E posle `a12b8dd`: 180/180.
+
+### Otvoreno
+
+- Pun E2E v4 u VM-u (Debian 12 VM u toku; Windows VM posle) i v2 krug posle `8a42c1d`.
+- De-test: ručna prijava kurira sa `;` poslatim kao `%3B` (korisnik).
+- Odloženo po odluci korisnika: kartica kurira skenirana na ekranu za paket ide u log u celini; DEBUG prečica F11 (unos
+  barkoda) — za ručnu probu postoji `/_sim/barcode`.
+- Za F2: transport i testovi preko kanala, servisna sesija dok je paketomat van funkcije (panel ugašen, poruka o kvaru
+  prekriva servisni ekran — isto u v2), testovi `AgentOutboundQueue`.
+- Iz F0, i dalje otvoreno: testovi iz v2 koji zavise od WPF `Dispatcher`-a (`OpenDoorOnceTests`, `NcuStaleResponseTests`,
+  `LockControllerShutdownTests`, `KioskStatusSourceTests`).
+
+### Tempo i procena
+
+F1 je urađen za **oko dva radna dana**: koraci 1–5 25.11.2026 (17:49 – 00:05), prenos ispravki iz v2 26.11.2026. To
+uključuje Codex pregled svakog koraka i tri paketa ispravki prenetih između v2 i v4. Procena iz tempa F0a (~1
+čovek-nedelja) je potvrđena, sa rezervom: veći deo vremena je otišao na pregled i ispravke nasleđenih grešaka, a ne na
+sam prenos.
+
+| Deo | Iz tempa F0a (čovek-nedelje) | Posle F1 | Zašto |
+|---|---|---|---|
+| F1 ostatak jezgra | ~1 | ~0,5 (stvarno) | pun E2E u VM-u još ostaje |
+| F2 platforma + Agent | 1–2 | 1–2 | logika Agenta već preneta; ostaje transport (dva sistema) i dogovor sa Agent stranom |
+| Ostale faze | bez promene | bez promene | F1 ne daje nov podatak za UI, isporuku i pilot |
+| **Ukupno do Linux produkcije** | **~9–14** | **~8,5–13,5** | samo radni napor, bez čekanja |
+
+Kalendarski rok i dalje određuju hardver (F0b), ServiceAgent za Linux i pilot.
