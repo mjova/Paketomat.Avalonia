@@ -43,19 +43,30 @@ namespace TopPos.E2E.Tests.Infrastructure
 		{
 			var ui = new UiaKioskUi(guard, trace);
 			string? title = null;
+			string? frameworkId = null;
 			ui.MainWindow = await Poll.UntilAsync(() => ui.CallAsync<Window?>(() => {
 															// Po PID-u: FlaUI pravi sopstvenu ručku procesa (objekat iz Process.Start ostaje
 															// za EnsureClientAlive). Attach čita MainModule, koji tek pokrenut proces još nema
 															// (NRE u FlaUI-ju) — zato se ponavlja u Poll-u.
 															ui._application ??= FlaUI.Core.Application.Attach(process.Id);
 															var window = ui._application.GetMainWindow(ui._automation, TimeSpan.FromMilliseconds(500));
-															// v4: naslov u Poll-u — tek prikazan prozor ume da ne odgovori u roku UIA transakcije
-															// (COMException 0x80131505, Windows E2E 26.11.2026); van Poll-a je to obaralo test.
-															title = window?.Title;
+															if (window == null) {
+																return null;
+															}
+															// v4: kiosk pri pokretanju drži UI nit zauzetom i do ~10 s (Windows E2E 26–27.11.2026).
+															// Prozor tada ne odgovara na UIA, pa čitanje naslova van Poll-a pada (COMException
+															// 0x80131505), a UIA umesto Avalonia provajdera ume da vrati samo Win32 omotač prozora
+															// (FrameworkId "Win32", bez kontrola) — stranice se u njemu nikad ne nađu. Takav se odbacuje
+															// i prozor se uzima ponovo.
+															frameworkId = window.Properties.FrameworkId.ValueOrDefault;
+															if (frameworkId == "Win32") {
+																return null;
+															}
+															title = window.Title;
 															return window;
 														}, "Attach/GetMainWindow"),
 													timeout, "glavni prozor klijenta", guard).ConfigureAwait(false);
-			trace($"UI: glavni prozor \"{title}\"");
+			trace($"UI: glavni prozor \"{title}\" ({frameworkId})");
 			return ui;
 		}
 
