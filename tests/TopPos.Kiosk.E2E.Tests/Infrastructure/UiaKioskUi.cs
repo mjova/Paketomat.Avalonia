@@ -42,15 +42,20 @@ namespace TopPos.E2E.Tests.Infrastructure
 		public static new async Task<KioskUi> AttachAsync(Process process, TimeSpan timeout, Action? guard, Action<string> trace)
 		{
 			var ui = new UiaKioskUi(guard, trace);
+			string? title = null;
 			ui.MainWindow = await Poll.UntilAsync(() => ui.CallAsync<Window?>(() => {
 															// Po PID-u: FlaUI pravi sopstvenu ručku procesa (objekat iz Process.Start ostaje
 															// za EnsureClientAlive). Attach čita MainModule, koji tek pokrenut proces još nema
 															// (NRE u FlaUI-ju) — zato se ponavlja u Poll-u.
 															ui._application ??= FlaUI.Core.Application.Attach(process.Id);
-															return ui._application.GetMainWindow(ui._automation, TimeSpan.FromMilliseconds(500));
+															var window = ui._application.GetMainWindow(ui._automation, TimeSpan.FromMilliseconds(500));
+															// v4: naslov u Poll-u — tek prikazan prozor ume da ne odgovori u roku UIA transakcije
+															// (COMException 0x80131505, Windows E2E 26.11.2026); van Poll-a je to obaralo test.
+															title = window?.Title;
+															return window;
 														}, "Attach/GetMainWindow"),
 													timeout, "glavni prozor klijenta", guard).ConfigureAwait(false);
-			trace($"UI: glavni prozor \"{ui.MainWindow.Title}\"");
+			trace($"UI: glavni prozor \"{title}\"");
 			return ui;
 		}
 

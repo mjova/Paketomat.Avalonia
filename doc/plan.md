@@ -163,7 +163,7 @@ Cilj: na ciljnom Linux uređaju dokazati najrizičnije delove jednim kompletnim 
 
 ## 6. Nastavak posle odluke klijenta
 
-### F1 — Ostatak jezgra (2–3 nedelje) — urađeno 25–26.11.2026, čeka pun E2E u VM-u (sekcija 11)
+### F1 — Ostatak jezgra (2–3 nedelje) — urađeno 25–26.11.2026, pun E2E prošao na Debianu i Windows-u (sekcija 11)
 - [x] Svi tokovi: kurirsko preuzimanje i ostavljanje, ostavljanje pošiljaoca, servisni režim (servis i preuzimanje na
       zahtev Agenta bez transporta — transport je F2)
 - [x] Čisti workflow testovi kopirani i zeleni na Linuxu
@@ -335,7 +335,9 @@ F1 = svi tokovi osim primaoca, preneti iz v2 (`0029647`) istim postupkom kao F0a
 manje izmena, Avalonia stranica po v2 `*LandscapeLayout.xaml`, isti `AutomationId`. Plan po koracima i dokazi:
 `tasks/todo.md` (F1). **Pun E2E na Debian VM-u prošao** (26.11.2026, `0b60b19`: 150 testova, 139 prošlo, 0 palo,
 11 preskočeno — 9 sa pravim mišem, koji AT-SPI/Wayland ne podržava, i 2 za kraj Windows sesije, F7; ~65 min).
-Windows VM još nije pušten.
+**Pun E2E na Windows VM-u** (26.11.2026, posle `0b60b19`: 152 testa, 149 prošlo, 1 palo, 2 preskočena za F7; ~100 min).
+Pad je u alatu testa, ne u kiosku: UIA nije pročitao naslov tek prikazanog prozora u roku, a čitanje je bilo van
+ponavljanja (ispravljeno u `UiaKioskUi.AttachAsync`; isto je u v2).
 
 ### Urađeno
 
@@ -362,7 +364,6 @@ lažnim hostom, `ViewRenderTests` za nove stranice, Codex pregled (1–2 prolaza
 
 ### Otvoreno
 
-- Pun E2E v4 na Windows VM-u (Debian prošao) i v2 krug posle `8a42c1d`.
 - De-test: ručna prijava kurira sa `;` poslatim kao `%3B` (korisnik).
 - Odloženo po odluci korisnika: kartica kurira skenirana na ekranu za paket ide u log u celini; DEBUG prečica F11 (unos
   barkoda) — za ručnu probu postoji `/_sim/barcode`.
@@ -380,7 +381,7 @@ sam prenos.
 
 | Deo | Iz tempa F0a (čovek-nedelje) | Posle F1 | Zašto |
 |---|---|---|---|
-| F1 ostatak jezgra | ~1 | ~0,5 (stvarno) | pun E2E u VM-u još ostaje |
+| F1 ostatak jezgra | ~1 | ~0,5 (stvarno) | pun E2E prošao na Debianu i Windows-u |
 | F2 platforma + Agent | 1–2 | 1–2 | logika Agenta već preneta; ostaje transport (dva sistema) i dogovor sa Agent stranom |
 | Ostale faze | bez promene | bez promene | F1 ne daje nov podatak za UI, isporuku i pilot |
 | **Ukupno do Linux produkcije** | **~9–14** | **~8,5–13,5** | samo radni napor, bez čekanja |
