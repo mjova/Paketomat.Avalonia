@@ -68,7 +68,9 @@ namespace TopPos.Kiosk.Tests
 			var subscribed = await client.RequestAsync(AgentCommands.SubscribeStatus);
 			long initial = subscribed.Status!.StatusRevision;
 			source.SetWorkflowState(S.CourierAuthenticating);
-			var changed = await client.ReadEventAsync();
+			// v4: heartbeat sa starom revizijom može stići pre promene kad je mašina opterećena (Debian E2E 26.11.2026) — preskače se;
+			// red ne gubi promenu (spajanje je zadržava) niti posle nje šalje stariju reviziju.
+			var changed = await client.ReadEventAsync(e => e.Event == AgentEvents.StatusChanged);
 			var heartbeat = await client.ReadEventAsync(e => e.Event == AgentEvents.Heartbeat);
 
 			Assert.NotNull(subscribed.SubscriptionId);
