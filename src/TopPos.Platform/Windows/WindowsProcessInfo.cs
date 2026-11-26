@@ -16,6 +16,9 @@ namespace TopPos.Platform.Windows
 			return DateTime.FromFileTimeUtc(creationTime);
 		}
 
+		/// <summary>Windows Agent proces vezuje po vremenu kreiranja; <c>boot_id</c> i <c>starttime</c> ne postoje.</summary>
+		public ProcessBootIdentity? GetCurrentProcessBootIdentity() => null;
+
 		// Pseudo-ručka tekućeg procesa; ne zatvara se.
 		[LibraryImport("kernel32.dll")]
 		private static partial IntPtr GetCurrentProcess();

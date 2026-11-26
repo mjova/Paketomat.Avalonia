@@ -51,6 +51,22 @@ namespace TopPos.Kiosk.Tests
 		}
 
 		/// <summary>Zaključan fajl: druga instanca ne dobija mesto dok ga prva drži (radi i na Windows-u, FileShare.None).</summary>
+		/// <summary>v4: izjava kanala nudi ono što transport te platforme otvara — pipe na Windows-u, socket na Linuxu.</summary>
+		[Fact]
+		public void Channel_address_in_declaration_matches_the_platform_transport()
+		{
+			var address = PlatformServices.SelectAgentChannelAddress("TopPos.Kiosk.Agent.v1", "/run/toppos-kiosk/agent.v1.sock");
+
+			if (OperatingSystem.IsWindows()) {
+				Assert.Equal(new AgentChannelAddress("TopPos.Kiosk.Agent.v1", null), address);
+			}
+			else {
+				Assert.Equal(new AgentChannelAddress(null, "/run/toppos-kiosk/agent.v1.sock"), address);
+			}
+			// Boot identitet (ugovor tačka 5) postoji samo uz socket, tj. na Linuxu.
+			Assert.Equal(OperatingSystem.IsWindows(), PlatformServices.ProcessInfo.GetCurrentProcessBootIdentity() == null);
+		}
+
 		[Fact]
 		public void Lock_file_guard_allows_one_instance_at_a_time()
 		{

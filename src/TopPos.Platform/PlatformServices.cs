@@ -32,6 +32,18 @@ namespace TopPos.Platform
 			}
 		}
 
+		/// <summary>Adresa kanala koju ova platforma nudi Agentu u izjavi: <c>PipeName</c> (Windows) ili <c>SocketPath</c> (Linux).</summary>
+		public static AgentChannelAddress SelectAgentChannelAddress(string pipeName, string socketPath)
+		{
+			if (OperatingSystem.IsWindows()) {
+				return new AgentChannelAddress(pipeName, null);
+			}
+			if (OperatingSystem.IsLinux()) {
+				return new AgentChannelAddress(null, socketPath);
+			}
+			throw Unsupported();
+		}
+
 		/// <summary>Transport kanala ka Agentu: named pipe (Windows) ili Unix socket (Linux).</summary>
 		public static IAgentChannelTransport CreateAgentChannelTransport(AgentChannelTransportOptions options, ILogger? logger)
 		{

@@ -102,6 +102,31 @@ namespace TopPos.Kiosk.Tests
 			Assert.Contains($"AgentCommunication.{field}", error);
 		}
 
+		/// <summary>v4: putanja socket-a (Linux) — apsolutna, bez .., u granici sun_path.</summary>
+		[Theory]
+		[InlineData("")]
+		[InlineData("run/toppos-kiosk/agent.v1.sock")]
+		[InlineData("/run/toppos-kiosk/")]
+		[InlineData("/run/toppos-kiosk/../agent.v1.sock")]
+		[InlineData("/run/toppos-kiosk/agent-ime-koje-je-predugacko-za-sun-path-jer-linux-dozvoljava-samo-sto-sedam-bajtova-sa-zavrsnom-nulom.sock")]
+		public void Invalid_socket_path_is_reported(string socketPath)
+		{
+			var c = new AgentCommunicationConfiguration { Enabled = true, SocketPath = socketPath };
+
+			Assert.Contains("AgentCommunication.SocketPath", Assert.Single(c.GetValidationErrors()));
+		}
+
+		/// <summary>v4: proverava se samo adresa transporta platforme — neispravna adresa drugog ne isključuje kanal.</summary>
+		[Fact]
+		public void Address_of_the_unused_transport_is_not_checked()
+		{
+			var c = new AgentCommunicationConfiguration { Enabled = true, PipeName = "", SocketPath = "" };
+
+			Assert.Empty(c.GetValidationErrors(checkPipeName: false, checkSocketPath: false));
+			Assert.Contains("SocketPath", Assert.Single(c.GetValidationErrors(checkPipeName: false, checkSocketPath: true)));
+			Assert.Contains("PipeName", Assert.Single(c.GetValidationErrors(checkPipeName: true, checkSocketPath: false)));
+		}
+
 		[Fact]
 		public void Currency_code_is_not_required_without_terminal()
 		{

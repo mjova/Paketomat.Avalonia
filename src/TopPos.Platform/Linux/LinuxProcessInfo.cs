@@ -10,8 +10,8 @@ namespace TopPos.Platform.Linux
 	/// (<see cref="GetProcessStartUtc"/>) da bi vreme iz <c>status.lock</c> povezao sa procesom. <c>Process.StartTime</c> za to
 	/// ne valja: .NET boot vreme uzorkuje iz satova i kešira po procesu, pa dva procesa za isti PID mogu dobiti različito vreme.
 	/// Ograničenje: <c>btime</c> se menja kad se sistemski sat koriguje skokom (settimeofday), pa posle toga Agent za isti proces
-	/// dobija drugo vreme. Stabilan identitet (<c>boot_id</c> + sirovi <c>starttime</c>) traži izmenu izjave u <c>status.lock</c> —
-	/// deo dogovora o Linux kanalu sa Agent stranom (doc/plan.md, sekcija 3.1).
+	/// dobija drugo vreme. Zato izjava na Linuxu nosi i stabilan identitet (<see cref="GetCurrentProcessBootIdentity"/>:
+	/// <c>boot_id</c> + sirovi <c>starttime</c>), po kome Agent vezuje proces (ugovor „Transport na Linuxu“, tačka 5).
 	/// </summary>
 	[SupportedOSPlatform("linux")]
 	internal sealed partial class LinuxProcessInfo : IProcessInfo
@@ -19,6 +19,19 @@ namespace TopPos.Platform.Linux
 		private const int __scClkTck = 2;  // _SC_CLK_TCK (glibc, musl)
 
 		public DateTime GetCurrentProcessStartUtc() => GetProcessStartUtc(Environment.ProcessId);
+
+		/// <summary>
+		/// <c>boot_id</c> + sirovi <c>starttime</c>: ne menjaju se kad se sat koriguje skokom, pa Agent na Linuxu proces vezuje
+		/// samo po njima i <c>ProcessId</c> (ugovor „Transport na Linuxu“, tačka 5). Agent ih čita iz istih fajlova.
+		/// </summary>
+		public ProcessBootIdentity? GetCurrentProcessBootIdentity()
+		{
+			var bootId = File.ReadAllText("/proc/sys/kernel/random/boot_id").Trim();
+			if (bootId.Length == 0) {
+				throw new FormatException("/proc/sys/kernel/random/boot_id je prazan.");
+			}
+			return new ProcessBootIdentity(bootId, ParseStartTimeTicks(File.ReadAllText($"/proc/{Environment.ProcessId}/stat")));
+		}
 
 		/// <summary>Vreme starta procesa <paramref name="processId"/> (UTC); baca izuzetak ako podaci nisu dostupni ili ispravni.</summary>
 		internal static DateTime GetProcessStartUtc(int processId)

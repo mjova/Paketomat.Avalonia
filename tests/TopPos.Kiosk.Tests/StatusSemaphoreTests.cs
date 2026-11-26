@@ -6,6 +6,7 @@ using System.IO;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using TopPos.Kiosk.Workflow;
+using TopPos.Platform;
 using Xunit;
 using S = TopPos.Kiosk.Workflow.WorkflowState;
 
@@ -299,7 +300,57 @@ namespace TopPos.Kiosk.Tests
 				Assert.Equal(4312, status.GetProperty("ProcessId").GetInt32());
 				Assert.Equal("2026-10-23T07:15:03.1234567Z", status.GetProperty("ProcessStartUtc").GetString());
 				Assert.Equal("TopPos.Kiosk.Agent.v1", status.GetProperty("AgentChannel").GetProperty("PipeName").GetString());
+				// v4: Windows izjava — Linux polja izostaju (ne null).
+				Assert.False(status.TryGetProperty("ProcessBootId", out _));
+				Assert.False(status.TryGetProperty("ProcessStartTicks", out _));
+				Assert.False(status.GetProperty("AgentChannel").TryGetProperty("SocketPath", out _));
 			}
+		}
+
+		/// <summary>
+		/// v4: Linux izjava (ugovor „Transport na Linuxu“, tačka 5) — <c>ProcessBootId</c>, <c>ProcessStartTicks</c> i
+		/// <c>AgentChannel.SocketPath</c>, bez <c>PipeName</c>; <c>ProcessStartUtc</c> ostaje za prikaz i log.
+		/// </summary>
+		[Fact]
+		public void Linux_declaration_has_boot_identity_and_socket_path()
+		{
+			var declaration = new StatusDeclaration(4312, new DateTime(2026, 11, 26, 8, 0, 0, DateTimeKind.Utc), null, "/run/toppos-kiosk/agent.v1.sock",
+													new ProcessBootIdentity("3f1c2a9e-0b7d-4c55-9f61-2d7e1a0c4b88", 123456));
+
+			new StatusSemaphore(_dir.FullName, _log, declaration).InitializeSession();
+
+			var status = ReadStatus();
+			Assert.Equal(4312, status.GetProperty("ProcessId").GetInt32());
+			Assert.Equal("2026-11-26T08:00:00.0000000Z", status.GetProperty("ProcessStartUtc").GetString());
+			Assert.Equal("3f1c2a9e-0b7d-4c55-9f61-2d7e1a0c4b88", status.GetProperty("ProcessBootId").GetString());
+			Assert.Equal(123456, status.GetProperty("ProcessStartTicks").GetInt64());
+			var channel = status.GetProperty("AgentChannel");
+			Assert.Equal("/run/toppos-kiosk/agent.v1.sock", channel.GetProperty("SocketPath").GetString());
+			Assert.False(channel.TryGetProperty("PipeName", out _));
+		}
+
+		/// <summary>v4: kanal isključen na Linuxu — AgentChannel izostaje (ugovor tačka 5), a identitet procesa je upisan.</summary>
+		[Fact]
+		public void Linux_declaration_with_disabled_channel_omits_it_and_keeps_boot_identity()
+		{
+			new StatusSemaphore(_dir.FullName, _log, new StatusDeclaration(5, DateTime.UnixEpoch, null, null, new ProcessBootIdentity("b", 7))).InitializeSession();
+
+			var status = ReadStatus();
+			Assert.False(status.TryGetProperty("AgentChannel", out _));
+			Assert.Equal("b", status.GetProperty("ProcessBootId").GetString());
+			Assert.Equal(7, status.GetProperty("ProcessStartTicks").GetInt64());
+		}
+
+		/// <summary>v4: boot_id/starttime nisu pročitani — null i Error, bez izuzetka (kao vreme starta).</summary>
+		[Fact]
+		public void Boot_identity_failure_gives_null_with_error()
+		{
+			var identity = StatusDeclaration.ResolveBootIdentity(() => throw new IOException("nema /proc"), _log);
+
+			Assert.Null(identity);
+			var entry = Assert.Single(_log.Entries);
+			Assert.Equal(LogLevel.Error, entry.Level);
+			Assert.IsType<IOException>(entry.Exception);
 		}
 
 		/// <summary>Kanal isključen: AgentChannel je eksplicitno null, a identitet procesa je i dalje upisan.</summary>
@@ -353,7 +404,14 @@ namespace TopPos.Kiosk.Tests
 			Assert.Equal(DateTimeKind.Utc, written.Kind);
 			using var process = Process.GetCurrentProcess();
 			Assert.True((written - process.StartTime.ToUniversalTime()).Duration() < TimeSpan.FromSeconds(1));
-			Assert.Equal(JsonValueKind.Null, status.GetProperty("AgentChannel").ValueKind);
+			// v4: kanal isključen — Windows ga piše kao null (v2), Linux ga izostavlja (ugovor „Transport na Linuxu“, tačka 5).
+			if (OperatingSystem.IsWindows()) {
+				Assert.Equal(JsonValueKind.Null, status.GetProperty("AgentChannel").ValueKind);
+			}
+			else {
+				Assert.False(status.TryGetProperty("AgentChannel", out _));
+				Assert.True(status.TryGetProperty("ProcessBootId", out _));
+			}
 		}
 
 		[Fact]

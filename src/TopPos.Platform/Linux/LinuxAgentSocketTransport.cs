@@ -32,6 +32,7 @@ namespace TopPos.Platform.Linux
 		private const int __lockExclusive = 2;
 		private const int __lockNonBlocking = 4;
 		private const int __eWouldBlock = 11;
+		private const string __serviceFolder = "/run/toppos-kiosk/";   // ugovor tačka 1 i 5: Agent prihvata samo putanju tu
 
 		private const UnixFileMode __ownerOnly = UnixFileMode.UserRead | UnixFileMode.UserWrite;
 		private const UnixFileMode __ownerOnlyFolder = __ownerOnly | UnixFileMode.UserExecute;
@@ -52,6 +53,10 @@ namespace TopPos.Platform.Linux
 		{
 			var socketPath = options.SocketPath;
 			var lockPath = LockPathOf(socketPath);
+			if (!socketPath.StartsWith(__serviceFolder, StringComparison.Ordinal)) {
+				logger?.LogWarning("Agent socket: {SocketPath} nije ispod {ServiceFolder}; Agent prihvata samo putanje tamo (razvoj i testovi).",
+									socketPath, __serviceFolder);
+			}
 			try {
 				var folder = Path.GetDirectoryName(socketPath) ?? throw new IOException($"Putanja {socketPath} nema folder.");
 				if (!Directory.Exists(folder) && LinuxFileStatus.Get(folder) == null) {

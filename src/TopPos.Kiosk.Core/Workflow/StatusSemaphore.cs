@@ -1,7 +1,9 @@
 using System.Globalization;
 using System.IO;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
+using TopPos.Platform;
 
 namespace TopPos.Kiosk.Workflow
 {
@@ -36,7 +38,9 @@ namespace TopPos.Kiosk.Workflow
 	/// (<see cref="MarkCleanShutdown"/>) upisuje CleanShutdown=true; pad, kill ili nestanak struje ostave false.
 	///
 	/// Svaki upis nosi i izjavu procesa (<see cref="StatusDeclaration"/>): <c>ProcessId</c>, <c>ProcessStartUtc</c> i
-	/// <c>AgentChannel</c> (<c>null</c> = kanal ka Agentu isključen).
+	/// <c>AgentChannel</c> (<c>null</c> = kanal ka Agentu isključen). v4, Linux: i <c>ProcessBootId</c>, <c>ProcessStartTicks</c>
+	/// i <c>AgentChannel.SocketPath</c> umesto <c>PipeName</c> (ugovor „Transport na Linuxu“); polja koja platforma nema ne
+	/// upisuju se.
 	/// </summary>
 	public class StatusSemaphore
 	{
@@ -51,6 +55,7 @@ namespace TopPos.Kiosk.Workflow
 		private readonly int _processId;
 		private readonly string? _processStartUtc;     // null = vreme starta nije pročitano
 		private readonly AgentChannelPayload? _agentChannel;
+		private readonly ProcessBootIdentity? _bootIdentity;
 		// Zadržano stanje i red upisa. Nikad se ne drži dok se čeka _fileLock.
 		private readonly object _lock = new();
 		// Serijalizuje upise fajla (zajednički .tmp); spolja se uzima pre _lock.
@@ -72,7 +77,7 @@ namespace TopPos.Kiosk.Workflow
 
 		/// <summary>Izjava tekućeg procesa, bez kanala ka Agentu.</summary>
 		public StatusSemaphore(string baseDirectory, ILogger? logger)
-			: this(baseDirectory, logger, StatusDeclaration.ForCurrentProcess(agentPipeName: null, logger))
+			: this(baseDirectory, logger, StatusDeclaration.ForCurrentProcess(agentChannel: null, logger))
 		{
 		}
 
@@ -86,7 +91,10 @@ namespace TopPos.Kiosk.Workflow
 			_processStartUtc = declaration.ProcessStartUtc is { } start
 								? DateTime.SpecifyKind(start, DateTimeKind.Utc).ToString("O", CultureInfo.InvariantCulture)
 								: null;
-			_agentChannel = declaration.AgentPipeName is { } pipeName ? new AgentChannelPayload { PipeName = pipeName } : null;
+			_agentChannel = declaration.AgentPipeName != null || declaration.AgentSocketPath != null
+								? new AgentChannelPayload { PipeName = declaration.AgentPipeName, SocketPath = declaration.AgentSocketPath }
+								: null;
+			_bootIdentity = declaration.BootIdentity;
 		}
 
 		/// <summary>
@@ -239,6 +247,8 @@ namespace TopPos.Kiosk.Workflow
 			CleanShutdown = _cleanShutdown,
 			ProcessId = _processId,
 			ProcessStartUtc = _processStartUtc,
+			ProcessBootId = _bootIdentity?.BootId,
+			ProcessStartTicks = _bootIdentity?.StartTicks,
 			AgentChannel = _agentChannel
 		};
 
@@ -247,7 +257,12 @@ namespace TopPos.Kiosk.Workflow
 		{
 			try
 			{
-				var json = JsonSerializer.SerializeToUtf8Bytes(payload, JsonOptions);
+				var node = JsonSerializer.SerializeToNode(payload, JsonOptions)!.AsObject();
+				// v4: Linux oblik izjave (ugovor „Transport na Linuxu“, tačka 5) — isključen kanal izostaje; Windows ga piše kao null (v2).
+				if (_bootIdentity != null && payload.AgentChannel == null) {
+					node.Remove(nameof(StatusPayload.AgentChannel));
+				}
+				var json = JsonSerializer.SerializeToUtf8Bytes(node, JsonOptions);
 				// Atomično pisanje: prvo temp (na disk, da nestanak struje posle zamene ne ostavi prazan fajl), pa zamena,
 				// da servis ne pročita polupisan fajl.
 				using (var stream = new FileStream(_tempPath, FileMode.Create, FileAccess.Write, FileShare.None)) {
@@ -371,13 +386,22 @@ namespace TopPos.Kiosk.Workflow
 			public int ProcessId { get; set; }
 			// null = vreme starta nije pročitano (Agent ne može da poveže pipe sa procesom → nepoznato stanje).
 			public string? ProcessStartUtc { get; set; }
+			// v4, Linux: identitet procesa za Agenta; na Windows-u (null) polja izostaju.
+			[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+			public string? ProcessBootId { get; set; }
+			[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+			public long? ProcessStartTicks { get; set; }
 			// null se upisuje (kanal isključen); Agent odsustvo polja i null tretira isto.
 			public AgentChannelPayload? AgentChannel { get; set; }
 		}
 
+		// Tačno jedno od dva polja: PipeName (Windows) ili SocketPath (Linux).
 		private sealed class AgentChannelPayload
 		{
-			public string PipeName { get; set; } = "";
+			[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+			public string? PipeName { get; set; }
+			[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+			public string? SocketPath { get; set; }
 		}
 
 		private sealed record PreviousSession(bool CleanShutdown, DateTimeOffset? Time, bool? Busy, string? State);

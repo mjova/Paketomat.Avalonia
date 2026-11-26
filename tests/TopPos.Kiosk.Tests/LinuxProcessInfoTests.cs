@@ -27,6 +27,21 @@ namespace TopPos.Kiosk.Tests
 			=> Assert.Equal(new DateTime(2025, 11, 9, 8, 0, 12, 340, DateTimeKind.Utc),
 							LinuxProcessInfo.ToUtc(new DateTimeOffset(2025, 11, 9, 8, 0, 0, TimeSpan.Zero).ToUnixTimeSeconds(), 1234, 100));
 
+		/// <summary>
+		/// v4: boot_id i sirovi starttime tekućeg procesa — isti izvori koje čita Agent (ugovor „Transport na Linuxu“, tačka 5).
+		/// </summary>
+		[LinuxFact]
+		[SupportedOSPlatform("linux")]
+		public void Boot_identity_is_boot_id_and_raw_start_ticks_of_the_current_process()
+		{
+			var identity = new LinuxProcessInfo().GetCurrentProcessBootIdentity()!;
+
+			Assert.Equal(File.ReadAllText("/proc/sys/kernel/random/boot_id").Trim(), identity.BootId);
+			Assert.True(Guid.TryParse(identity.BootId, out _), identity.BootId);
+			Assert.Equal(LinuxProcessInfo.ParseStartTimeTicks(File.ReadAllText("/proc/self/stat")), identity.StartTicks);
+			Assert.True(identity.StartTicks > 0);
+		}
+
 		/// <summary>Isti PID daje isto vreme pri svakom čitanju (drugi proces, Agent, računa isto) i blizu je Process.StartTime.</summary>
 		[LinuxFact]
 		[SupportedOSPlatform("linux")]

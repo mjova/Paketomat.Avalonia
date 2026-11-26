@@ -9,6 +9,7 @@ using Microsoft.Extensions.Logging;
 using Serilog;
 using Serilog.Extensions.Logging;
 using Serilog.Formatting.Compact;
+using TopPos.Kiosk.AgentCommunication;
 using TopPos.Kiosk.Logging;
 using TopPos.Kiosk.ViewModels;
 using TopPos.Kiosk.Workflow;
@@ -26,7 +27,8 @@ namespace TopPos.Kiosk.UI
 	/// <summary>
 	/// Kompozicija i životni ciklus kioska — v2 <c>App.OnStartup</c>, <c>OnSessionEnding</c>/<c>OnExit</c> i <c>CompleteShutdown</c>,
 	/// istim redosledom. Razlike: putanje iz <see cref="IAppPaths"/>, provere uređaja van UI niti (v2: <c>.Result</c> na UI niti,
-	/// prozor tek posle njih), kraj procesa i sa SIGTERM-a (<see cref="ShutdownSignal"/>). Agent kanal dolazi u F2.
+	/// prozor tek posle njih), kraj procesa i sa SIGTERM-a (<see cref="ShutdownSignal"/>), kanal ka Agentu preko transporta
+	/// platforme (named pipe ili Unix socket).
 	/// </summary>
 	internal sealed class KioskHost(IClassicDesktopStyleApplicationLifetime lifetime, MainWindow window)
 	{
@@ -47,6 +49,9 @@ namespace TopPos.Kiosk.UI
 		private bool _shutdownCompleted;
 		// Zatvaranje veze sa kontrolerom je počelo; samo UI nit.
 		private LockControllerShutdown? _lockControllerShutdown;
+		// Kanal ka Agentu i njegovo zatvaranje (jedno, i za ugnežđen CompleteShutdown); samo UI nit.
+		private AgentPipeServer? _agentPipeServer;
+		private Task? _agentPipeStopping;
 
 		public async Task StartAsync()
 		{
@@ -129,8 +134,14 @@ namespace TopPos.Kiosk.UI
 			ECR.Configuration.logDirectory = Path.Combine(_paths.LogDirectory, "ECR");
 
 			// status.lock: ishod prethodne sesije u log, pa početni status ove — pre uređaja, da fajl postoji i kad kontroler
-			// nije povezan. Agent kanal je u F2 isključen (izjava bez kanala).
-			var statusDeclaration = StatusDeclaration.ForCurrentProcess(agentPipeName: null, microsoftLogger);
+			// nije povezan. Izjava kanala ka Agentu je po nameri (Enabled), ne po ishodu: ostaje i kad konfiguracija nije ispravna
+			// ili server ne proradi, da Agent ne bi tiho čitao Busy iz fajla (v2 doc/StatusSemaphore.md). Platforma bira adresu:
+			// ime pipe-a (Windows) ili putanja socket-a (Linux).
+			var agentCommunication = appConfiguration.AgentCommunication;
+			var agentChannelAddress = agentCommunication.Enabled
+										? PlatformServices.SelectAgentChannelAddress(agentCommunication.PipeName ?? "", agentCommunication.SocketPath ?? "")
+										: null;
+			var statusDeclaration = StatusDeclaration.ForCurrentProcess(agentChannelAddress, microsoftLogger);
 			var statusSemaphore = new StatusSemaphore(_paths.StateDirectory, microsoftLogger, statusDeclaration);
 			statusSemaphore.InitializeSession();
 			_statusSemaphore = statusSemaphore;
@@ -228,7 +239,103 @@ namespace TopPos.Kiosk.UI
 				lifetime.Shutdown(0);
 			}));
 
+			// Workflow je ožičen na izvor statusa — kanal ka Agentu može da se otvori; spremnost se objavljuje posle njega.
+			// Komande Agenta koje menjaju stanje kioska prolaze kroz istog vlasnika kioska (koordinator) kao lokalni ulazi.
+			// Dnevnik operacija se učitava pre kanala: sesija prekinuta padom se zaključuje pre prvog zahteva Agenta.
+			// v4: provera pre dnevnika — dnevnik pri učitavanju preimenuje tuđe .json fajlove u svom folderu, pa neispravan folder
+			// (prazan ili sam folder stanja sa redovima potvrda) ne sme ni da se učita (v2 je dnevnik učitavao pre provere).
+			var agentChannelErrors = agentChannelAddress != null ? ValidateAgentChannel(agentCommunication, agentChannelAddress) : [];
+			var operationJournal = new AgentOperationJournal(agentCommunication.OperationJournalFolder, microsoftLogger);
+			if (agentCommunication.Enabled && agentChannelErrors.Count == 0) {
+				operationJournal.Initialize(RemoteServiceManager.Recoverers.Concat(RecipientPickupManager.Recoverers).ToDictionary());
+			}
+			var remoteService = new RemoteServiceManager(operationJournal, statusSource, lockClient, _viewModel.CreateRemoteServiceHost(),
+														new RemoteServiceSettings {
+															LockerBoxCount = appConfiguration.Locker.LockerBoxCount,
+															CommandGap = RemoteServiceSettings.CommandGapFor(appConfiguration.Locker.ControllerType),
+															ReceiveTimeout = TimeSpan.FromMilliseconds(appConfiguration.General.DoorStatusResponseTimeout),
+														}, microsoftLogger);
+			var recipientPickup = new RecipientPickupManager(operationJournal, statusSource, _viewModel.CreateRecipientPickupHost(),
+															 new RecipientPickupSettings(appConfiguration.General.MinimumUnlockCodeLength,
+																						 appConfiguration.General.MaximumUnlockCodeLength),
+															 microsoftLogger);
+			var agentCommands = new AgentCommandDispatcher([
+									new ShutdownApplicationHandler(statusSource, _viewModel.TryBeginAgentOperation, RequestShutdownByAgent, microsoftLogger),
+									new BeginRemoteServiceHandler(remoteService),
+									new OpenDoorsHandler(remoteService),
+									new EndRemoteServiceHandler(remoteService),
+									new RecipientPickupHandler(recipientPickup),
+								], microsoftLogger, queries: [new GetCommandResultHandler(remoteService)]);
+			StartAgentPipeServer(agentCommunication, agentChannelErrors, statusSource, agentCommands, appContext.VersionLabel ?? appContext.ApplicationVersion,
+								 microsoftLogger);
+
 			statusSource.SetLifecycle(Agent.Contracts.KioskLifecycles.Ready);
+		}
+
+		/// <summary>
+		/// Kanal ka Agentu (AgentCommunication). Isključen, neispravno podešen ili zauzeto ime kanala: greška ide u log, a kiosk
+		/// radi dalje bez kanala — nema automatskog slabljenja zaštite.
+		/// </summary>
+		private void StartAgentPipeServer(AgentCommunicationConfiguration configuration, IReadOnlyList<string> errors, KioskStatusSource statusSource,
+										  AgentCommandDispatcher commands, string? applicationVersion, ILogger logger)
+		{
+			if (!configuration.Enabled) {
+				logger.LogInformation("AgentCommunication: kanal ka Agentu je isključen.");
+				return;
+			}
+			if (errors.Count > 0) {
+				logger.LogError("AgentCommunication: konfiguracija nije ispravna, kanal ka Agentu se NE pokreće: {Errors}", string.Join(" ", errors));
+				return;
+			}
+			try {
+				var server = new AgentPipeServer(AgentPipeServerOptions.FromConfiguration(configuration, applicationVersion), statusSource,
+												DispatcherLivenessProbe.Create(statusSource), logger, commands);
+				if (server.Start()) {
+					_agentPipeServer = server;
+				}
+			}
+			catch (Exception ex) {
+				logger.LogError(ex, "AgentCommunication: kanal ka Agentu nije pokrenut.");
+			}
+		}
+
+		/// <summary>
+		/// Greške podešavanja kanala: zajednički parametri i samo adresa transporta ove platforme; folder dnevnika ne sme biti
+		/// sam folder stanja (tu su redovi potvrda i status.lock).
+		/// </summary>
+		private List<string> ValidateAgentChannel(AgentCommunicationConfiguration configuration, AgentChannelAddress address)
+		{
+			var errors = configuration.GetValidationErrors(checkPipeName: address.PipeName != null, checkSocketPath: address.SocketPath != null).ToList();
+			if (!string.IsNullOrWhiteSpace(configuration.OperationJournalFolder)
+				&& Path.TrimEndingDirectorySeparator(Path.GetFullPath(configuration.OperationJournalFolder))
+					== Path.TrimEndingDirectorySeparator(Path.GetFullPath(_paths.StateDirectory))) {
+				errors.Add($"AgentCommunication.{nameof(configuration.OperationJournalFolder)} ne sme biti sam folder stanja ({_paths.StateDirectory}).");
+			}
+			return errors;
+		}
+
+		// ShutdownApplication (Agent): redovan izlazak na UI niti — CompleteShutdown zatvara kanal i kontroler i upisuje
+		// CleanShutdown. Poziva se van UI niti, posle upisa odgovora Agentu; ne blokira.
+		private void RequestShutdownByAgent() => Dispatcher.UIThread.Post(() => lifetime.Shutdown(0));
+
+		// Ograničeno čekanje na UI niti: server ne koristi UI nit za gašenje (nastavci su van nje). Ugnežđen poziv (CompleteShutdown)
+		// čeka isto zatvaranje. StopAsync ide na pool nit: lock u njegovom sinhronom delu na UI niti ne sme da se ugnezdi.
+		private void StopAgentPipeServer()
+		{
+			if (_agentPipeStopping == null && _agentPipeServer is { } server) {
+				_agentPipeStopping = Task.Run(() => server.StopAsync());
+			}
+			if (_agentPipeStopping == null) {
+				return;
+			}
+			try {
+				if (!_agentPipeStopping.Wait(TimeSpan.FromSeconds(3))) {
+					_logger?.LogWarning("AgentCommunication: kanal ka Agentu nije zatvoren u roku; gašenje se nastavlja.");
+				}
+			}
+			catch (Exception ex) {
+				_logger?.LogWarning(ex, "AgentCommunication: greška pri zatvaranju kanala ka Agentu.");
+			}
 		}
 
 		/// <summary>
@@ -253,8 +360,10 @@ namespace TopPos.Kiosk.UI
 				return;
 			}
 
+			// Prvo gašenje u status (Agent ga dobija pre prekida veze), pa zatvaranje kanala.
 			_statusSource?.SetLifecycle(Agent.Contracts.KioskLifecycles.ShuttingDown);
 			_coordinator?.Close();      // nove sesije i operacije se više ne primaju
+			StopAgentPipeServer();
 			_viewModel?.CloseDeviceStatus();
 
 			if (_lockClient != null) {
@@ -286,7 +395,10 @@ namespace TopPos.Kiosk.UI
 			configuration.PaymentConfirmationSender.PaymentConfirmationFilename = Path.Combine(state, configuration.PaymentConfirmationSender.PaymentConfirmationFilename);
 			configuration.ServerConfirmationSender.ServerConfirmationFilename = Path.Combine(state, configuration.ServerConfirmationSender.ServerConfirmationFilename);
 			configuration.LockerStatusUpdater.ServerStatusFilename = Path.Combine(state, configuration.LockerStatusUpdater.ServerStatusFilename);
-			configuration.AgentCommunication.OperationJournalFolder = Path.Combine(state, configuration.AgentCommunication.OperationJournalFolder);
+			// Prazna vrednost ostaje prazna, da je provera kanala odbije (Path.Combine bi od nje napravio sam folder stanja).
+			if (!string.IsNullOrWhiteSpace(configuration.AgentCommunication.OperationJournalFolder)) {
+				configuration.AgentCommunication.OperationJournalFolder = Path.Combine(state, configuration.AgentCommunication.OperationJournalFolder);
+			}
 		}
 
 		private ApplicationContext CreateApplicationContext(AppConfiguration configuration)

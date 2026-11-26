@@ -266,15 +266,19 @@ namespace TopPos.Kiosk
 		/// <summary>Folder trajnog dnevnika operacija Agenta (ishodi, oporavak posle pada); relativan prema radnom folderu.</summary>
 		public string OperationJournalFolder { get; set; } = "AgentOperations";
 
-		/// <summary>Greške vrednosti (prazno = ispravno). Proverava se samo kad je kanal uključen.</summary>
-		public IReadOnlyList<string> GetValidationErrors()
+		/// <summary>
+		/// Greške vrednosti (prazno = ispravno). Proverava se samo kad je kanal uključen. v4: proverava se samo adresa transporta
+		/// koji platforma koristi (<paramref name="checkPipeName"/> na Windows-u, <paramref name="checkSocketPath"/> na Linuxu) —
+		/// neispravna adresa drugog transporta ne isključuje kanal.
+		/// </summary>
+		public IReadOnlyList<string> GetValidationErrors(bool checkPipeName = true, bool checkSocketPath = true)
 		{
 			var errors = new List<string>();
-			if (string.IsNullOrWhiteSpace(PipeName) || PipeName.Length > 200 || PipeName.IndexOfAny(['\\', '/', ':']) >= 0)
+			if (checkPipeName && (string.IsNullOrWhiteSpace(PipeName) || PipeName.Length > 200 || PipeName.IndexOfAny(['\\', '/', ':']) >= 0))
 				errors.Add($"AgentCommunication.{nameof(PipeName)} mora biti neprazno ime do 200 znakova, bez \\, / i :.");
 			// sun_path ima 108 bajtova sa završnom nulom.
-			if (string.IsNullOrWhiteSpace(SocketPath) || !SocketPath.StartsWith('/') || SocketPath.EndsWith('/')
-				|| SocketPath.Split('/').Contains("..") || System.Text.Encoding.UTF8.GetByteCount(SocketPath) > 107)
+			if (checkSocketPath && (string.IsNullOrWhiteSpace(SocketPath) || !SocketPath.StartsWith('/') || SocketPath.EndsWith('/')
+				|| SocketPath.Split('/').Contains("..") || System.Text.Encoding.UTF8.GetByteCount(SocketPath) > 107))
 				errors.Add($"AgentCommunication.{nameof(SocketPath)} mora biti apsolutna putanja fajla, bez .., do 107 bajtova.");
 			if (HeartbeatIntervalInMilliseconds is < 1000 or > 60000)
 				errors.Add($"AgentCommunication.{nameof(HeartbeatIntervalInMilliseconds)} mora biti 1000..60000.");
