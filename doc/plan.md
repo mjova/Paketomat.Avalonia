@@ -333,7 +333,9 @@ kodom, a nijedna prepreka nije tražila plaćeni paket. Uslov: F0b na ciljnom ur
 
 F1 = svi tokovi osim primaoca, preneti iz v2 (`0029647`) istim postupkom kao F0a: aktivator i ViewModel kopirani sa što
 manje izmena, Avalonia stranica po v2 `*LandscapeLayout.xaml`, isti `AutomationId`. Plan po koracima i dokazi:
-`tasks/todo.md` (F1). **Pun E2E u VM-u (Windows i Debian) još nije pušten** — ishod je uslovan dok ne prođe.
+`tasks/todo.md` (F1). **Pun E2E na Debian VM-u prošao** (26.11.2026, `0b60b19`: 150 testova, 139 prošlo, 0 palo,
+11 preskočeno — 9 sa pravim mišem, koji AT-SPI/Wayland ne podržava, i 2 za kraj Windows sesije, F7; ~65 min).
+Windows VM još nije pušten.
 
 ### Urađeno
 
@@ -360,7 +362,7 @@ lažnim hostom, `ViewRenderTests` za nove stranice, Codex pregled (1–2 prolaza
 
 ### Otvoreno
 
-- Pun E2E v4 u VM-u (Debian 12 VM u toku; Windows VM posle) i v2 krug posle `8a42c1d`.
+- Pun E2E v4 na Windows VM-u (Debian prošao) i v2 krug posle `8a42c1d`.
 - De-test: ručna prijava kurira sa `;` poslatim kao `%3B` (korisnik).
 - Odloženo po odluci korisnika: kartica kurira skenirana na ekranu za paket ide u log u celini; DEBUG prečica F11 (unos
   barkoda) — za ručnu probu postoji `/_sim/barcode`.

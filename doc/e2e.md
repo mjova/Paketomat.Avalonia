@@ -17,8 +17,8 @@ otključan desktop).
 
 Skripta prvo pušta testove jezgra kioska (ako padnu, E2E se ne pokreće), gradi rešenje (Debug) i pušta E2E sa
 izveštajem u `TestResults/E2E` (HTML i TRX). Dodatni argumenti idu u `dotnet test`, npr.
-`--filter "FullyQualifiedName~RecipientPaymentTests"`. Ceo skup traje oko 30 min po platformi (mnogi scenariji namerno
-čekaju istek od 20–30 s).
+`--filter "FullyQualifiedName~RecipientPaymentTests"`. Ceo skup traje oko 1 h na Linuxu (Debian VM, 26.11.2026: 150 testova, E2E deo 63 min);
+najduže su klase plaćanja, redova potvrda i neuspele potvrde ostavljanja (mnogi scenariji namerno čekaju istek od 20–30 s).
 
 ## Preduslovi
 

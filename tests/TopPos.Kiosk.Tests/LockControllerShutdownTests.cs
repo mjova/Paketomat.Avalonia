@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using Flatsoft.Common.UI;
 using TopPos.LockController;
 using Xunit;
@@ -54,29 +53,6 @@ namespace TopPos.Kiosk.Tests
 			new LockControllerShutdown(new NoOpController(), logger: null).Close();
 
 			Assert.False(messageProcessed);
-		}
-
-		/// <summary>UI nit je nit koja je napravila dispečer; poruke se obrađuju samo dok se čeka.</summary>
-		private sealed class PumpingDispatcher : IUiDispatcher
-		{
-			private readonly int _uiThreadId = Environment.CurrentManagedThreadId;
-			private readonly BlockingCollection<Action> _queue = new();
-
-			public bool CheckAccess() => Environment.CurrentManagedThreadId == _uiThreadId;
-			public void Invoke(Action action) => throw new NotSupportedException();
-			public void Post(Action action) => _queue.Add(action);
-
-			public void WaitWithMessagePump(Task task)
-			{
-				Assert.True(CheckAccess());
-				var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(20);
-				while (!task.IsCompleted) {
-					Assert.True(DateTime.UtcNow < deadline, "zatvaranje se nije završilo");
-					if (_queue.TryTake(out var action, TimeSpan.FromMilliseconds(10))) {
-						action();
-					}
-				}
-			}
 		}
 
 		private sealed class SlowClosingController(Action whileClosing) : NoOpController, IDisposable
