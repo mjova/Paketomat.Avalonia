@@ -41,5 +41,23 @@ namespace TopPos.Kiosk.UI.Tests
 
 			Assert.Equal([1, 2, 3], order);
 		}
+
+		/// <summary>
+		/// Sonda za heartbeat Agentu (<c>PostNormal</c>) čeka obični UI posao koji je već u redu, kao v2 <c>DispatcherPriority.Normal</c>;
+		/// <c>Post</c> (obaveštenja prikazu) ide ispred njega. Inače bi UI koji kasni ipak potvrdio da radi.
+		/// </summary>
+		[AvaloniaFact]
+		public void PostNormal_waits_behind_queued_ui_work_and_Post_goes_ahead()
+		{
+			var dispatcher = new AvaloniaUiDispatcher();
+			var order = new List<string>();
+
+			Dispatcher.UIThread.Post(() => order.Add("ui"), DispatcherPriority.Normal);
+			dispatcher.PostNormal(() => order.Add("sonda"));
+			dispatcher.Post(() => order.Add("obaveštenje"));
+			Dispatcher.UIThread.RunJobs();
+
+			Assert.Equal(["obaveštenje", "ui", "sonda"], order);
+		}
 	}
 }

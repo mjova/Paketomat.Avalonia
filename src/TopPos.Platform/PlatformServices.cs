@@ -32,6 +32,18 @@ namespace TopPos.Platform
 			}
 		}
 
+		/// <summary>Transport kanala ka Agentu: named pipe (Windows) ili Unix socket (Linux).</summary>
+		public static IAgentChannelTransport CreateAgentChannelTransport(AgentChannelTransportOptions options, ILogger? logger)
+		{
+			if (OperatingSystem.IsWindows()) {
+				return new WindowsAgentPipeTransport(options, logger);
+			}
+			if (OperatingSystem.IsLinux()) {
+				return new LinuxAgentSocketTransport(options, logger);
+			}
+			throw Unsupported();
+		}
+
 		private static IProcessInfo CreateProcessInfo()
 		{
 			if (OperatingSystem.IsWindows()) {

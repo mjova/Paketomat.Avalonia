@@ -244,6 +244,12 @@ namespace TopPos.Kiosk
 		/// <summary>Ime pipe-a; mora se poklapati sa Agentom (podrazumevano <c>TopPos.Kiosk.Agent.v1</c>).</summary>
 		public string PipeName { get; set; } = "TopPos.Kiosk.Agent.v1";
 
+		/// <summary>
+		/// v4: putanja Unix socket-a na Linuxu (na Windows-u se ne koristi); Agent prihvata samo putanju ispod
+		/// <c>/run/toppos-kiosk/</c> (ugovor „Transport na Linuxu“). Druga putanja služi razvoju i testovima bez systemd-a.
+		/// </summary>
+		public string SocketPath { get; set; } = "/run/toppos-kiosk/agent.v1.sock";
+
 		public int HeartbeatIntervalInMilliseconds { get; set; } = 5000;
 
 		/// <summary>Rok za potvrdu UI niti pre heartbeat-a; mora biti kraći od intervala.</summary>
@@ -266,6 +272,10 @@ namespace TopPos.Kiosk
 			var errors = new List<string>();
 			if (string.IsNullOrWhiteSpace(PipeName) || PipeName.Length > 200 || PipeName.IndexOfAny(['\\', '/', ':']) >= 0)
 				errors.Add($"AgentCommunication.{nameof(PipeName)} mora biti neprazno ime do 200 znakova, bez \\, / i :.");
+			// sun_path ima 108 bajtova sa završnom nulom.
+			if (string.IsNullOrWhiteSpace(SocketPath) || !SocketPath.StartsWith('/') || SocketPath.EndsWith('/')
+				|| SocketPath.Split('/').Contains("..") || System.Text.Encoding.UTF8.GetByteCount(SocketPath) > 107)
+				errors.Add($"AgentCommunication.{nameof(SocketPath)} mora biti apsolutna putanja fajla, bez .., do 107 bajtova.");
 			if (HeartbeatIntervalInMilliseconds is < 1000 or > 60000)
 				errors.Add($"AgentCommunication.{nameof(HeartbeatIntervalInMilliseconds)} mora biti 1000..60000.");
 			if (UiAckTimeoutInMilliseconds < 100 || UiAckTimeoutInMilliseconds >= HeartbeatIntervalInMilliseconds)

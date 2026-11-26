@@ -17,8 +17,6 @@ namespace TopPos.Kiosk.Tests
 	/// </summary>
 	public class ShutdownApplicationTests
 	{
-		// v4: šifra paketomata iz v2 TestAgentClient (klijent preko named pipe-a dolazi sa transportom u F2).
-		private const string __lockerId = "112";
 		private static readonly TimeSpan __wait = TimeSpan.FromSeconds(5);
 		private static readonly AgentPeer __peer = new(1, "S-1-5-18", 4242);
 
@@ -48,7 +46,7 @@ namespace TopPos.Kiosk.Tests
 			public static async Task<Kiosk> StartAsync(bool started = true, string lifecycle = KioskLifecycles.Ready)
 			{
 				var log = new KioskOperationCoordinatorTests.ListLogger();
-				var status = new KioskStatusSource(__lockerId, logger: null);
+				var status = new KioskStatusSource(TestAgentClient.LockerId, logger: null);
 				var coordinator = new KioskOperationCoordinator(status, log);
 				var m = Mk.Machine(new WorkflowContext());
 				var kiosk = new Kiosk { M = m, Status = status, C = coordinator, Log = log, Time = new ManualTime(DateTimeOffset.UtcNow) };
@@ -74,7 +72,7 @@ namespace TopPos.Kiosk.Tests
 
 			public AgentRequest Request(string purpose = ShutdownPurposes.Restart, string? requestId = null) => new() {
 				RequestId = requestId ?? Guid.NewGuid().ToString("N"),
-				LockerId = __lockerId,
+				LockerId = TestAgentClient.LockerId,
 				ClientInstanceId = Status.ClientInstanceId,
 				Command = AgentCommands.ShutdownApplication,
 				IssuedAtUtc = Time.Now,
@@ -368,7 +366,126 @@ namespace TopPos.Kiosk.Tests
 
 		// ─── Preko pravog pipe-a ───────────────────────────────────────────────────
 
-		// v4: testovi preko named pipe-a (Hello, pretplata, zahtev prethodne instance i ponovljen zahtev na novoj vezi;
-		// TestServer, TestAgentClient) dolaze sa transportom u F2.
+		[Fact]
+		public async Task Hello_lists_ShutdownApplication_and_other_commands_stay_unsupported()
+		{
+			var k = await Kiosk.StartAsync();
+			await using var server = StartServer(k);
+			await using var client = await TestAgentClient.ConnectAsync(server.PipeName);
+
+			var hello = await client.HandshakeAsync();
+			var openDoor = await client.RequestAsync(AgentCommands.OpenDoor, clientInstanceId: hello.ClientInstanceId);
+			var unknown = await client.RequestAsync("Reboot", clientInstanceId: hello.ClientInstanceId);
+
+			Assert.Equal([AgentCommands.GetStatus, AgentCommands.SubscribeStatus, AgentCommands.ShutdownApplication], hello.SupportedCommands);
+			Assert.Equal(AgentResultCodes.UnsupportedCommand, openDoor.ResultCode);
+			Assert.Equal(AgentResultCodes.UnsupportedCommand, unknown.ResultCode);
+		}
+
+		[Fact]
+		public async Task Subscriber_gets_ShuttingDown_then_Completed_then_the_connection_closes()
+		{
+			var k = await Kiosk.StartAsync();
+			var server = StartServer(k);
+			// Kao OnExit: gašenje programa zatvara kanal. Van niti koja izvršava radnju posle odgovora.
+			var stopped = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+			k.OnShutdown = () => _ = Task.Run(async () => { await server.Server.StopAsync(); stopped.SetResult(); });
+			await using var client = await TestAgentClient.ConnectAsync(server.PipeName);
+			await client.HandshakeAsync();
+			await client.RequestAsync(AgentCommands.SubscribeStatus);
+			var request = k.Request();
+
+			await client.SendAsync(request);
+			var beforeResponse = new List<AgentEvent>();
+			AgentResponse? response = null;
+			while (response == null) {
+				var body = await client.ReadFrameAsync() ?? throw new InvalidOperationException("Veza zatvorena pre odgovora.");
+				if (AgentJson.ReadEnvelope(body).Type == AgentMessageTypes.Event) {
+					beforeResponse.Add(AgentJson.Deserialize<AgentEvent>(body));
+				}
+				else {
+					response = AgentJson.Deserialize<AgentResponse>(body);
+				}
+			}
+
+			Assert.Contains(beforeResponse, e => e.Status!.Lifecycle == KioskLifecycles.ShuttingDown && e.Status.Role == WorkflowStatusRules.AgentRole);
+			Assert.Equal(request.RequestId, response.RequestId);
+			Assert.Equal(AgentResultCodes.Completed, response.ResultCode);
+			Assert.Null(await client.ReadFrameAsync());
+			await stopped.Task.WaitAsync(__wait);
+			Assert.Equal(1, k.ShutdownRequests);
+			await server.DisposeAsync();
+		}
+
+		[Fact]
+		public async Task Request_for_previous_instance_is_refused_over_the_pipe()
+		{
+			var k = await Kiosk.StartAsync();
+			await using var server = StartServer(k);
+			await using var client = await TestAgentClient.ConnectAsync(server.PipeName);
+			await client.HandshakeAsync();
+			var request = k.Request();
+			request.ClientInstanceId = Guid.NewGuid().ToString("N");
+
+			var response = await client.RequestAsync(request);
+
+			Assert.Equal(AgentResultCodes.WrongInstance, response.ResultCode);
+			Assert.Null(k.C.Owner);
+			Assert.Equal(KioskLifecycles.Ready, k.Status.Current.Lifecycle);
+		}
+
+		[Fact]
+		public async Task Request_repeated_on_a_new_connection_gets_the_same_outcome()
+		{
+			var k = await Kiosk.StartAsync();
+			await using var server = StartServer(k);
+			var request = k.Request();
+
+			await using (var first = await TestAgentClient.ConnectAsync(server.PipeName)) {
+				await first.HandshakeAsync();
+				Assert.Equal(AgentResultCodes.Completed, (await first.RequestAsync(request)).ResultCode);
+			}
+			await using var second = await TestAgentClient.ConnectAsync(server.PipeName);
+			await second.HandshakeAsync();
+			var repeated = await second.RequestAsync(request);
+
+			Assert.Equal(AgentResultCodes.Completed, repeated.ResultCode);
+			await WaitUntilAsync(() => k.ShutdownRequests == 1);
+			await Task.Delay(200);
+			Assert.Equal(1, k.ShutdownRequests);
+		}
+
+		private sealed class TestServer(AgentPipeServer server, string pipeName) : IAsyncDisposable
+		{
+			public AgentPipeServer Server { get; } = server;
+			public string PipeName { get; } = pipeName;
+
+			public ValueTask DisposeAsync() => Server.DisposeAsync();
+		}
+
+		private static TestServer StartServer(Kiosk k)
+		{
+			// v4: ime pipe-a (Windows) ili putanja Unix socket-a (Linux); dozvoljen klijent je tekući korisnik.
+			var pipeName = TestAgentClient.NewAddress();
+			var options = new AgentPipeServerOptions {
+				PipeName = pipeName,
+				SocketPath = pipeName,
+				AllowCurrentUser = true,
+				HeartbeatInterval = TimeSpan.FromSeconds(30),
+				ShutdownDrainTimeout = TimeSpan.FromSeconds(2),
+			};
+			var server = new AgentPipeServer(options, k.Status, _ => Task.FromResult(true), logger: null, k.Dispatcher);
+			Assert.True(server.Start());
+			return new TestServer(server, pipeName);
+		}
+
+		private static async Task WaitUntilAsync(Func<bool> condition)
+		{
+			var deadline = DateTime.UtcNow + __wait;
+			while (!condition()) {
+				Assert.True(DateTime.UtcNow < deadline, "uslov nije ispunjen u roku");
+				await Task.Delay(20);
+			}
+		}
 	}
 }

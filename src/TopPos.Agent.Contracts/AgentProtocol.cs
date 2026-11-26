@@ -12,6 +12,12 @@ namespace TopPos.Agent.Contracts
 		/// <summary>Podrazumevano ime pipe-a. Nije tajna niti dokaz identiteta; verzija u imenu odvaja nekompatibilne kanale.</summary>
 		public const string DefaultPipeName = "TopPos.Kiosk.Agent.v1";
 
+		/// <summary>
+		/// v4: podrazumevana putanja Unix socket-a na Linuxu (ugovor „Transport na Linuxu“): runtime folder servisa
+		/// <c>toppos-kiosk</c> (<c>0700</c>), socket <c>0600</c>. <c>.v1</c> ima istu ulogu kao u imenu pipe-a.
+		/// </summary>
+		public const string DefaultSocketPath = "/run/toppos-kiosk/agent.v1.sock";
+
 		/// <summary>Najveća dužina JSON tela jedne poruke (bez 4 bajta zaglavlja).</summary>
 		public const int MaxMessageBytes = 64 * 1024;
 

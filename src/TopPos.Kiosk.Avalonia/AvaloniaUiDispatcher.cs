@@ -15,6 +15,8 @@ namespace TopPos.Kiosk.UI
 
 		public void Post(Action action) => Dispatcher.UIThread.Post(action, DispatcherPriority.Send);
 
+		public void PostNormal(Action action) => Dispatcher.UIThread.Post(action, DispatcherPriority.Normal);
+
 		/// <summary>Na UI niti ugnežđena petlja (<see cref="DispatcherFrame"/>) dok se zadatak ne završi; van nje obično čekanje.</summary>
 		public void WaitWithMessagePump(Task task)
 		{

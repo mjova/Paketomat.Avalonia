@@ -18,8 +18,6 @@ namespace TopPos.Kiosk.Tests
 	/// </summary>
 	public class RemoteServiceCommandsTests : IDisposable
 	{
-		// v4: šifra paketomata iz v2 TestAgentClient (klijent preko named pipe-a dolazi sa transportom u F2).
-		private const string __lockerId = "112";
 		private const string __code = "123456";
 		private static readonly TimeSpan __wait = TimeSpan.FromSeconds(5);
 		private static readonly AgentPeer __peer = new(1, "S-1-5-18", 4242);
@@ -63,7 +61,7 @@ namespace TopPos.Kiosk.Tests
 
 			public AgentRequest Request<TPayload>(string command, TPayload payload, string? requestId = null) => new() {
 				RequestId = requestId ?? Guid.NewGuid().ToString("N"),
-				LockerId = __lockerId,
+				LockerId = TestAgentClient.LockerId,
 				ClientInstanceId = Status.ClientInstanceId,
 				Command = command,
 				IssuedAtUtc = Time.Now,
@@ -84,7 +82,7 @@ namespace TopPos.Kiosk.Tests
 			/// <summary>Upit bez ClientInstanceId i roka (radi i posle restarta kioska).</summary>
 			public AgentRequest Result(string requestId, int? afterSequence = null) => new() {
 				RequestId = Guid.NewGuid().ToString("N"),
-				LockerId = __lockerId,
+				LockerId = TestAgentClient.LockerId,
 				Command = AgentCommands.GetCommandResult,
 				Payload = JsonSerializer.SerializeToElement(new GetCommandResultPayload { RequestId = requestId, AfterSequence = afterSequence }, AgentJson.Options),
 			};
@@ -115,7 +113,7 @@ namespace TopPos.Kiosk.Tests
 											 IReadOnlyList<int>? unavailableModules = null, Func<RemoteServiceSession, ValueTask>? showSession = null)
 		{
 			var time = new ManualTime(DateTimeOffset.UtcNow);
-			var status = new KioskStatusSource(__lockerId, logger: null, time);
+			var status = new KioskStatusSource(TestAgentClient.LockerId, logger: null, time);
 			var coordinator = new KioskOperationCoordinator(status, logger: null);
 			var m = Mk.Machine(new WorkflowContext());
 			m.OnTransitioned((source, destination) => coordinator.OnWorkflowTransition(source, destination));
@@ -521,6 +519,57 @@ namespace TopPos.Kiosk.Tests
 
 		// ─── Preko pravog pipe-a ───────────────────────────────────────────────────
 
-		// v4: test preko named pipe-a (sesija preživi prekid veze; TestServer, klijent Agenta) dolazi sa transportom u F2.
+		[Fact]
+		public async Task Over_the_pipe_session_survives_disconnect_and_result_is_read_without_instance()
+		{
+			var k = await StartKiosk();
+			await using var server = StartServer(k);
+			var begin = k.Begin();
+
+			await using (var first = await TestAgentClient.ConnectAsync(server.PipeName)) {
+				var hello = await first.HandshakeAsync();
+				Assert.Contains(AgentCommands.BeginRemoteService, hello.SupportedCommands);
+				Assert.Contains(AgentCommands.OpenDoors, hello.SupportedCommands);
+				Assert.Contains(AgentCommands.EndRemoteService, hello.SupportedCommands);
+				Assert.Contains(AgentCommands.GetCommandResult, hello.SupportedCommands);
+				var response = await first.RequestAsync(begin);
+				Assert.Equal(AgentResultCodes.Completed, response.ResultCode);
+				Assert.Equal(RemoteServicePhases.AwaitingTechnician, AgentJson.ReadResult<RemoteServiceResult>(response)!.Phase);
+			}
+			await k.Manager.Current!.SubmitPresenceCodeAsync(__code);
+
+			await using var second = await TestAgentClient.ConnectAsync(server.PipeName);
+			await second.HandshakeAsync();
+			var progress = await second.RequestAsync(k.Result(begin.RequestId));
+			Assert.Equal(AgentResultCodes.InProgress, progress.ResultCode);
+			Assert.Equal(RemoteServicePhases.Active, AgentJson.ReadResult<RemoteServiceResult>(progress)!.Phase);
+
+			var end = await second.RequestAsync(k.End(begin.RequestId));
+			Assert.Equal(AgentResultCodes.Completed, end.ResultCode);
+			Assert.Equal(RemoteServiceEndModes.PortalConfirmed, AgentJson.ReadResult<RemoteServiceResult>(end)!.EndMode);
+		}
+
+		private sealed class TestServer(AgentPipeServer server, string pipeName) : IAsyncDisposable
+		{
+			public string PipeName { get; } = pipeName;
+
+			public ValueTask DisposeAsync() => server.DisposeAsync();
+		}
+
+		private static TestServer StartServer(Kiosk k)
+		{
+			// v4: ime pipe-a (Windows) ili putanja Unix socket-a (Linux); dozvoljen klijent je tekući korisnik.
+			var pipeName = TestAgentClient.NewAddress();
+			var options = new AgentPipeServerOptions {
+				PipeName = pipeName,
+				SocketPath = pipeName,
+				AllowCurrentUser = true,
+				HeartbeatInterval = TimeSpan.FromSeconds(30),
+				ShutdownDrainTimeout = TimeSpan.FromSeconds(2),
+			};
+			var server = new AgentPipeServer(options, k.Status, _ => Task.FromResult(true), logger: null, k.Dispatcher);
+			Assert.True(server.Start());
+			return new TestServer(server, pipeName);
+		}
 	}
 }

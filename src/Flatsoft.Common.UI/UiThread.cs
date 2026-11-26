@@ -16,6 +16,13 @@ namespace Flatsoft.Common.UI
 		void Post(Action action);
 
 		/// <summary>
+		/// Stavlja u red UI niti iza već zakazanog običnog UI posla (prioritet kao ulaz i obične operacije; v2
+		/// <c>DispatcherPriority.Normal</c>), ne ispred njega kao <see cref="Post"/>. Za sondu koja meri da li UI nit stiže da
+		/// obradi svoj red (heartbeat Agentu). Podrazumevano isto što i <see cref="Post"/>.
+		/// </summary>
+		void PostNormal(Action action) => Post(action);
+
+		/// <summary>
 		/// Čeka kraj <paramref name="task"/> bez izuzetka (ishod čita pozivalac). Na UI niti za to vreme obrađuje poruke
 		/// (ugnežđena petlja, v2 WPF <c>DispatcherFrame</c>), da nastavak koji čeka UI nit ne bi zastao.
 		/// </summary>
