@@ -1,0 +1,21 @@
+<!-- v2 Pages/SenderPackageDepositPage/SenderPackageDepositPage.xaml: stranica u layoutu po veličini prozora (LayoutContent) -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:TopPos.Kiosk.ViewModels"
+             xmlns:c="using:TopPos.Kiosk.UI.Controls"
+             xmlns:views="using:TopPos.Kiosk.UI.Views"
+             x:Class="TopPos.Kiosk.UI.Views.SenderPackageDepositView"
+             AutomationProperties.AutomationId="Page.SenderPackageDepositPage"
+             x:DataType="vm:SenderPackageDepositViewModel">
+	<c:LayoutContent Content="{Binding}">
+		<c:LayoutContent.LandscapeLargeTemplate>
+			<DataTemplate x:DataType="vm:SenderPackageDepositViewModel"><views:SenderPackageDepositLandscapeLayout/></DataTemplate>
+		</c:LayoutContent.LandscapeLargeTemplate>
+		<c:LayoutContent.LandscapeMediumTemplate>
+			<DataTemplate x:DataType="vm:SenderPackageDepositViewModel"><views:SenderPackageDepositLandscapeMediumLayout/></DataTemplate>
+		</c:LayoutContent.LandscapeMediumTemplate>
+		<c:LayoutContent.PortraitSmallTemplate>
+			<DataTemplate x:DataType="vm:SenderPackageDepositViewModel"><views:SenderPackageDepositPortraitSmallLayout/></DataTemplate>
+		</c:LayoutContent.PortraitSmallTemplate>
+	</c:LayoutContent>
+</UserControl>

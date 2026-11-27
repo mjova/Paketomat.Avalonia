@@ -1,0 +1,53 @@
+<!-- v2 Pages/StartPage/StartPagePortraitSmallLayout.xaml -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:TopPos.Kiosk.ViewModels"
+             xmlns:c="using:TopPos.Kiosk.UI.Controls"
+             x:Class="TopPos.Kiosk.UI.Views.StartPortraitSmallLayout"
+             x:DataType="vm:StartViewModel">
+	<Panel>
+		<DockPanel>
+			<Border DockPanel.Dock="Top" Height="120"/>
+			<Border DockPanel.Dock="Bottom" Height="30"/>
+			<!-- Dugmad jedno iznad drugog, širine 340: „Preuzmi paket“ dole, „Ostavi paket“ iznad njega (ako je uključeno). -->
+			<Button DockPanel.Dock="Bottom"
+					Classes="animated"
+					Content="{Binding [StartPage.PickUpPackage]}"
+					HorizontalAlignment="Center"
+					VerticalAlignment="Center"
+					Width="340"
+					AutomationProperties.AutomationId="StartPage.RecipientPickUpPackage"
+					Command="{Binding RecipientPickUpPackageCommand}"/>
+			<Border DockPanel.Dock="Bottom" Height="40" IsVisible="{Binding IsPackageDepositionEnabled}"/>
+			<Button DockPanel.Dock="Bottom"
+					Classes="animated"
+					Content="{Binding [StartPage.DepositPackage]}"
+					HorizontalAlignment="Center"
+					VerticalAlignment="Center"
+					Width="340"
+					IsVisible="{Binding IsPackageDepositionEnabled}"
+					AutomationProperties.AutomationId="StartPage.SenderDepositPackage"
+					Command="{Binding SenderDepositPackageCommand}"/>
+			<!-- Slika puni ostatak (Uniform), pa umanjena na 70% i podignuta 100 px. -->
+			<Image Source="/Resources/box-start.png"
+				   Stretch="Uniform"
+				   Margin="8"
+				   RenderTransformOrigin="50%,50%">
+				<Image.RenderTransform>
+					<TransformGroup>
+						<ScaleTransform ScaleX="0.7" ScaleY="0.7"/>
+						<TranslateTransform Y="-100"/>
+					</TransformGroup>
+				</Image.RenderTransform>
+			</Image>
+		</DockPanel>
+		<!-- Identifikacija paketomata (QR + čitljiv ispis), u donjem desnom uglu. -->
+		<c:LockerQrCode Code="{Binding LockerQrCodeText}"
+						QrSize="80"
+						LabelFontSize="12"
+						TextElement.Foreground="WhiteSmoke"
+						HorizontalAlignment="Right"
+						VerticalAlignment="Bottom"
+						Margin="0 0 24 16"/>
+	</Panel>
+</UserControl>

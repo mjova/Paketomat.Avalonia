@@ -1,0 +1,25 @@
+<!-- v2 Pages/CourierPackagePickupPage/CourierPackagePickupPagePortraitLayout.xaml -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:TopPos.Kiosk.ViewModels"
+             x:Class="TopPos.Kiosk.UI.Views.CourierPackagePickupPortraitLayout"
+             x:DataType="vm:CourierPackagePickupViewModel">
+	<Panel>
+		<Image Classes="zoom"
+			   Source="/Resources/courier-pick-up-expired-package.png"
+			   Stretch="UniformToFill"
+			   HorizontalAlignment="Center"
+			   VerticalAlignment="Center"/>
+		<!-- Uputstvo, a kad vrata nisu zatvorena na vreme poruka da se zatvore -->
+		<Border Classes="info" HorizontalAlignment="Center" VerticalAlignment="Center" Padding="24" Margin="32">
+			<StackPanel>
+				<TextBlock Classes="title" FontSize="48" TextWrapping="Wrap"
+						   Text="{Binding [CourierPackagePickupPage.Instructions]}"
+						   IsVisible="{Binding ShowInstructions}"/>
+				<TextBlock Classes="title" FontSize="48" TextWrapping="Wrap"
+						   Text="{Binding [Unattended.PleaseCloseTheDoor]}"
+						   IsVisible="{Binding ShowCloseDoorMessage}"/>
+			</StackPanel>
+		</Border>
+	</Panel>
+</UserControl>

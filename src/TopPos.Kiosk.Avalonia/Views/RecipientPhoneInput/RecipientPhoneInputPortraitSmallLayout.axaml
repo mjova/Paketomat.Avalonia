@@ -1,0 +1,16 @@
+<!-- v2 Pages/RecipientPhoneInputPage/RecipientPhoneInputPagePortraitSmallLayout.xaml -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:TopPos.Kiosk.ViewModels"
+             xmlns:c="using:TopPos.Kiosk.UI.Controls"
+             x:Class="TopPos.Kiosk.UI.Views.RecipientPhoneInputPortraitSmallLayout"
+             x:DataType="vm:RecipientPhoneInputViewModel">
+	<!-- Samo numerička tastatura, bez uputstva (kao v2) -->
+	<Grid>
+		<c:NumericKeypad DataContext="{Binding Keypad}"
+						 Width="405" Height="600" FontSize="36"
+						 HorizontalAlignment="Center"
+						 VerticalAlignment="Top"
+						 Margin="6 78 6 6"/>
+	</Grid>
+</UserControl>

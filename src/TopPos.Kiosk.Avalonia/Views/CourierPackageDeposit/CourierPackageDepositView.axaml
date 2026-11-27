@@ -1,0 +1,30 @@
+<!-- v2 Pages/CourierPackageDepositPage/CourierPackageDepositPage.xaml: stranica u layoutu po veličini prozora (LayoutContent) -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:TopPos.Kiosk.ViewModels"
+             xmlns:c="using:TopPos.Kiosk.UI.Controls"
+             xmlns:views="using:TopPos.Kiosk.UI.Views"
+             x:Class="TopPos.Kiosk.UI.Views.CourierPackageDepositView"
+             AutomationProperties.AutomationId="Page.CourierPackageDepositPage"
+             x:DataType="vm:CourierPackageDepositViewModel">
+	<c:LayoutContent Content="{Binding}">
+		<c:LayoutContent.LandscapeLargeTemplate>
+			<DataTemplate x:DataType="vm:CourierPackageDepositViewModel"><views:CourierPackageDepositLandscapeLayout/></DataTemplate>
+		</c:LayoutContent.LandscapeLargeTemplate>
+		<c:LayoutContent.LandscapeMediumTemplate>
+			<DataTemplate x:DataType="vm:CourierPackageDepositViewModel"><views:CourierPackageDepositLandscapeMediumLayout/></DataTemplate>
+		</c:LayoutContent.LandscapeMediumTemplate>
+		<c:LayoutContent.LandscapeSmallTemplate>
+			<DataTemplate x:DataType="vm:CourierPackageDepositViewModel"><views:CourierPackageDepositLandscapeSmallLayout/></DataTemplate>
+		</c:LayoutContent.LandscapeSmallTemplate>
+		<c:LayoutContent.PortraitLargeTemplate>
+			<DataTemplate x:DataType="vm:CourierPackageDepositViewModel"><views:CourierPackageDepositPortraitLayout/></DataTemplate>
+		</c:LayoutContent.PortraitLargeTemplate>
+		<c:LayoutContent.PortraitMediumTemplate>
+			<DataTemplate x:DataType="vm:CourierPackageDepositViewModel"><views:CourierPackageDepositPortraitMediumLayout/></DataTemplate>
+		</c:LayoutContent.PortraitMediumTemplate>
+		<c:LayoutContent.PortraitSmallTemplate>
+			<DataTemplate x:DataType="vm:CourierPackageDepositViewModel"><views:CourierPackageDepositPortraitSmallLayout/></DataTemplate>
+		</c:LayoutContent.PortraitSmallTemplate>
+	</c:LayoutContent>
+</UserControl>

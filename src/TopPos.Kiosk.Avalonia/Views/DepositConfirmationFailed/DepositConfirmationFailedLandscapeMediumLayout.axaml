@@ -1,0 +1,41 @@
+<!-- v2 Pages/DepositConfirmationFailedPage/DepositConfirmationFailedPageLandscapeMediumLayout.xaml -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:TopPos.Kiosk.ViewModels"
+             x:Class="TopPos.Kiosk.UI.Views.DepositConfirmationFailedLandscapeMediumLayout"
+             x:DataType="vm:DepositConfirmationFailedViewModel">
+	<Grid RowDefinitions="*,*">
+		<Image Grid.Row="0" Grid.RowSpan="2" Classes="zoom"
+			   Source="/Resources/courier-package-deposit.png"
+			   Stretch="UniformToFill"
+			   HorizontalAlignment="Center"
+			   VerticalAlignment="Center"/>
+		<Border Grid.Row="0" Classes="info" HorizontalAlignment="Center" VerticalAlignment="Center" Padding="24">
+			<TextBlock Text="{Binding Message}"
+					   FontSize="32" TextWrapping="Wrap" TextAlignment="Center"
+					   AutomationProperties.AutomationId="DepositConfirmationFailedPage.Message"
+					   Foreground="{DynamicResource InformationForegroundColor}"/>
+		</Border>
+		<!-- Dole: dugmad, vidljiva po ishodu slanja -->
+		<StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+			<Button Classes="animated"
+					Content="{Binding [DepositConfirmationFailedPage.Retry]}"
+					Margin="24,0" MinWidth="200"
+					IsVisible="{Binding CanRetry}"
+					AutomationProperties.AutomationId="DepositConfirmationFailedPage.Retry"
+					Command="{Binding RetryCommand}"/>
+			<Button Classes="animated"
+					Content="{Binding [DepositConfirmationFailedPage.ReturnPackage]}"
+					Margin="24,0" MinWidth="200"
+					IsVisible="{Binding CanReturnPackage}"
+					AutomationProperties.AutomationId="DepositConfirmationFailedPage.ReturnPackage"
+					Command="{Binding ReturnPackageCommand}"/>
+			<Button Classes="animated"
+					Content="{Binding [DepositConfirmationFailedPage.LeavePackage]}"
+					Margin="24,0" MinWidth="200"
+					IsVisible="{Binding CanLeavePackage}"
+					AutomationProperties.AutomationId="DepositConfirmationFailedPage.LeavePackage"
+					Command="{Binding LeavePackageCommand}"/>
+		</StackPanel>
+	</Grid>
+</UserControl>

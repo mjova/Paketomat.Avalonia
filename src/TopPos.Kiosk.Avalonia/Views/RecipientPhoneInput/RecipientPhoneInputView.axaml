@@ -1,0 +1,30 @@
+<!-- v2 Pages/RecipientPhoneInputPage/RecipientPhoneInputPage.xaml: stranica u layoutu po veličini prozora (LayoutContent) -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:TopPos.Kiosk.ViewModels"
+             xmlns:c="using:TopPos.Kiosk.UI.Controls"
+             xmlns:views="using:TopPos.Kiosk.UI.Views"
+             x:Class="TopPos.Kiosk.UI.Views.RecipientPhoneInputView"
+             AutomationProperties.AutomationId="Page.RecipientPhoneInputPage"
+             x:DataType="vm:RecipientPhoneInputViewModel">
+	<c:LayoutContent Content="{Binding}">
+		<c:LayoutContent.LandscapeLargeTemplate>
+			<DataTemplate x:DataType="vm:RecipientPhoneInputViewModel"><views:RecipientPhoneInputLandscapeLayout/></DataTemplate>
+		</c:LayoutContent.LandscapeLargeTemplate>
+		<c:LayoutContent.LandscapeMediumTemplate>
+			<DataTemplate x:DataType="vm:RecipientPhoneInputViewModel"><views:RecipientPhoneInputLandscapeMediumLayout/></DataTemplate>
+		</c:LayoutContent.LandscapeMediumTemplate>
+		<c:LayoutContent.LandscapeSmallTemplate>
+			<DataTemplate x:DataType="vm:RecipientPhoneInputViewModel"><views:RecipientPhoneInputLandscapeSmallLayout/></DataTemplate>
+		</c:LayoutContent.LandscapeSmallTemplate>
+		<c:LayoutContent.PortraitLargeTemplate>
+			<DataTemplate x:DataType="vm:RecipientPhoneInputViewModel"><views:RecipientPhoneInputPortraitLayout/></DataTemplate>
+		</c:LayoutContent.PortraitLargeTemplate>
+		<c:LayoutContent.PortraitMediumTemplate>
+			<DataTemplate x:DataType="vm:RecipientPhoneInputViewModel"><views:RecipientPhoneInputPortraitMediumLayout/></DataTemplate>
+		</c:LayoutContent.PortraitMediumTemplate>
+		<c:LayoutContent.PortraitSmallTemplate>
+			<DataTemplate x:DataType="vm:RecipientPhoneInputViewModel"><views:RecipientPhoneInputPortraitSmallLayout/></DataTemplate>
+		</c:LayoutContent.PortraitSmallTemplate>
+	</c:LayoutContent>
+</UserControl>

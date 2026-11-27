@@ -1,0 +1,30 @@
+<!-- v2 Pages/CourierPickupConfirmationPage/CourierPickupConfirmationPage.xaml: stranica u layoutu po veličini prozora (LayoutContent) -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:TopPos.Kiosk.ViewModels"
+             xmlns:c="using:TopPos.Kiosk.UI.Controls"
+             xmlns:views="using:TopPos.Kiosk.UI.Views"
+             x:Class="TopPos.Kiosk.UI.Views.CourierPickupConfirmationView"
+             AutomationProperties.AutomationId="Page.CourierPickupConfirmationPage"
+             x:DataType="vm:CourierPickupConfirmationViewModel">
+	<c:LayoutContent Content="{Binding}">
+		<c:LayoutContent.LandscapeLargeTemplate>
+			<DataTemplate x:DataType="vm:CourierPickupConfirmationViewModel"><views:CourierPickupConfirmationLandscapeLayout/></DataTemplate>
+		</c:LayoutContent.LandscapeLargeTemplate>
+		<c:LayoutContent.LandscapeMediumTemplate>
+			<DataTemplate x:DataType="vm:CourierPickupConfirmationViewModel"><views:CourierPickupConfirmationLandscapeMediumLayout/></DataTemplate>
+		</c:LayoutContent.LandscapeMediumTemplate>
+		<c:LayoutContent.LandscapeSmallTemplate>
+			<DataTemplate x:DataType="vm:CourierPickupConfirmationViewModel"><views:CourierPickupConfirmationLandscapeSmallLayout/></DataTemplate>
+		</c:LayoutContent.LandscapeSmallTemplate>
+		<c:LayoutContent.PortraitLargeTemplate>
+			<DataTemplate x:DataType="vm:CourierPickupConfirmationViewModel"><views:CourierPickupConfirmationPortraitLayout/></DataTemplate>
+		</c:LayoutContent.PortraitLargeTemplate>
+		<c:LayoutContent.PortraitMediumTemplate>
+			<DataTemplate x:DataType="vm:CourierPickupConfirmationViewModel"><views:CourierPickupConfirmationPortraitMediumLayout/></DataTemplate>
+		</c:LayoutContent.PortraitMediumTemplate>
+		<c:LayoutContent.PortraitSmallTemplate>
+			<DataTemplate x:DataType="vm:CourierPickupConfirmationViewModel"><views:CourierPickupConfirmationPortraitSmallLayout/></DataTemplate>
+		</c:LayoutContent.PortraitSmallTemplate>
+	</c:LayoutContent>
+</UserControl>

@@ -1,0 +1,30 @@
+<!-- v2 Pages/CourierPickupPromptPage/CourierPickupPromptPage.xaml: stranica u layoutu po veličini prozora (LayoutContent) -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:TopPos.Kiosk.ViewModels"
+             xmlns:c="using:TopPos.Kiosk.UI.Controls"
+             xmlns:views="using:TopPos.Kiosk.UI.Views"
+             x:Class="TopPos.Kiosk.UI.Views.CourierPickupPromptView"
+             AutomationProperties.AutomationId="Page.CourierPickupPromptPage"
+             x:DataType="vm:CourierPickupPromptViewModel">
+	<c:LayoutContent Content="{Binding}">
+		<c:LayoutContent.LandscapeLargeTemplate>
+			<DataTemplate x:DataType="vm:CourierPickupPromptViewModel"><views:CourierPickupPromptLandscapeLayout/></DataTemplate>
+		</c:LayoutContent.LandscapeLargeTemplate>
+		<c:LayoutContent.LandscapeMediumTemplate>
+			<DataTemplate x:DataType="vm:CourierPickupPromptViewModel"><views:CourierPickupPromptLandscapeMediumLayout/></DataTemplate>
+		</c:LayoutContent.LandscapeMediumTemplate>
+		<c:LayoutContent.LandscapeSmallTemplate>
+			<DataTemplate x:DataType="vm:CourierPickupPromptViewModel"><views:CourierPickupPromptLandscapeSmallLayout/></DataTemplate>
+		</c:LayoutContent.LandscapeSmallTemplate>
+		<c:LayoutContent.PortraitLargeTemplate>
+			<DataTemplate x:DataType="vm:CourierPickupPromptViewModel"><views:CourierPickupPromptPortraitLayout/></DataTemplate>
+		</c:LayoutContent.PortraitLargeTemplate>
+		<c:LayoutContent.PortraitMediumTemplate>
+			<DataTemplate x:DataType="vm:CourierPickupPromptViewModel"><views:CourierPickupPromptPortraitMediumLayout/></DataTemplate>
+		</c:LayoutContent.PortraitMediumTemplate>
+		<c:LayoutContent.PortraitSmallTemplate>
+			<DataTemplate x:DataType="vm:CourierPickupPromptViewModel"><views:CourierPickupPromptPortraitSmallLayout/></DataTemplate>
+		</c:LayoutContent.PortraitSmallTemplate>
+	</c:LayoutContent>
+</UserControl>

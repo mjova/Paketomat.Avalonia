@@ -1,0 +1,44 @@
+<!-- v2 Pages/RecipientCodeInputPage/RecipientCodeInputPageLandscapeMediumLayout.xaml -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:TopPos.Kiosk.ViewModels"
+             xmlns:c="using:TopPos.Kiosk.UI.Controls"
+             x:Class="TopPos.Kiosk.UI.Views.RecipientCodeInputLandscapeMediumLayout"
+             x:DataType="vm:RecipientCodeInputViewModel">
+	<Grid ColumnDefinitions="2*,*,2*">
+		<!-- Levo: uputstvo (v2 Medium bez animacije skeniranja QR koda) -->
+		<Grid Grid.Column="0" RowDefinitions="7*,4*">
+			<Border Grid.Row="0" Grid.RowSpan="2" Classes="info"
+					HorizontalAlignment="Center" VerticalAlignment="Top"
+					Padding="18" Margin="48 4 4 4">
+				<StackPanel>
+					<TextBlock Classes="title" Text="{Binding [RecipientCodeInputPage.InstructionsTitle]}"/>
+					<TextBlock Classes="text" Text="{Binding [RecipientCodeInputPage.InputChoices]}" Margin="4 12"/>
+					<TextBlock Classes="text" Text="{Binding [RecipientCodeInputPage.InputChoice.1]}"/>
+					<TextBlock Classes="text" Text="{Binding [RecipientCodeInputPage.InputChoice.Or]}" HorizontalAlignment="Center"/>
+					<TextBlock Classes="text" Text="{Binding [RecipientCodeInputPage.InputChoice.2]}"/>
+					<TextBlock Classes="text" Text="{Binding [RecipientCodeInputPage.NextStep]}" Margin="4 12"/>
+				</StackPanel>
+			</Border>
+		</Grid>
+		<!-- Sredina: telefon i strelica ka tastaturi -->
+		<Grid Grid.Column="1" RowDefinitions="*,*">
+			<Image Grid.Row="0" Source="/Resources/telefon.png" Margin="32"/>
+			<!-- v2 DownArrowGeometryMedium (10% manja) ×4 → 72×108; hod 18 ×4 = 72 kao klasa bounce. -->
+			<Path Grid.Row="1" Classes="bounce"
+				  Data="{StaticResource DownArrowGeometry}"
+				  Fill="Red"
+				  Stretch="Uniform"
+				  Width="72" Height="108"
+				  HorizontalAlignment="Center"
+				  VerticalAlignment="Top"
+				  Margin="8 48 8 8"/>
+		</Grid>
+		<!-- Desno: numerička tastatura (v2 SmallNumericKeypadStyle: 270×400, FontSize 24, SemiBold) -->
+		<c:NumericKeypad Grid.Column="2"
+						 DataContext="{Binding Keypad}"
+						 Classes="small"
+						 VerticalAlignment="Top"
+						 Margin="32"/>
+	</Grid>
+</UserControl>

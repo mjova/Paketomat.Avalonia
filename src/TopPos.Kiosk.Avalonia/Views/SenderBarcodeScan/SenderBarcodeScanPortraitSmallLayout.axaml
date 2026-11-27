@@ -1,0 +1,24 @@
+<!-- v2 Pages/SenderBarcodeScanPage/SenderBarcodeScanPagePortraitSmallLayout.xaml -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:TopPos.Kiosk.ViewModels"
+             xmlns:c="using:TopPos.Kiosk.UI.Controls"
+             x:Class="TopPos.Kiosk.UI.Views.SenderBarcodeScanPortraitSmallLayout"
+             x:DataType="vm:SenderBarcodeScanViewModel">
+	<Grid RowDefinitions="*,*,*">
+		<c:Barcode Grid.Row="0"/>
+		<Border Grid.Row="1" Classes="info" HorizontalAlignment="Center" VerticalAlignment="Center" Padding="24" Margin="48">
+			<TextBlock Text="{Binding [SenderBarcodeScanPage.ScanPackageToDeposit]}"
+					   FontSize="30" TextWrapping="Wrap" TextAlignment="Center" Foreground="{DynamicResource InformationForegroundColor}"/>
+		</Border>
+		<Grid Grid.Row="2" Grid.Column="2" ColumnDefinitions="*,*">
+			<Button Grid.Column="1"
+					Classes="animated"
+					Content="{Binding [SenderBarcodeScanPage.Cancel]}"
+					HorizontalAlignment="Center" VerticalAlignment="Center"
+					Margin="4"
+					AutomationProperties.AutomationId="SenderBarcodeScanPage.Cancel"
+					Command="{Binding CancelCommand}"/>
+		</Grid>
+	</Grid>
+</UserControl>

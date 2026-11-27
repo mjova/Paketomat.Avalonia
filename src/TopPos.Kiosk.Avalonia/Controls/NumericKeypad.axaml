@@ -1,12 +1,24 @@
-<!-- v2 Controls/NumericKeypad (RegularNumericKeypadStyle: 350×450, FontSize 24); grafički tasteri ✕/✓ uvek (UseGraphicalKeys). -->
+<!-- v2 Controls/NumericKeypad; veličina iz v2 Resources/Styles.xaml (RegularNumericKeypadStyle, a SmallNumericKeypadStyle kao
+     klasa „small“); grafički tasteri ✕/✓ uvek (UseGraphicalKeys). -->
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:TopPos.Kiosk.ViewModels"
              x:Class="TopPos.Kiosk.UI.Controls.NumericKeypad"
-             x:DataType="vm:NumericKeypadViewModel"
-             Width="350" Height="450" FontSize="24">
+             xmlns:c="using:TopPos.Kiosk.UI.Controls"
+             x:DataType="vm:NumericKeypadViewModel">
 
 	<UserControl.Styles>
+		<!-- Stil, ne vrednost na korenu: vrednost sa stranice i klasa „small“ moraju da ga pregaze. -->
+		<Style Selector="c|NumericKeypad">
+			<Setter Property="Width" Value="350"/>
+			<Setter Property="Height" Value="450"/>
+			<Setter Property="FontSize" Value="24"/>
+		</Style>
+		<Style Selector="c|NumericKeypad.small">
+			<Setter Property="Width" Value="270"/>
+			<Setter Property="Height" Value="400"/>
+			<Setter Property="FontWeight" Value="SemiBold"/>
+		</Style>
 		<!-- Okvir tastera (R=8) baca senku; lice tastera (R=6) se na pritisak spusti 2 px, ugašeno je providno. -->
 		<Style Selector="Border.key">
 			<Setter Property="BorderBrush" Value="#333333"/>

@@ -1,0 +1,38 @@
+<!-- v2 Pages/StartPage/StartPageLandscapeSmallLayout.xaml -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:TopPos.Kiosk.ViewModels"
+             xmlns:c="using:TopPos.Kiosk.UI.Controls"
+             x:Class="TopPos.Kiosk.UI.Views.StartLandscapeSmallLayout"
+             x:DataType="vm:StartViewModel">
+	<Panel>
+		<DockPanel>
+			<Border DockPanel.Dock="Top" Height="20"/>
+			<Border DockPanel.Dock="Bottom" Height="20"/>
+			<!-- Kao v2 bez slike; „Ostavi paket“ (odluka korisnika 27.11.2026, v2 ga ovde nema) levo, „Preuzmi paket“ desno,
+				 par (poslednji, puni ostatak) centriran na ekranu. -->
+			<StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+				<Button Classes="animated"
+						Content="{Binding [StartPage.DepositPackage]}"
+						VerticalAlignment="Center"
+						Margin="0 0 30 0"
+						IsVisible="{Binding IsPackageDepositionEnabled}"
+						AutomationProperties.AutomationId="StartPage.SenderDepositPackage"
+						Command="{Binding SenderDepositPackageCommand}"/>
+				<Button Classes="animated"
+						Content="{Binding [StartPage.PickUpPackage]}"
+						VerticalAlignment="Center"
+						AutomationProperties.AutomationId="StartPage.RecipientPickUpPackage"
+						Command="{Binding RecipientPickUpPackageCommand}"/>
+			</StackPanel>
+		</DockPanel>
+		<!-- Identifikacija paketomata (QR + čitljiv ispis), u donjem desnom uglu. -->
+		<c:LockerQrCode Code="{Binding LockerQrCodeText}"
+						QrSize="80"
+						LabelFontSize="12"
+						TextElement.Foreground="WhiteSmoke"
+						HorizontalAlignment="Right"
+						VerticalAlignment="Bottom"
+						Margin="0 0 24 16"/>
+	</Panel>
+</UserControl>

@@ -1,0 +1,43 @@
+<!-- v2 Pages/CourierDepositPromptPage/CourierDepositPromptPagePortraitSmallLayout.xaml -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:TopPos.Kiosk.ViewModels"
+             x:Class="TopPos.Kiosk.UI.Views.CourierDepositPromptPortraitSmallLayout"
+             x:DataType="vm:CourierDepositPromptViewModel">
+	<Grid RowDefinitions="Auto,*,Auto">
+		<!-- Gore: znak uspešne prijave -->
+		<Image Grid.Row="0" Margin="8" Width="90" Source="{StaticResource SuccessDI}"
+			   Effect="drop-shadow(0 8 3 #33000000)"/>
+		<!-- Sredina: poruke -->
+		<Border Grid.Row="1" Classes="info" Padding="16" Margin="40 40">
+			<StackPanel>
+				<TextBlock Text="{Binding [CourierDepositPromptPage.AllExpiredPackagesPickedUp]}"
+						   FontSize="30" HorizontalAlignment="Center" Foreground="{DynamicResource InformationForegroundColor}"
+						   IsVisible="{Binding AllExpiredPackagesPickedUp}"
+						   TextWrapping="Wrap" Margin="12"/>
+				<TextBlock Text="{Binding [CourierDepositPromptPage.NoExpiredPackages]}"
+						   FontSize="30" HorizontalAlignment="Center" Foreground="{DynamicResource InformationForegroundColor}"
+						   IsVisible="{Binding NoExpiredPackages}"
+						   TextWrapping="Wrap" Margin="12"/>
+				<TextBlock Text="{Binding [CourierDepositPromptPage.DepositPrompt]}"
+						   FontSize="30" HorizontalAlignment="Center" Foreground="{DynamicResource InformationForegroundColor}"
+						   TextWrapping="Wrap" Margin="12"/>
+			</StackPanel>
+		</Border>
+		<!-- Dole: Ostavi paket / Izloguj se -->
+		<Grid Grid.Row="2" ColumnDefinitions="*,*">
+			<Button Grid.Column="0"
+					Classes="animated"
+					Content="{Binding [CourierDepositPromptPage.DepositPackage]}"
+					HorizontalAlignment="Center" VerticalAlignment="Center"
+					AutomationProperties.AutomationId="CourierDepositPromptPage.Deposit"
+					Command="{Binding DepositCommand}"/>
+			<Button Grid.Column="1"
+					Classes="animated"
+					Content="{Binding [General.LogOut]}"
+					HorizontalAlignment="Center" VerticalAlignment="Center"
+					AutomationProperties.AutomationId="CourierDepositPromptPage.Cancel"
+					Command="{Binding CancelCommand}"/>
+		</Grid>
+	</Grid>
+</UserControl>

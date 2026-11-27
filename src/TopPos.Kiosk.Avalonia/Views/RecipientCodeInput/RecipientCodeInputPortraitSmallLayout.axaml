@@ -1,0 +1,16 @@
+<!-- v2 Pages/RecipientCodeInputPage/RecipientCodeInputPagePortraitSmallLayout.xaml -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:TopPos.Kiosk.ViewModels"
+             xmlns:c="using:TopPos.Kiosk.UI.Controls"
+             x:Class="TopPos.Kiosk.UI.Views.RecipientCodeInputPortraitSmallLayout"
+             x:DataType="vm:RecipientCodeInputViewModel">
+	<!-- Kao v2 (1:1): samo uvećana numerička tastatura, bez uputstva, QR animacije, telefona i strelice. -->
+	<Panel>
+		<c:NumericKeypad DataContext="{Binding Keypad}"
+						 Width="405" Height="600" FontSize="36"
+						 HorizontalAlignment="Center"
+						 VerticalAlignment="Top"
+						 Margin="6 78 6 6"/>
+	</Panel>
+</UserControl>

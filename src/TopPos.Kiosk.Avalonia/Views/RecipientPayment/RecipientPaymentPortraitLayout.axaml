@@ -1,0 +1,32 @@
+<!-- v2 Pages/RecipientPaymentPage/RecipientPaymentPagePortraitLayout.xaml -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:TopPos.Kiosk.ViewModels"
+             x:Class="TopPos.Kiosk.UI.Views.RecipientPaymentPortraitLayout"
+             x:DataType="vm:RecipientPaymentViewModel">
+	<Grid RowDefinitions="3*,4*">
+		<!-- Gore: tok plaćanja i iznos -->
+		<StackPanel Grid.Row="0">
+			<Border Classes="info" HorizontalAlignment="Center" VerticalAlignment="Top" Padding="12" Margin="8 24">
+				<TextBlock Classes="title" Text="{Binding InfoMessage}" TextWrapping="Wrap"/>
+			</Border>
+			<Border Classes="info" HorizontalAlignment="Center" VerticalAlignment="Top" Padding="4" Margin="4">
+				<StackPanel>
+					<TextBlock Classes="text" FontSize="24" Text="{Binding [RecipientPaymentPage.AmountInfoTitle]}" HorizontalAlignment="Center"/>
+					<TextBlock Classes="text" FontSize="24" Text="{Binding AmountDetails}" HorizontalAlignment="Center"/>
+				</StackPanel>
+			</Border>
+		</StackPanel>
+		<!-- Dole: uputstvo i slika -->
+		<Grid Grid.Row="1" ColumnDefinitions="*,*">
+			<Border Grid.Column="0" Classes="info" HorizontalAlignment="Center" VerticalAlignment="Top" Padding="24" Margin="8">
+				<StackPanel>
+					<TextBlock Classes="title" Text="{Binding [RecipientPaymentPage.InstructionsTitle]}"/>
+					<TextBlock Classes="text" Text="{Binding [RecipientPaymentPage.PaymentAbortMessage]}" Margin="4 16"/>
+				</StackPanel>
+			</Border>
+			<!-- v2: Grid.Column="2" u mreži od dve kolone; Grid ga stavlja u poslednju kolonu -->
+			<Image Grid.Column="2" Source="/Resources/tap-payment-card.png" VerticalAlignment="Top" Margin="8"/>
+		</Grid>
+	</Grid>
+</UserControl>

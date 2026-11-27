@@ -1,0 +1,25 @@
+<!-- v2 Pages/CourierManualLoginPage/CourierManualLoginPagePortraitSmallLayout.xaml -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:TopPos.Kiosk.ViewModels"
+             xmlns:c="using:TopPos.Kiosk.UI.Controls"
+             x:Class="TopPos.Kiosk.UI.Views.CourierManualLoginPortraitSmallLayout"
+             x:DataType="vm:CourierManualLoginViewModel">
+	<Grid ColumnDefinitions="4*,5*">
+		<!-- Levo: uputstvo -->
+		<Border Grid.Column="0" Classes="info"
+				HorizontalAlignment="Center" VerticalAlignment="Top"
+				Padding="20" Margin="16 36 12 4">
+			<StackPanel>
+				<TextBlock Classes="title" Text="{Binding [CourierManualLoginPage.InstructionsTitle]}"/>
+				<TextBlock Classes="text" Text="{Binding [CourierManualLoginPage.Instructions]}" Margin="4 16"/>
+			</StackPanel>
+		</Border>
+		<!-- Desno: numerička tastatura (v2 SmallNumericKeypadStyle: 270×400, SemiBold) -->
+		<c:NumericKeypad Grid.Column="1"
+						 DataContext="{Binding Keypad}"
+						 VerticalAlignment="Top"
+						 Classes="small"
+						 Margin="20"/>
+	</Grid>
+</UserControl>

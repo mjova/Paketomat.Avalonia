@@ -1,11 +1,13 @@
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
+using Avalonia.LogicalTree;
 using Avalonia.Threading;
 using Flatsoft.Common;
 using TopPos.Kiosk.UI.Views;
 using TopPos.Agent.Contracts;
 using TopPos.Kiosk.AgentCommunication;
+using TopPos.Kiosk.UI.Controls;
 using TopPos.Kiosk.ViewModels;
 using TopPos.Service;
 using Xunit;
@@ -190,6 +192,87 @@ namespace TopPos.Kiosk.UI.Tests
 			if (!string.IsNullOrEmpty(folder)) {
 				Directory.CreateDirectory(folder);
 				frame!.Save(Path.Combine(folder, $"{page}.png"), new Avalonia.Media.Imaging.PngBitmapEncoderOptions());
+			}
+		}
+
+		/// <summary>Veličina prozora po layoutu: rezolucije iz v2 konfiguracije, ostale po pravilima <see cref="ScreenLayout.FromSize"/>.</summary>
+		private static readonly (ScreenLayout Layout, int Width, int Height)[] __screens = [
+			(new(false, ScreenSize.Large), 1280, 800), (new(false, ScreenSize.Medium), 1024, 768), (new(false, ScreenSize.Small), 960, 600),
+			(new(true, ScreenSize.Large), 800, 1280), (new(true, ScreenSize.Medium), 768, 1024), (new(true, ScreenSize.Small), 600, 1024)
+		];
+
+		public static TheoryData<string, int> PagesInLayouts {
+			get {
+				var data = new TheoryData<string, int>();
+				foreach (var page in Pages) {
+					for (var i = 0; i < __screens.Length; i++) {
+						data.Add(page.Data, i);
+					}
+				}
+				return data;
+			}
+		}
+
+		/// <summary>Ime v2 layout fajla bez prefiksa: Landscape Large je „Landscape“, Portrait Large „Portrait“.</summary>
+		private static string V2Suffix(ScreenLayout layout)
+			=> layout.Size == ScreenSize.Large ? (layout.IsPortrait ? "Portrait" : "Landscape") : layout.ToString();
+
+		/// <summary>
+		/// Layout koji stranica mora da prikaže (ime tipa), nezavisno od toga koji tipovi postoje: v2 layout tog imena; stranice
+		/// pošiljaoca imaju u v2 samo Landscape, LandscapeMedium i PortraitSmall, pa ostale veličine dobijaju najbliži
+		/// (<see cref="LayoutContent.Select{T}"/>). <c>null</c>: stranica ima jedan prikaz za sve ekrane (v2 jedan šablon).
+		/// </summary>
+		private static string? ExpectedLayout(Type viewType, ScreenLayout layout)
+		{
+			var page = viewType.Name[..^"View".Length];
+			if (viewType == typeof(RemoteServiceView) || viewType == typeof(RecipientRemoteConfirmationView) || viewType == typeof(DeviceStatusView)) {
+				return null;
+			}
+			if (viewType == typeof(SenderBarcodeScanView) || viewType == typeof(SenderPackageDepositView)) {
+				var suffix = (layout.IsPortrait, layout.Size) switch {
+					(false, ScreenSize.Large) => "Landscape",
+					(false, _) => "LandscapeMedium",
+					(true, _) => "PortraitSmall"
+				};
+				return $"{page}{suffix}Layout";
+			}
+			return $"{page}{V2Suffix(layout)}Layout";
+		}
+
+		// Svaka stranica u svakom layoutu, u prozoru te veličine (bez okvira glavnog prozora). Snimci: {page}.{layout}.png.
+		[AvaloniaTheory]
+		[MemberData(nameof(PagesInLayouts))]
+		public void Page_renders_in_layout(string page, int screen)
+		{
+			BrandTheme.Apply(Path.Combine(AppContext.BaseDirectory, "Brands", "DailyExpress"), App.Current!.Resources);
+			var (layout, width, height) = __screens[screen];
+			var (viewModel, viewType) = Create(page, Languages());
+			var host = new ContentControl { Content = viewModel };
+			var window = new Window { Width = width, Height = height, Content = host, Background = (Avalonia.Media.IBrush) App.Current.Resources["ApplicationBackgroundColor"]! };
+			LayoutContent.SetScreenLayout(window, layout);
+			window.Show();
+			Dispatcher.UIThread.RunJobs();
+
+			var frame = window.CaptureRenderedFrame();
+
+			Assert.NotNull(frame);
+			Assert.IsType(viewType, host.Presenter?.Child);
+			var pageView = (Control) host.Presenter!.Child!;
+			// Layout nasleđen od prozora (kao od glavnog prozora u radu), sa ViewModel-om stranice.
+			var content = pageView.GetLogicalDescendants().OfType<LayoutContent>().SingleOrDefault();
+			var expected = ExpectedLayout(viewType, layout);
+			if (expected == null) {
+				Assert.Null(content);
+			}
+			else {
+				var shown = content?.Presenter?.Child;
+				Assert.Equal(expected, shown?.GetType().Name);
+				Assert.Same(viewModel, shown!.DataContext);
+			}
+			var folder = Environment.GetEnvironmentVariable("TOPPOS_UI_SNAPSHOTS");
+			if (!string.IsNullOrEmpty(folder)) {
+				Directory.CreateDirectory(folder);
+				frame!.Save(Path.Combine(folder, $"{page}.{layout}.png"), new Avalonia.Media.Imaging.PngBitmapEncoderOptions());
 			}
 		}
 	}

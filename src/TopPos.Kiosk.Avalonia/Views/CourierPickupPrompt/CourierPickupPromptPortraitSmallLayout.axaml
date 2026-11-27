@@ -1,0 +1,54 @@
+<!-- v2 Pages/CourierPickupPromptPage/CourierPickupPromptPagePortraitSmallLayout.xaml -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:TopPos.Kiosk.ViewModels"
+             x:Class="TopPos.Kiosk.UI.Views.CourierPickupPromptPortraitSmallLayout"
+             x:DataType="vm:CourierPickupPromptViewModel">
+	<Grid RowDefinitions="Auto,*,Auto" ColumnDefinitions="*,*">
+		<!-- Kurir preko cele stranice, okviri i tasteri iznad njega -->
+		<Image Grid.RowSpan="3" Grid.ColumnSpan="2"
+			   Source="/Resources/courier-expired-pickup.png"/>
+		<!-- Levo gore: upozorenje o odjavi -->
+		<Border Grid.Row="0" Grid.Column="0"
+				HorizontalAlignment="Left" VerticalAlignment="Top"
+				Background="#ddffffff" Opacity="0.9"
+				BorderBrush="{DynamicResource AccentedForegroundColor1}" BorderThickness="2"
+				Margin="32 48 32 32" Padding="16">
+			<StackPanel>
+				<TextBlock Text="{Binding [CourierPickupPromptPage.WarnLogOutTitle]}"
+						   Foreground="{DynamicResource AccentedForegroundColor1}"
+						   FontSize="32" HorizontalAlignment="Center" Margin="4 4 4 24"/>
+				<TextBlock Text="{Binding [CourierPickupPromptPage.WarnLogOutMessage]}"
+						   Foreground="Black" FontSize="24" TextWrapping="Wrap"/>
+			</StackPanel>
+		</Border>
+		<!-- Desno gore: broj isteklih paketa (Grid.Column="2" kao u v2; Grid ga svodi na poslednju kolonu) -->
+		<Border Grid.Row="0" Grid.Column="2"
+				Background="#ddffffff" Opacity="0.9"
+				BorderBrush="White" BorderThickness="3"
+				Margin="32 48 32 32" Padding="16">
+			<StackPanel>
+				<TextBlock Text="{Binding [CourierPickupPromptPage.ExpiredPackagesTitle]}"
+						   Foreground="Black" FontSize="32" TextWrapping="Wrap"/>
+				<TextBlock Text="{Binding RemainingExpiredPackagesCount}"
+						   Foreground="Black" FontSize="64" HorizontalAlignment="Center"/>
+			</StackPanel>
+		</Border>
+		<Button Grid.Row="2" Grid.Column="0"
+				Classes="animated"
+				Content="{Binding [General.LogOut]}"
+				HorizontalAlignment="Center" VerticalAlignment="Center"
+				FontSize="30"
+				Margin="32"
+				AutomationProperties.AutomationId="CourierPickupPromptPage.Cancel"
+				Command="{Binding CancelCommand}"/>
+		<Button Grid.Row="2" Grid.Column="2"
+				Classes="animated"
+				Content="{Binding [CourierPickupPromptPage.PickUpPackage]}"
+				HorizontalAlignment="Center" VerticalAlignment="Center"
+				FontSize="30"
+				Margin="32 64"
+				AutomationProperties.AutomationId="CourierPickupPromptPage.PickUp"
+				Command="{Binding PickUpCommand}"/>
+	</Grid>
+</UserControl>

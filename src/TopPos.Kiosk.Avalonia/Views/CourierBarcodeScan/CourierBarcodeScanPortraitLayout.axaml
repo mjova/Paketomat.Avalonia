@@ -1,0 +1,34 @@
+<!-- v2 Pages/CourierBarcodeScanPage/CourierBarcodeScanPagePortraitLayout.xaml (preuzimanje i ostavljanje kurira) -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:TopPos.Kiosk.ViewModels"
+             xmlns:c="using:TopPos.Kiosk.UI.Controls"
+             x:Class="TopPos.Kiosk.UI.Views.CourierBarcodeScanPortraitLayout"
+             x:DataType="vm:CourierBarcodeScanViewModel">
+	<Grid RowDefinitions="*,*,*">
+		<c:Barcode Grid.Row="0"/>
+		<Border Grid.Row="1" Classes="info" HorizontalAlignment="Center" VerticalAlignment="Center" Padding="36" Margin="48">
+			<StackPanel>
+				<TextBlock Text="{Binding [CourierBarcodeScanPage.ScanPickedUpPackage]}"
+						   FontSize="32" TextWrapping="Wrap" Foreground="{DynamicResource InformationForegroundColor}"
+						   IsVisible="{Binding PackagePickup}"/>
+				<TextBlock Text="{Binding Barcode}"
+						   FontSize="32" Foreground="{DynamicResource AccentedForegroundColor1}" HorizontalAlignment="Center"
+						   IsVisible="{Binding PackagePickup}"/>
+				<TextBlock Text="{Binding [CourierBarcodeScanPage.ScanPackageToDeposit]}"
+						   FontSize="32" TextWrapping="Wrap" TextAlignment="Center" Foreground="{DynamicResource InformationForegroundColor}"
+						   IsVisible="{Binding PackageDeposit}"/>
+			</StackPanel>
+		</Border>
+		<Grid Grid.Row="2" Grid.Column="2" ColumnDefinitions="*,*">
+			<Button Grid.Column="1"
+					Classes="animated"
+					Content="{Binding [General.LogOut]}"
+					HorizontalAlignment="Center" VerticalAlignment="Center"
+					Margin="4"
+					AutomationProperties.AutomationId="CourierBarcodeScanPage.Cancel"
+					IsVisible="{Binding PackageDeposit}"
+					Command="{Binding CancelCommand}"/>
+		</Grid>
+	</Grid>
+</UserControl>

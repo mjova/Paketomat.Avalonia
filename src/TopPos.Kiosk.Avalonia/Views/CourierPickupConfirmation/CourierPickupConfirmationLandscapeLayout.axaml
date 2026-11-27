@@ -1,0 +1,38 @@
+<!-- v2 Pages/CourierPickupConfirmationPage/CourierPickupConfirmationPageLandscapeLayout.xaml -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:TopPos.Kiosk.ViewModels"
+             x:Class="TopPos.Kiosk.UI.Views.CourierPickupConfirmationLandscapeLayout"
+             x:DataType="vm:CourierPickupConfirmationViewModel">
+	<Grid RowDefinitions="*,*,*">
+		<!-- v2 Stretch="None": PNG nema 96 DPI, pa je veličina zadata (kao na Start-u) -->
+		<Image Grid.Row="0" Source="/Resources/box-start.png" Width="231" Height="214"
+			   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+		<Border Grid.Row="1" Classes="info"
+				HorizontalAlignment="Center" VerticalAlignment="Center"
+				Padding="64">
+			<TextBlock Text="{Binding [CourierPickupConfirmationPage.PickupConfirmationQuestion]}"
+					   FontSize="32"
+					   Foreground="{DynamicResource InformationForegroundColor}"/>
+		</Border>
+		<!-- Dole: Ne / Da -->
+		<Grid Grid.Row="2" ColumnDefinitions="*,*">
+			<Button Grid.Column="0"
+					Classes="animated"
+					Content="{Binding [General.No]}"
+					HorizontalAlignment="Center"
+					VerticalAlignment="Center"
+					MinWidth="200"
+					AutomationProperties.AutomationId="CourierPickupConfirmationPage.Cancel"
+					Command="{Binding CancelCommand}"/>
+			<Button Grid.Column="1"
+					Classes="animated"
+					Content="{Binding [General.Yes]}"
+					HorizontalAlignment="Center"
+					VerticalAlignment="Center"
+					MinWidth="200"
+					AutomationProperties.AutomationId="CourierPickupConfirmationPage.Confirm"
+					Command="{Binding ConfirmCommand}"/>
+		</Grid>
+	</Grid>
+</UserControl>
