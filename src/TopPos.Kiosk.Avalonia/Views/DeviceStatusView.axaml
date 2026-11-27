@@ -67,7 +67,7 @@ drugi prozor nije pouzdan); zatamnjena pozadina preko celog prozora prima dodire
 
 				<!-- Uređaji: spinner dok provera traje, pa status -->
 				<StackPanel Grid.Row="1" VerticalAlignment="Center">
-					<Grid ColumnDefinitions="*,120" Margin="0 8">
+					<Grid ColumnDefinitions="*,150" Margin="0 8">
 						<TextBlock Grid.Column="0" Classes="device" Text="{Binding [DeviceStatus.BarcodeScanner]}"/>
 						<Panel Grid.Column="1" Width="24" Height="24" IsVisible="{Binding IsBarcodeScannerChecking}">
 							<Ellipse Stroke="#FF0078D7" StrokeThickness="3" Opacity="0.3"/>
@@ -78,7 +78,7 @@ drugi prozor nije pouzdan); zatamnjena pozadina preko celog prozora prima dodire
 								   Text="{Binding BarcodeScannerStatus}"
 								   IsVisible="{Binding !IsBarcodeScannerChecking}"/>
 					</Grid>
-					<Grid ColumnDefinitions="*,120" Margin="0 8">
+					<Grid ColumnDefinitions="*,150" Margin="0 8">
 						<TextBlock Grid.Column="0" Classes="device" Text="{Binding [DeviceStatus.POSTerminal]}"/>
 						<Panel Grid.Column="1" Width="24" Height="24" IsVisible="{Binding IsPosTerminalChecking}">
 							<Ellipse Stroke="#FF0078D7" StrokeThickness="3" Opacity="0.3"/>

@@ -51,10 +51,13 @@ kontrola u prikazu i staju kad se skine (v2 je to radio ručno, Loaded/Unloaded)
 		<Setter Property="Background" Value="{DynamicResource InformationBackgroundColor}"/>
 		<Setter Property="BoxShadow" Value="{StaticResource DefaultBoxShadow}"/>
 	</Style>
+	<!-- Naslov se prelama kad ne staje (uzak ekran, engleski; Inter je širi od Segoe UI iz v2). -->
 	<Style Selector="TextBlock.title">
 		<Setter Property="FontSize" Value="32"/>
 		<Setter Property="Foreground" Value="{DynamicResource AccentedForegroundColor1}"/>
 		<Setter Property="HorizontalAlignment" Value="Center"/>
+		<Setter Property="TextWrapping" Value="Wrap"/>
+		<Setter Property="TextAlignment" Value="Center"/>
 		<Setter Property="Margin" Value="4"/>
 	</Style>
 	<Style Selector="TextBlock.text">

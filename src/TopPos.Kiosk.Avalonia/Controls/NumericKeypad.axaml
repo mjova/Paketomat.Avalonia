@@ -19,6 +19,13 @@
 			<Setter Property="Height" Value="400"/>
 			<Setter Property="FontWeight" Value="SemiBold"/>
 		</Style>
+		<Style Selector="TextBlock.display">
+			<Setter Property="Padding" Value="16"/>
+		</Style>
+		<!-- Mala tastatura: uži unutrašnji razmak polja, da „(Vaš kod iz poruke)“ stane (Inter je širi od Segoe UI iz v2). -->
+		<Style Selector="c|NumericKeypad.small TextBlock.display">
+			<Setter Property="Padding" Value="8 16"/>
+		</Style>
 		<!-- Okvir tastera (R=8) baca senku; lice tastera (R=6) se na pritisak spusti 2 px, ugašeno je providno. -->
 		<Style Selector="Border.key">
 			<Setter Property="BorderBrush" Value="#333333"/>
@@ -57,11 +64,11 @@
 	</UserControl.Styles>
 
 	<Grid RowDefinitions="Auto,*">
-		<TextBlock Text="{Binding Code}"
+		<TextBlock Classes="display"
+				   Text="{Binding Code}"
 				   Background="#66ffffff"
 				   FontStyle="Italic"
 				   FontWeight="SemiBold"
-				   Padding="16"
 				   Margin="10"
 				   TextAlignment="Right"/>
 

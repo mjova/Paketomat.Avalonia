@@ -1,4 +1,4 @@
-<!-- v2 Pages/CourierPickupPromptPage/CourierPickupPromptPagePortraitSmallLayout.xaml -->
+<!-- v2 Pages/CourierPickupPromptPage/CourierPickupPromptPagePortraitSmallLayout.xaml; dugmad sa bočnom marginom 8 umesto 32: Inter je širi od Segoe UI (v2) -->
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:TopPos.Kiosk.ViewModels"
@@ -39,7 +39,7 @@
 				Content="{Binding [General.LogOut]}"
 				HorizontalAlignment="Center" VerticalAlignment="Center"
 				FontSize="30"
-				Margin="32"
+				Margin="8"
 				AutomationProperties.AutomationId="CourierPickupPromptPage.Cancel"
 				Command="{Binding CancelCommand}"/>
 		<Button Grid.Row="2" Grid.Column="2"
@@ -47,7 +47,7 @@
 				Content="{Binding [CourierPickupPromptPage.PickUpPackage]}"
 				HorizontalAlignment="Center" VerticalAlignment="Center"
 				FontSize="30"
-				Margin="32 64"
+				Margin="8 64"
 				AutomationProperties.AutomationId="CourierPickupPromptPage.PickUp"
 				Command="{Binding PickUpCommand}"/>
 	</Grid>

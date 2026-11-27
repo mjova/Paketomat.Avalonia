@@ -7,6 +7,11 @@
              AutomationProperties.AutomationId="Page.RemoteServicePage"
              x:DataType="vm:RemoteServiceViewModel">
 	<UserControl.Styles>
+		<!-- Mali ekran (klasa small, RemoteServiceView.axaml.cs): dva dugmeta i poruka dole moraju da stanu u 600 px. -->
+		<Style Selector=":is(UserControl).small Button.animated">
+			<Setter Property="FontSize" Value="22"/>
+			<Setter Property="Padding" Value="12"/>
+		</Style>
 		<!-- Dugme vertikale i boks: bez Fluent pozadine i ivica, izgled daje sadržaj (v2 ControlTemplate) -->
 		<Style Selector="Button.plain">
 			<Setter Property="Focusable" Value="False"/>
@@ -61,7 +66,7 @@
 			<Border DockPanel.Dock="Top" Background="#1B2733" Padding="16,10">
 				<StackPanel>
 					<TextBlock Text="{Binding ActiveTitle}" AutomationProperties.AutomationId="RemoteServicePage.Title"
-							   FontSize="24" FontWeight="Bold" Foreground="White"/>
+							   FontSize="24" FontWeight="Bold" Foreground="White" TextWrapping="Wrap"/>
 					<TextBlock Text="{Binding InfoText}" FontSize="20" Foreground="#F0D050"
 							   AutomationProperties.AutomationId="RemoteServicePage.Info"/>
 					<TextBlock Text="{Binding ModuleErrorText}" FontSize="20" FontWeight="Bold" Foreground="#FF8A80" TextWrapping="Wrap"

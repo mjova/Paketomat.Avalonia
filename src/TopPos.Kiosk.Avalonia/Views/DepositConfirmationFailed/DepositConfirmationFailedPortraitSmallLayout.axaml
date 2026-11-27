@@ -16,8 +16,8 @@
 					   AutomationProperties.AutomationId="DepositConfirmationFailedPage.Message"
 					   Foreground="{DynamicResource InformationForegroundColor}"/>
 		</Border>
-		<!-- Dole: dugmad, vidljiva po ishodu slanja -->
-		<StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+		<!-- Dole: dugmad, vidljiva po ishodu slanja; jedno ispod drugog (v2 pored: na 600 px ne staju) -->
+		<StackPanel Grid.Row="1" Orientation="Vertical" Spacing="16" HorizontalAlignment="Center" VerticalAlignment="Center">
 			<Button Classes="animated"
 					Content="{Binding [DepositConfirmationFailedPage.Retry]}"
 					Margin="24,0" MinWidth="200"

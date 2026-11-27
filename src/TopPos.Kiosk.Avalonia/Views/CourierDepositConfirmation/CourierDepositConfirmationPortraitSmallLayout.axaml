@@ -11,8 +11,10 @@
 			   HorizontalAlignment="Center"
 			   VerticalAlignment="Center"/>
 		<Border Grid.Row="0" Classes="info" HorizontalAlignment="Center" VerticalAlignment="Center" Padding="64">
+			<!-- Prelamanje: na 600 px pitanje u jednom redu ne staje (v2 bez prelamanja; Inter je širi od Segoe UI) -->
 			<TextBlock Text="{Binding [CourierDepositConfirmationPage.DepositConfirmationQuestion]}"
-					   FontSize="32" Foreground="{DynamicResource InformationForegroundColor}"/>
+					   FontSize="32" TextWrapping="Wrap" TextAlignment="Center"
+					   Foreground="{DynamicResource InformationForegroundColor}"/>
 		</Border>
 		<!-- Dole: Ne / Da -->
 		<Grid Grid.Row="1" ColumnDefinitions="*,*">

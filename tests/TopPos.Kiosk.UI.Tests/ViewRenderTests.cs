@@ -1,7 +1,9 @@
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.LogicalTree;
+using Avalonia.VisualTree;
 using Avalonia.Threading;
 using Flatsoft.Common;
 using TopPos.Kiosk.UI.Views;
@@ -20,10 +22,10 @@ namespace TopPos.Kiosk.UI.Tests
 	/// </summary>
 	public class ViewRenderTests
 	{
-		private static LanguageManager Languages()
+		private static LanguageManager Languages(string language = "sr")
 		{
 			var languages = new LanguageManager(null);
-			languages.LoadLanguageResources(Path.Combine(AppContext.BaseDirectory, "Languages"), ".lang", "sr");
+			languages.LoadLanguageResources(Path.Combine(AppContext.BaseDirectory, "Languages"), ".lang", language);
 			languages.LoadBrandOverrides(Path.Combine(AppContext.BaseDirectory, "Brands", "DailyExpress"), ".lang");
 			return languages;
 		}
@@ -237,6 +239,56 @@ namespace TopPos.Kiosk.UI.Tests
 				return $"{page}{suffix}Layout";
 			}
 			return $"{page}{V2Suffix(layout)}Layout";
+		}
+
+		/// <summary>Layouti rezolucija iz v2 konfiguracije (flota): 1280×800, 1024×768, 600×1024.</summary>
+		public static TheoryData<string, int, string> PagesInFleetLayouts {
+			get {
+				var data = new TheoryData<string, int, string>();
+				foreach (var page in Pages) {
+					foreach (var screen in new[] { 0, 1, 5 }) {
+						foreach (var language in new[] { "sr", "en" }) {
+							data.Add(page.Data, screen, language);
+						}
+					}
+				}
+				return data;
+			}
+		}
+
+		// Na ekranima iz flote nijedan vidljiv tekst (natpis, dugme, poruka) ne izlazi iz svoje kontrole ni iz prozora
+		// (Inter je širi od Segoe UI iz v2, pa su neki v2 layouti na 600 px sekli tekst).
+		[AvaloniaTheory]
+		[MemberData(nameof(PagesInFleetLayouts))]
+		public void Text_fits_on_fleet_screens(string page, int screen, string language)
+		{
+			BrandTheme.Apply(Path.Combine(AppContext.BaseDirectory, "Brands", "DailyExpress"), App.Current!.Resources);
+			var (layout, width, height) = __screens[screen];
+			var (viewModel, _) = Create(page, Languages(language));
+			var window = new Window { Width = width, Height = height, Content = new ContentControl { Content = viewModel } };
+			LayoutContent.SetScreenLayout(window, layout);
+			window.Show();
+			Dispatcher.UIThread.RunJobs();
+
+			var problems = new List<string>();
+			foreach (var text in window.GetVisualDescendants().OfType<TextBlock>()) {
+				if (!text.IsEffectivelyVisible || string.IsNullOrEmpty(text.Text) || text.Bounds.Width <= 0) {
+					continue;
+				}
+				var room = text.Bounds.Width - text.Padding.Left - text.Padding.Right;
+				// U prozoru, sa svim transformacijama (Viewbox smanjuje tastaturu)
+				var toWindow = text.TransformToVisual(window) ?? Matrix.Identity;
+				var left = new Point(0, 0).Transform(toWindow).X;
+				var right = new Point(text.Bounds.Width, 0).Transform(toWindow).X;
+				if (text.TextLayout.Width > room + 1) {
+					problems.Add($"„{text.Text}“ ne staje: {text.TextLayout.Width:0} > {room:0}");
+				}
+				else if (left < -1 || right > width + 1) {
+					problems.Add($"„{text.Text}“ izlazi iz prozora: x {left:0}..{right:0} od {width}");
+				}
+			}
+
+			Assert.True(problems.Count == 0, $"{page} {layout} {language}: " + string.Join("; ", problems));
 		}
 
 		// Svaka stranica u svakom layoutu, u prozoru te veličine (bez okvira glavnog prozora). Snimci: {page}.{layout}.png.
