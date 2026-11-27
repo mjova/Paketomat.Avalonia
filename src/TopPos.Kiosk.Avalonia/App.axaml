@@ -13,6 +13,7 @@
 				<ResourceInclude Source="/Resources/information.axaml"/>
 				<ResourceInclude Source="/Resources/toppos-rs-qrcode-sample.axaml"/>
 				<ResourceInclude Source="/Resources/barcode-sample.axaml"/>
+				<ResourceInclude Source="/Resources/screen-rotate.axaml"/>
 				<ResourceInclude Source="/Languages/sr/sr.axaml"/>
 				<ResourceInclude Source="/Languages/en/en.axaml"/>
 			</ResourceDictionary.MergedDictionaries>

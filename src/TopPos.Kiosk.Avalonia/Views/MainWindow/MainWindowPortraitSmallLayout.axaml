@@ -1,0 +1,90 @@
+<!-- v2 MainWindow/MainWindowPortraitSmallLayout.xaml + Steps.xaml -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:TopPos.Kiosk.ViewModels"
+             xmlns:kiosk="using:TopPos.Kiosk"
+             xmlns:ui="using:TopPos.Kiosk.UI"
+             xmlns:c="using:TopPos.Kiosk.UI.Controls"
+             x:Class="TopPos.Kiosk.UI.Views.MainWindowPortraitSmallLayout"
+             x:DataType="vm:MainWindowViewModel">
+	<Grid RowDefinitions="Auto,*,Auto">
+		<!-- Zaglavlje: logo, jezik, Home -->
+		<Grid Grid.Row="0" IsVisible="{Binding IsPageChromeVisible}">
+			<Image Source="{DynamicResource ApplicationLogo}" Width="250" Height="90"/>
+			<DockPanel Margin="12 6 12 4">
+				<Button Classes="header"
+						DockPanel.Dock="Left"
+						Margin="12 12 8 12"
+						IsEnabled="{Binding IsHomeButtonEnabled}"
+						AutomationProperties.AutomationId="Header.Home"
+						c:PressBehavior.ShortPressCommand="{Binding GoToStartPageCommand}"
+						c:PressBehavior.LongPressThreshold="3000"
+						c:PressBehavior.LongPressCommand="{Binding DisplayDeviceStatusCommand}">
+					<Image Source="/Resources/home.png" Width="40" Height="40"/>
+				</Button>
+				<Button Classes="header"
+						DockPanel.Dock="Left"
+						Margin="8 12 6 12"
+						AutomationProperties.AutomationId="Header.Language"
+						Command="{Binding ShowLanguageSelectorCommand}">
+					<Image Width="40" Source="{Binding CurrentLanguageFlag}"/>
+				</Button>
+				<!-- Samo DEBUG (v2 AllowScreenRotation): zamena širine i visine prozora za proveru layouta. -->
+				<Button Classes="header"
+						DockPanel.Dock="Left"
+						Margin="6 12 6 12"
+						Background="#555555"
+						IsVisible="{Binding IsDebugMode}"
+						AutomationProperties.AutomationId="Header.Rotate"
+						Command="{Binding $parent[ui:MainWindow].ToggleDisplayOrientation}">
+					<Image Width="20" Height="20" Margin="8">
+						<Image.Source>
+							<DrawingImage Drawing="{StaticResource ScreenRotate}"/>
+						</Image.Source>
+					</Image>
+				</Button>
+				<Panel/>
+			</DockPanel>
+		</Grid>
+
+		<!-- Koraci i tekuća stranica -->
+		<DockPanel Grid.Row="1">
+			<Border DockPanel.Dock="Top"
+					IsVisible="{Binding IsPageChromeVisible}"
+					Background="{DynamicResource StepsBackgroundColor}"
+					CornerRadius="10"
+					Margin="16">
+				<ItemsControl ItemsSource="{Binding Steps}" Height="80">
+					<ItemsControl.ItemsPanel>
+						<ItemsPanelTemplate>
+							<UniformGrid Rows="1" Columns="4"/>
+						</ItemsPanelTemplate>
+					</ItemsControl.ItemsPanel>
+					<ItemsControl.ItemTemplate>
+						<DataTemplate x:DataType="kiosk:StepViewModel">
+							<Border Classes="step" Classes.selected="{Binding IsSelected}">
+								<TextBlock Text="{Binding Name}"
+										   FontSize="20"
+										   Foreground="WhiteSmoke"
+										   HorizontalAlignment="Center"
+										   VerticalAlignment="Center"/>
+							</Border>
+						</DataTemplate>
+					</ItemsControl.ItemTemplate>
+				</ItemsControl>
+			</Border>
+			<ContentControl Content="{Binding CurrentPage}"/>
+		</DockPanel>
+
+		<!-- Podnožje -->
+		<Grid Grid.Row="2" RowDefinitions="*,Auto" IsVisible="{Binding IsPageChromeVisible}">
+			<TextBlock Grid.Row="1"
+					   Text="{Binding TechnicalSupportContact}"
+					   Foreground="#AAFFFFFF"
+					   FontSize="16"
+					   Padding="8 8 8 16"
+					   HorizontalAlignment="Center"
+					   VerticalAlignment="Center"/>
+		</Grid>
+	</Grid>
+</UserControl>

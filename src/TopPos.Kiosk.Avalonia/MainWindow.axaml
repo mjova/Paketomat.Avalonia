@@ -1,11 +1,11 @@
 <!--
-Glavni prozor kioska: v2 MainWindow.xaml + MainWindowLandscapeLayout.xaml (Landscape Large, 1280×800) + Steps.xaml.
-F0 ima jedan layout; ostalih pet (v2 LayoutTemplateSelector) dolazi u F3.
+Glavni prozor kioska: v2 MainWindow.xaml; zaglavlje, koraci, stranica i podnožje su u šest layouta (Views/MainWindow,
+v2 MainWindow*Layout.xaml + Steps.xaml), izbor po veličini prozora (LayoutContent).
 -->
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:TopPos.Kiosk.ViewModels"
-        xmlns:kiosk="using:TopPos.Kiosk"
+        xmlns:views="using:TopPos.Kiosk.UI.Views"
         xmlns:c="using:TopPos.Kiosk.UI.Controls"
         x:Class="TopPos.Kiosk.UI.MainWindow"
         x:DataType="vm:MainWindowViewModel"
@@ -58,72 +58,27 @@ F0 ima jedan layout; ostalih pet (v2 LayoutTemplateSelector) dolazi u F3.
 					<Binding Path="IsDeviceStatusActive" Converter="{x:Static BoolConverters.Not}"/>
 				</MultiBinding>
 			</Panel.IsEnabled>
-		<Grid RowDefinitions="Auto,*,Auto">
-			<!-- Zaglavlje: logo, jezik, Home -->
-			<Grid Grid.Row="0" IsVisible="{Binding IsPageChromeVisible}">
-				<Image Source="{DynamicResource ApplicationLogo}" Width="200" Height="70"/>
-				<StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="12 6 32 4">
-					<Button Classes="header"
-							AutomationProperties.AutomationId="Header.Language"
-							Command="{Binding ShowLanguageSelectorCommand}">
-						<Image Width="40" Source="{Binding CurrentLanguageFlag}"/>
-					</Button>
-					<Button Classes="header"
-							IsEnabled="{Binding IsHomeButtonEnabled}"
-							AutomationProperties.AutomationId="Header.Home"
-							c:PressBehavior.ShortPressCommand="{Binding GoToStartPageCommand}"
-							c:PressBehavior.LongPressThreshold="3000"
-							c:PressBehavior.LongPressCommand="{Binding DisplayDeviceStatusCommand}">
-						<Image Source="/Resources/home.png" Width="40" Height="40"/>
-					</Button>
-				</StackPanel>
-			</Grid>
-
-			<!-- Koraci i tekuća stranica -->
-			<DockPanel Grid.Row="1">
-				<Border DockPanel.Dock="Top"
-						IsVisible="{Binding IsPageChromeVisible}"
-						Background="{DynamicResource StepsBackgroundColor}"
-						CornerRadius="10"
-						Margin="16">
-					<ItemsControl ItemsSource="{Binding Steps}" Height="80">
-						<ItemsControl.ItemsPanel>
-							<ItemsPanelTemplate>
-								<UniformGrid Rows="1" Columns="4"/>
-							</ItemsPanelTemplate>
-						</ItemsControl.ItemsPanel>
-						<ItemsControl.ItemTemplate>
-							<DataTemplate x:DataType="kiosk:StepViewModel">
-								<Border Classes="step" Classes.selected="{Binding IsSelected}">
-									<TextBlock Text="{Binding Name}"
-											   FontSize="20"
-											   Foreground="WhiteSmoke"
-											   HorizontalAlignment="Center"
-											   VerticalAlignment="Center"/>
-								</Border>
-							</DataTemplate>
-						</ItemsControl.ItemTemplate>
-					</ItemsControl>
-				</Border>
-				<ContentControl Content="{Binding CurrentPage}"/>
-			</DockPanel>
-
-			<!-- Podnožje -->
-			<Grid Grid.Row="2" ColumnDefinitions="*,*,*" IsVisible="{Binding IsPageChromeVisible}">
-				<TextBlock Grid.Column="0"
-						   Text="{Binding TechnicalSupportContact}"
-						   Foreground="#AAFFFFFF"
-						   FontSize="16"
-						   Padding="32 8 8 8"
-						   VerticalAlignment="Center"/>
-				<Image Grid.Column="1"
-					   Source="/Resources/powered-by-top-pos.png"
-					   Stretch="None"
-					   HorizontalAlignment="Center"
-					   VerticalAlignment="Center"
-					   Margin="32"/>
-			</Grid>
-		</Grid>
+		<!-- Zaglavlje, koraci, tekuća stranica i podnožje u layoutu po veličini prozora (v2 LayoutTemplateSelector). -->
+		<c:LayoutContent Content="{Binding}">
+			<c:LayoutContent.LandscapeLargeTemplate>
+				<DataTemplate x:DataType="vm:MainWindowViewModel"><views:MainWindowLandscapeLayout/></DataTemplate>
+			</c:LayoutContent.LandscapeLargeTemplate>
+			<c:LayoutContent.LandscapeMediumTemplate>
+				<DataTemplate x:DataType="vm:MainWindowViewModel"><views:MainWindowLandscapeMediumLayout/></DataTemplate>
+			</c:LayoutContent.LandscapeMediumTemplate>
+			<c:LayoutContent.LandscapeSmallTemplate>
+				<DataTemplate x:DataType="vm:MainWindowViewModel"><views:MainWindowLandscapeSmallLayout/></DataTemplate>
+			</c:LayoutContent.LandscapeSmallTemplate>
+			<c:LayoutContent.PortraitLargeTemplate>
+				<DataTemplate x:DataType="vm:MainWindowViewModel"><views:MainWindowPortraitLayout/></DataTemplate>
+			</c:LayoutContent.PortraitLargeTemplate>
+			<c:LayoutContent.PortraitMediumTemplate>
+				<DataTemplate x:DataType="vm:MainWindowViewModel"><views:MainWindowPortraitMediumLayout/></DataTemplate>
+			</c:LayoutContent.PortraitMediumTemplate>
+			<c:LayoutContent.PortraitSmallTemplate>
+				<DataTemplate x:DataType="vm:MainWindowViewModel"><views:MainWindowPortraitSmallLayout/></DataTemplate>
+			</c:LayoutContent.PortraitSmallTemplate>
+		</c:LayoutContent>
 
 		<!-- Poruka preko celog ekrana (v2 MessageControl) -->
 		<Border Background="Black" Opacity="0.3" IsVisible="{Binding ShowMessage}"/>
