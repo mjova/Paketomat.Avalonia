@@ -30,13 +30,18 @@ namespace TopPos.AgentPipe.TestClient
 		private static async Task<int> Main(string[] args)
 		{
 			Console.OutputEncoding = Encoding.UTF8;     // poruke kioska i ispis su na srpskom
+			// v4: provera da klijent zaista radi kao root (instalacija i E2E harness kroz sudo -k -n), bez kanala.
+			if (args is ["--self-check"]) {
+				Console.WriteLine($"Proces: {Environment.UserName}, privilegovan: {Environment.IsPrivilegedProcess}");
+				return Environment.IsPrivilegedProcess ? 0 : 1;
+			}
 			var options = Options.Parse(args);
 			if (options == null) {
 				Console.WriteLine("""
 					Upotreba: TopPos.AgentPipe.TestClient [--pipe <ime> | --socket <putanja>] [--command <komanda>] [--subscribe <sekundi>] [--locker <id>]
 					          TopPos.AgentPipe.TestClient [--pipe <ime> | --socket <putanja>] [--locker <id>] --shutdown <Restart|Stop|Install|Update>
 					          TopPos.AgentPipe.TestClient [--pipe <ime> | --socket <putanja>] --squat <sekundi>
-					          TopPos.AgentPipe.TestClient [--pipe <ime> | --socket <putanja>] --remote-service-begin <kod> --layout <csv> [--idle <sekundi>] [--watch <sekundi>]
+					          TopPos.AgentPipe.TestClient [--pipe <ime> | --socket <putanja>] --remote-service-begin <kod> (--layout <csv> | --layout-text <redovi>) [--idle <sekundi>] [--watch <sekundi>]
 					          TopPos.AgentPipe.TestClient [--pipe <ime> | --socket <putanja>] --open-doors <sessionId> <vrata|all> [--watch <sekundi>]
 					          TopPos.AgentPipe.TestClient [--pipe <ime> | --socket <putanja>] --remote-service-end <sessionId>
 					          TopPos.AgentPipe.TestClient [--pipe <ime> | --socket <putanja>] --command-result <requestId> [--after <redni broj>]
@@ -53,6 +58,7 @@ namespace TopPos.AgentPipe.TestClient
 					  --squat      lažni server: zauzme ime pipe-a (Linux: lock pored socket-a) zadati broj sekundi
 					  --remote-service-begin  BeginRemoteService sa kodom prisustva; sessionId je RequestId iz ispisa
 					  --layout     raspored u CSV formatu Technician-a (DoorNumber;Size;Column;Row, zaglavlje se preskače)
+					  --layout-text isti raspored u argumentu, redovi odvojeni sa | (npr. 1;S;1;1|2;M;1;2)
 					  --idle       rok neaktivnosti posle prijave servisera (podrazumevano 600 s)
 					  --open-doors OpenDoors: vrata odvojena zarezom (npr. 1,2,9) ili all
 					  --remote-service-end    EndRemoteService (serviser je u portalu potvrdio da je zatvorio vrata)
@@ -61,7 +67,11 @@ namespace TopPos.AgentPipe.TestClient
 					  --recipient-pickup      RecipientPickup: podrška preuzima paket; kiosk otvara vrata kad korisnik unese kod prisustva
 					  --watch      posle komande prati status zadati broj sekundi i čita GetCommandResult na svaku promenu
 					  --request-id RequestId komande servisne sesije ili preuzimanja (podrazumevano nov GUID); za Begin je to i sessionId
-					  --result-file odgovor na komandu servisne sesije ili preuzimanja kao JSON u zadati fajl (E2E)
+					  --result-file odgovor na komandu servisne sesije ili preuzimanja kao JSON u zadati fajl (E2E, Windows)
+					  --print-result isti odgovor kao red "RESULT <json>" na standardnom izlazu (E2E, Linux)
+					  --self-check  samo proveri da li proces radi kao root (izlaz 0) ili administrator
+					Pod sudo (Linux E2E) samo kiosk pozivaočevog naloga: --status-lock je obavezan (čita se pravima pozivaoca), uid je
+					pozivaočev, a --layout, --result-file i --squat se odbijaju.
 					""");
 				return 1;
 			}
@@ -73,6 +83,15 @@ namespace TopPos.AgentPipe.TestClient
 				return await endpoint.SquatAsync(options.SquatSeconds);
 			}
 
+			// v4: izjava se čita i proverava pre povezivanja — pod sudo root se ne povezuje na socket koji izjava ne navodi ili
+			// kome pozivalac sam ne bi mogao da pristupi.
+			if (options.StatusLock != null && OperatingSystem.IsLinux() && endpoint is LinuxSocketEndpoint declared) {
+				var declarationErrors = declared.ReadDeclaration(options.StatusLock);
+				if (declarationErrors.Count > 0) {
+					Console.WriteLine($"Server NIJE proveren: {string.Join("; ", declarationErrors)}.");
+					return 7;
+				}
+			}
 			await using var pipe = await endpoint.ConnectAsync();
 			if (pipe == null) {
 				return 2;
@@ -80,7 +99,7 @@ namespace TopPos.AgentPipe.TestClient
 			var serverProcessId = endpoint.DescribeServer();
 			// v4: Agent pre ičega osim ClientHello proverava server (ugovor tačka 4); ovde i pre ClientHello.
 			if (options.StatusLock != null && OperatingSystem.IsLinux() && endpoint is LinuxSocketEndpoint socket) {
-				var (expected, errors) = socket.VerifyServer(options.StatusLock, options.ExpectedUid, options.ExpectedExecutable);
+				var (expected, errors) = socket.VerifyServer(options.ExpectedUid, options.ExpectedExecutable);
 				if (errors.Count > 0) {
 					Console.WriteLine($"Server NIJE proveren: {string.Join("; ", errors)}.");
 					return 7;
@@ -256,6 +275,9 @@ namespace TopPos.AgentPipe.TestClient
 			}
 			if (options.ResultFile != null) {
 				await File.WriteAllBytesAsync(options.ResultFile, AgentJson.Serialize(response));
+			}
+			if (options.PrintResult) {
+				Console.WriteLine($"{ResultPrefix}{Encoding.UTF8.GetString(AgentJson.Serialize(response))}");
 			}
 			PrintResult(response);
 			if (response.ResultCode is not (AgentResultCodes.Completed or AgentResultCodes.InProgress)) {
@@ -491,7 +513,12 @@ namespace TopPos.AgentPipe.TestClient
 			public string? RequestId { get; set; }
 			/// <summary>Fajl u koji se upisuje odgovor na komandu (JSON poruke <see cref="AgentResponse"/>).</summary>
 			public string? ResultFile { get; set; }
+			/// <summary>v4: odgovor i kao red <see cref="ResultPrefix"/> na standardnom izlazu (E2E pod sudo, bez fajla).</summary>
+			public bool PrintResult { get; set; }
 		}
+
+		/// <summary>Početak reda sa odgovorom (<c>--print-result</c>); posle njega je JSON poruke <see cref="AgentResponse"/>.</summary>
+		public const string ResultPrefix = "RESULT ";
 
 		private sealed record Options(ChannelEndpoint Endpoint, string Command, int SubscribeSeconds, string? LockerId, int SquatSeconds, string? ShutdownPurpose,
 									  RemoteServiceOptions? RemoteService)
@@ -507,7 +534,8 @@ namespace TopPos.AgentPipe.TestClient
 			{
 				string command = AgentCommands.GetStatus;
 				string? pipe = null, socket = null, statusLock = null, expectedExecutable = null;
-				string? locker = null, shutdown = null, layoutFile = null, requestId = null, resultFile = null;
+				string? locker = null, shutdown = null, layoutFile = null, layoutText = null, requestId = null, resultFile = null;
+				bool printResult = false;
 				int subscribe = 0, squat = 0, idle = 600, watch = 0, after = -1;
 				uint? expectedUid = null;
 				RemoteServiceOptions? remote = null;
@@ -545,6 +573,8 @@ namespace TopPos.AgentPipe.TestClient
 							i += 3;
 							break;
 						case "--layout" when next != null: layoutFile = next; i++; break;
+						case "--layout-text" when next != null: layoutText = next; i++; break;
+						case "--print-result": printResult = true; break;
 						case "--idle" when next != null && int.TryParse(next, out idle): i++; break;
 						case "--after" when next != null && int.TryParse(next, out after): i++; break;
 						case "--watch" when next != null && int.TryParse(next, out watch): i++; break;
@@ -553,6 +583,24 @@ namespace TopPos.AgentPipe.TestClient
 						default: return null;
 					}
 				}
+				// v4 (D4): Linux E2E pokreće klijent kroz sudo bez lozinke. Root tada sme samo kanal ka kiosku koji radi pod nalogom
+				// pozivaoca i koji prođe proveru (tačka 4); ne fajlove po izboru pozivaoca ni lock drugih procesa. Proverava se pre
+				// bilo kakvog pristupa fajlu.
+				if (RunsUnderSudo) {
+					if (layoutFile != null || resultFile != null || squat > 0) {
+						Console.WriteLine("Pod sudo --layout, --result-file i --squat nisu dozvoljeni; koristiti --layout-text i --print-result.");
+						return null;
+					}
+					if (statusLock == null) {
+						Console.WriteLine("Pod sudo je provera kioska obavezna (--status-lock).");
+						return null;
+					}
+					if (expectedUid != null && expectedUid != SudoUid) {
+						Console.WriteLine($"Pod sudo kiosk mora raditi pod nalogom pozivaoca (uid {SudoUid}).");
+						return null;
+					}
+					expectedUid = SudoUid;
+				}
 				if (remote != null) {
 					remote.IdleSeconds = idle;
 					remote.Doors = doors;
@@ -560,12 +608,13 @@ namespace TopPos.AgentPipe.TestClient
 					remote.WatchSeconds = watch;
 					remote.RequestId = requestId;
 					remote.ResultFile = resultFile;
+					remote.PrintResult = printResult;
 					if (remote.Command == AgentCommands.BeginRemoteService) {
-						if (layoutFile == null) {
-							Console.WriteLine("--remote-service-begin traži --layout <csv>.");
+						if ((layoutFile == null) == (layoutText == null)) {
+							Console.WriteLine("--remote-service-begin traži --layout <csv> ili --layout-text <redovi>.");
 							return null;
 						}
-						remote.Layout = ReadLayout(layoutFile);
+						remote.Layout = layoutText != null ? ParseLayout(layoutText.Split('|'), "--layout-text") : ReadLayout(layoutFile!);
 						if (remote.Layout == null) {
 							return null;
 						}
@@ -617,28 +666,41 @@ namespace TopPos.AgentPipe.TestClient
 				return doors;
 			}
 
+			// v4: root koga je pokrenuo sudo (SUDO_UID postavlja sudo, pozivalac ga ne bira).
+			private static bool RunsUnderSudo => OperatingSystem.IsLinux() && Environment.IsPrivilegedProcess && SudoUid != null;
+
+			private static uint? SudoUid => OperatingSystem.IsLinux() ? LinuxSocketEndpoint.SudoCaller?.Uid : null;
+
 			// CSV rasporeda iz Technician-a: DoorNumber;Size;Column;Row; zaglavlje i prazni redovi se preskaču.
 			private static List<LayoutBox>? ReadLayout(string file)
 			{
-				var layout = new List<LayoutBox>();
 				try {
-					foreach (var line in File.ReadLines(file)) {
-						var row = line.Trim().TrimStart('﻿');
-						if (row.Length == 0 || row.StartsWith("DoorNumber", StringComparison.OrdinalIgnoreCase)) {
-							continue;
-						}
-						var parts = row.Split(';', StringSplitOptions.TrimEntries);
-						if (parts.Length < 4 || !int.TryParse(parts[0], out var door) || !int.TryParse(parts[2], out var column)
-							|| !int.TryParse(parts[3], out var boxRow)) {
-							Console.WriteLine($"Neispravan red rasporeda: '{row}'.");
-							return null;
-						}
-						layout.Add(new LayoutBox { DoorNumber = door, Size = parts[1], Column = column, Row = boxRow });
-					}
+					return ParseLayout(File.ReadLines(file), file);
 				}
 				catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) {
 					Console.WriteLine($"Raspored {file} nije pročitan: {ex.Message}");
 					return null;
+				}
+			}
+
+			// v4: redovi rasporeda iz fajla ili iz --layout-text; neispravan red se navodi brojem.
+			private static List<LayoutBox>? ParseLayout(IEnumerable<string> lines, string source)
+			{
+				var layout = new List<LayoutBox>();
+				int number = 0;
+				foreach (var line in lines) {
+					number++;
+					var row = line.Trim().TrimStart('﻿');
+					if (row.Length == 0 || row.StartsWith("DoorNumber", StringComparison.OrdinalIgnoreCase)) {
+						continue;
+					}
+					var parts = row.Split(';', StringSplitOptions.TrimEntries);
+					if (parts.Length < 4 || !int.TryParse(parts[0], out var door) || !int.TryParse(parts[2], out var column)
+						|| !int.TryParse(parts[3], out var boxRow)) {
+						Console.WriteLine($"Neispravan red rasporeda {number} ({source}).");
+						return null;
+					}
+					layout.Add(new LayoutBox { DoorNumber = door, Size = parts[1], Column = column, Row = boxRow });
 				}
 				return layout;
 			}

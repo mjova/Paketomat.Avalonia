@@ -119,9 +119,13 @@ namespace TopPos.AgentPipe.TestClient
 		private const int __openNonBlocking = 0x800;       // O_NONBLOCK: FIFO ne zadržava otvaranje ni čitanje
 		private const int __openCloseOnExec = 0x80000;
 		private const int __maxDeclarationBytes = 64 * 1024;
+		private const int __atCurrentDirectory = -100;     // AT_FDCWD
+		private const int __writeAccess = 2;               // W_OK: povezivanje na socket traži pravo pisanja
+		private const int __effectiveAccess = 0x200;       // AT_EACCESS: efektivni (preuzeti) uid i gid, ne stvarni
 
 		private Socket? _socket;
 		private ServerProcess? _server;
+		private Declaration? _declaration;
 
 		public override string Address => socketPath;
 
@@ -160,27 +164,46 @@ namespace TopPos.AgentPipe.TestClient
 		}
 
 		/// <summary>
-		/// Provera servera kao Agent (ugovor tačka 4) uz izjavu iz <paramref name="statusLockPath"/>: PID, <c>boot_id</c> i
-		/// <c>starttime</c> procesa jednaki izjavi, socket je onaj iz izjave, nalog i izvršni fajl su kiosk-ovi (podrazumevano
-		/// <see cref="DefaultKioskUser"/> i <see cref="DefaultExecutable"/>, inače zadati — npr. E2E i testovi). Vraća opis
-		/// provere i spisak nepoklapanja (prazan = server je proveren). Poziva se posle <see cref="DescribeServer"/>.
+		/// Pre povezivanja: izjava iz <paramref name="statusLockPath"/> i socket iz nje. Pod sudo oboje pravima pozivaoca — root
+		/// ne otvara fajl niti se povezuje na socket kome pozivalac sam ne bi mogao da pristupi. Vraća spisak grešaka (prazan =
+		/// može da se poveže); izjava ostaje za <see cref="VerifyServer"/>.
 		/// </summary>
-		public (string Expected, List<string> Errors) VerifyServer(string statusLockPath, uint? expectedUid, string? expectedExecutable)
+		public List<string> ReadDeclaration(string statusLockPath)
+		{
+			var errors = new List<string>();
+			bool underSudo = SudoCaller != null;    // pre preuzimanja prava: unutar bloka proces više nije root
+			try {
+				using (AsSudoCaller()) {
+					_declaration = Declaration.Read(statusLockPath);
+					if (underSudo && faccessat(__atCurrentDirectory, socketPath, __writeAccess, __effectiveAccess) != 0) {
+						errors.Add($"pozivalac nema pristup socket-u {socketPath} (errno {Marshal.GetLastPInvokeError()})");
+					}
+				}
+			}
+			catch (Exception ex) {
+				errors.Add($"izjava {statusLockPath} nije pročitana: {ex.Message}");
+				return errors;
+			}
+			if (_declaration.SocketPath != socketPath) {
+				errors.Add($"socket {socketPath}, a izjava kaže {_declaration.SocketPath ?? "-"}");
+			}
+			return errors;
+		}
+
+		/// <summary>
+		/// Provera servera kao Agent (ugovor tačka 4) uz izjavu iz <see cref="ReadDeclaration"/>: PID, <c>boot_id</c> i
+		/// <c>starttime</c> procesa jednaki izjavi, nalog i izvršni fajl su kiosk-ovi (podrazumevano <see cref="DefaultKioskUser"/>
+		/// i <see cref="DefaultExecutable"/>, inače zadati — npr. E2E i testovi). Vraća opis provere i spisak nepoklapanja
+		/// (prazan = server je proveren). Poziva se posle <see cref="DescribeServer"/>.
+		/// </summary>
+		public (string Expected, List<string> Errors) VerifyServer(uint? expectedUid, string? expectedExecutable)
 		{
 			var errors = new List<string>();
 			uint? uid = expectedUid ?? UidOf(DefaultKioskUser);
 			var executable = expectedExecutable ?? DefaultExecutable;
 			var expected = $"uid {uid?.ToString() ?? "?"}, exe {executable}";
-			if (_server == null) {
-				errors.Add("identitet servera nije pročitan");
-				return (expected, errors);
-			}
-			Declaration declaration;
-			try {
-				declaration = Declaration.Read(statusLockPath);
-			}
-			catch (Exception ex) {
-				errors.Add($"izjava {statusLockPath} nije pročitana: {ex.Message}");
+			if (_server == null || _declaration is not { } declaration) {
+				errors.Add("identitet servera ili izjava nisu pročitani");
 				return (expected, errors);
 			}
 			if (declaration.ProcessId != _server.Pid) {
@@ -191,9 +214,6 @@ namespace TopPos.AgentPipe.TestClient
 			}
 			if (declaration.StartTicks == null || declaration.StartTicks != _server.StartTicks) {
 				errors.Add($"starttime servera {_server.StartTicks?.ToString() ?? "?"}, a izjava kaže {declaration.StartTicks?.ToString() ?? "-"}");
-			}
-			if (declaration.SocketPath != socketPath) {
-				errors.Add($"socket {socketPath}, a izjava kaže {declaration.SocketPath ?? "-"}");
 			}
 			if (uid == null) {
 				errors.Add($"uid servera {_server.Uid}, a nalog {DefaultKioskUser} ne postoji");
@@ -237,6 +257,44 @@ namespace TopPos.AgentPipe.TestClient
 			catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) {
 				Console.WriteLine($"{lockPath} nije zaključan: {ex.GetType().Name}: {ex.Message}");
 				return 2;
+			}
+		}
+
+		/// <summary>Nalog koji je pokrenuo sudo (<c>SUDO_UID</c>, <c>SUDO_GID</c> postavlja sudo); null van sudo-a.</summary>
+		public static (uint Uid, uint Gid)? SudoCaller
+			=> geteuid() == 0 && uint.TryParse(Environment.GetEnvironmentVariable("SUDO_UID"), out var uid)
+				&& uint.TryParse(Environment.GetEnvironmentVariable("SUDO_GID"), out var gid) && uid != 0
+					? (uid, gid)
+					: null;
+
+		// Prava pozivaoca dok traje blok: dopunske grupe samo njegova primarna (root-ove ne smeju da važe), efektivni gid i uid;
+		// van sudo-a ništa. Grupe se menjaju dok je proces još root (setgroups traži CAP_SETGID).
+		private static IDisposable? AsSudoCaller()
+		{
+			if (SudoCaller is not { } caller) {
+				return null;
+			}
+			int count = getgroups(0, null);
+			var saved = new uint[Math.Max(count, 0)];
+			if (count < 0 || getgroups(saved.Length, saved) != count) {
+				throw new IOException($"grupe procesa nisu pročitane (errno {Marshal.GetLastPInvokeError()})");
+			}
+			uint[] callerGroups = [caller.Gid];
+			if (setgroups(1, callerGroups) != 0 || setegid(caller.Gid) != 0 || seteuid(caller.Uid) != 0) {
+				int errno = Marshal.GetLastPInvokeError();
+				new RestoreRoot(saved).Dispose();
+				throw new IOException($"prava pozivaoca nisu preuzeta (errno {errno})");
+			}
+			return new RestoreRoot(saved);
+		}
+
+		private sealed class RestoreRoot(uint[] groups) : IDisposable
+		{
+			public void Dispose()
+			{
+				if (seteuid(0) != 0 || setegid(0) != 0 || setgroups(groups.Length, groups) != 0) {
+					throw new InvalidOperationException($"prava root-a nisu vraćena (errno {Marshal.GetLastPInvokeError()})");
+				}
 			}
 		}
 
@@ -317,7 +375,7 @@ namespace TopPos.AgentPipe.TestClient
 			{
 				int fd = open(path, OpenNoFollow | __openNonBlocking | __openCloseOnExec);
 				if (fd < 0) {
-					throw new IOException($"nije otvorena bez praćenja linka (errno {Marshal.GetLastPInvokeError()})");
+					throw new IOException($"nije otvorena (errno {Marshal.GetLastPInvokeError()}; link se ne prati, pod sudo važe prava pozivaoca)");
 				}
 				using var handle = new SafeFileHandle(fd, ownsHandle: true);
 				using var stream = new FileStream(handle, FileAccess.Read, bufferSize: 0);
@@ -382,5 +440,20 @@ namespace TopPos.AgentPipe.TestClient
 
 		[LibraryImport("libc")]
 		private static partial uint geteuid();
+
+		[LibraryImport("libc", SetLastError = true)]
+		private static partial int seteuid(uint uid);
+
+		[LibraryImport("libc", SetLastError = true)]
+		private static partial int getgroups(int size, [Out] uint[]? list);
+
+		[LibraryImport("libc", SetLastError = true)]
+		private static partial int setgroups(nint size, uint[] list);
+
+		[LibraryImport("libc", StringMarshalling = StringMarshalling.Utf8, SetLastError = true)]
+		private static partial int faccessat(int directory, string path, int mode, int flags);
+
+		[LibraryImport("libc", SetLastError = true)]
+		private static partial int setegid(uint gid);
 	}
 }

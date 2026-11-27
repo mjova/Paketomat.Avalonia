@@ -44,6 +44,7 @@
     <!-- Samo redosled build-a: testovi pokreću izlaze ovih projekata iz njihovih bin foldera -->
     <ProjectReference Include="..\..\src\TopPos.Kiosk.Avalonia\TopPos.Kiosk.Avalonia.csproj" ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\..\tools\TopPos.Simulators\TopPos.Simulators.csproj" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\..\tools\TopPos.AgentPipe.TestClient\TopPos.AgentPipe.TestClient.csproj" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
   <ItemGroup>

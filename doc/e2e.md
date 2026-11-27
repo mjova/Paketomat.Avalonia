@@ -30,6 +30,9 @@ najduže su klase plaćanja, redova potvrda i neuspele potvrde ostavljanja (mnog
   (`check-screen.ps1`). Tokom izvršavanja ne dirati miš i tastaturu.
 - Testovi sa pravim mišem (`[RealMouseFact]`, `[RealMouseTheory]`: Home tokom unosa i plaćanja, dug pritisak, promena
   jezika) pomeraju miš.
+- Komande Agenta (`AgentPipeTests`, `RemoteServiceTests`, `AgentRecipientPickupTests`): kiosk prima samo LocalSystem, pa
+  ih test klijent šalje kroz `psexec -s` — Sysinternals PsExec 2.x na PATH-u i `run-e2e.cmd` iz administratorske konzole.
+  Bez toga se ti testovi preskaču.
 
 **Linux**
 - .NET 10 SDK na PATH-u; ako je instaliran u `~/.dotnet` (dotnet-install), `run-e2e.sh` ga sam koristi.
@@ -39,6 +42,14 @@ najduže su klase plaćanja, redova potvrda i neuspele potvrde ostavljanja (mnog
   com0com nije potreban. `SerialControllerTests` rade.
 - Testovi sa pravim mišem se preskaču (AT-SPI nema klik mišem, Wayland ne dozvoljava ubacivanje).
 - ~2 GB slobodno u `/tmp` (`run-e2e.sh` proverava).
+- Komande Agenta: kiosk prima samo root, pa ih test klijent šalje kroz `sudo -k -n` (odluka D4). Jednom, kao E2E nalog
+  (samo u E2E VM-u; nalog već ima pun sudo, pravilo mu samo uklanja lozinku za ovaj klijent):
+  `tools/install-e2e-agent-client.sh` — samostalna kopija klijenta u `/usr/local/lib/toppos-e2e/agent-client` koju menja
+  samo root i sudo pravilo bez lozinke samo za nju; ponoviti posle izmene klijenta. Pod sudo klijent sme samo kanal ka
+  kiosku tog naloga: izjava i socket se otvaraju pravima pozivaoca, `--layout`, `--result-file` i `--squat` se odbijaju
+  (E2E šalje `--layout-text` i čita `--print-result`). Pre svake komande klijent proverava kiosk kao Agent (ugovor
+  „Transport na Linuxu“, tačka 4) prema `status.lock` iz sandbox-a. Bez kopije ili pravila ti testovi se preskaču. Socket
+  je u `$XDG_RUNTIME_DIR/toppos-e2e-agent/<id>/`.
 
 **Obe platforme:** ne sme da radi razvojna instanca kioska (Windows: mutex `TopPos.Client.WPF.SingleInstance`, isti kao
 v2; Linux: `/run/lock/toppos-kiosk.lock`) — harness inače odbija start.
@@ -80,6 +91,7 @@ U sandbox-u palog testa:
 | `TOPPOS_E2E=1` | uključuje E2E testove (skripte je postavljaju) |
 | `TOPPOS_E2E_KEEP=1` | čuva sandbox i testova koji su prošli |
 | `TOPPOS_E2E_SCANNER_PORTS`, `TOPPOS_E2E_POS_PORTS`, `TOPPOS_E2E_LOCKER_PORTS` | Windows: com0com parovi `kiosk,simulator` |
+| `TOPPOS_E2E_AGENT_CLIENT` | Linux: test klijent za root (podrazumevano `/usr/local/lib/toppos-e2e/agent-client/TopPos.AgentPipe.TestClient`) |
 
 ## Poznata ograničenja
 

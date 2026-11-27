@@ -71,24 +71,25 @@ namespace TopPos.Kiosk.Tests
 			WriteDeclaration(new AgentChannelAddress(null, address));
 			var declared = JsonNode.Parse(await File.ReadAllTextAsync(StatusLock))!;
 			string[] expectProcess = ["--expect-uid", CurrentUid(), "--expect-exe", CurrentExecutable()];
-			var cases = new (string Name, Func<string, Task> Write, string[] Extra, string Error)[] {
-				("ProcessId", Changed(declared, d => d["ProcessId"] = Environment.ProcessId + 1), expectProcess, "PID servera"),
-				("ProcessId van Int32", Changed(declared, d => d["ProcessId"] = (1L << 32) + Environment.ProcessId), expectProcess, "PID servera"),
-				("ProcessStartTicks", Changed(declared, d => d["ProcessStartTicks"] = (long) d["ProcessStartTicks"]! + 1), expectProcess, "starttime servera"),
-				("ProcessStartTicks decimalan", Changed(declared, d => d["ProcessStartTicks"] = (long) d["ProcessStartTicks"]! + 0.5), expectProcess, "starttime servera"),
-				("ProcessBootId", Changed(declared, d => d["ProcessBootId"] = Guid.NewGuid().ToString()), expectProcess, "boot_id "),
-				("SocketPath", Changed(declared, d => d["AgentChannel"]!["SocketPath"] = address + ".x"), expectProcess, "socket "),
-				("uid", Changed(declared, _ => { }), ["--expect-uid", (uint.Parse(CurrentUid()) + 1).ToString(), "--expect-exe", CurrentExecutable()], "uid servera"),
-				("exe", Changed(declared, _ => { }), ["--expect-uid", CurrentUid(), "--expect-exe", "/bin/sh"], "exe servera"),
+			// Connects: greška u procesu servera vidi se tek posle povezivanja; greška u izjavi pre njega (veze nema).
+			var cases = new (string Name, Func<string, Task> Write, string[] Extra, string Error, bool Connects)[] {
+				("ProcessId", Changed(declared, d => d["ProcessId"] = Environment.ProcessId + 1), expectProcess, "PID servera", true),
+				("ProcessId van Int32", Changed(declared, d => d["ProcessId"] = (1L << 32) + Environment.ProcessId), expectProcess, "PID servera", true),
+				("ProcessStartTicks", Changed(declared, d => d["ProcessStartTicks"] = (long) d["ProcessStartTicks"]! + 1), expectProcess, "starttime servera", true),
+				("ProcessStartTicks decimalan", Changed(declared, d => d["ProcessStartTicks"] = (long) d["ProcessStartTicks"]! + 0.5), expectProcess, "starttime servera", true),
+				("ProcessBootId", Changed(declared, d => d["ProcessBootId"] = Guid.NewGuid().ToString()), expectProcess, "boot_id ", true),
+				("SocketPath", Changed(declared, d => d["AgentChannel"]!["SocketPath"] = address + ".x"), expectProcess, "socket ", false),
+				("uid", Changed(declared, _ => { }), ["--expect-uid", (uint.Parse(CurrentUid()) + 1).ToString(), "--expect-exe", CurrentExecutable()], "uid servera", true),
+				("exe", Changed(declared, _ => { }), ["--expect-uid", CurrentUid(), "--expect-exe", "/bin/sh"], "exe servera", true),
 				// Bez --expect-exe: izvršni fajl izdanja (/opt/toppos-kiosk/current/TopPos.Kiosk), ne ovaj proces.
-				("exe izdanja", Changed(declared, _ => { }), ["--expect-uid", CurrentUid()], "exe servera"),
-				("koren niz", path => File.WriteAllTextAsync(path, "[]"), expectProcess, "izjava "),
-				("link", path => { File.CreateSymbolicLink(path, StatusLock); return Task.CompletedTask; }, expectProcess, "izjava "),
-				("FIFO", path => { using var mkfifo = Process.Start("mkfifo", [path]); mkfifo.WaitForExit(); return Task.CompletedTask; }, expectProcess, "nije običan fajl"),
-				("folder", path => { Directory.CreateDirectory(path); return Task.CompletedTask; }, expectProcess, "izjava "),
+				("exe izdanja", Changed(declared, _ => { }), ["--expect-uid", CurrentUid()], "exe servera", true),
+				("koren niz", path => File.WriteAllTextAsync(path, "[]"), expectProcess, "izjava ", false),
+				("link", path => { File.CreateSymbolicLink(path, StatusLock); return Task.CompletedTask; }, expectProcess, "izjava ", false),
+				("FIFO", path => { using var mkfifo = Process.Start("mkfifo", [path]); mkfifo.WaitForExit(); return Task.CompletedTask; }, expectProcess, "nije običan fajl", false),
+				("folder", path => { Directory.CreateDirectory(path); return Task.CompletedTask; }, expectProcess, "izjava ", false),
 			};
 
-			foreach (var (name, write, extra, error) in cases) {
+			foreach (var (name, write, extra, error, connects) in cases) {
 				var file = Path.Combine(_root, $"status-{cases.ToList().FindIndex(c => c.Name == name)}.lock");
 				await write(file);
 
@@ -97,9 +98,12 @@ namespace TopPos.Kiosk.Tests
 				Assert.True(exitCode == 7, $"{name}: {output}");
 				Assert.Contains("Server NIJE proveren: ", output);
 				Assert.Contains(error, output);
-				using var accepted = await listener.AcceptAsync().WaitAsync(TimeSpan.FromSeconds(5));
-				var received = await accepted.ReceiveAsync(new byte[64], SocketFlags.None).WaitAsync(TimeSpan.FromSeconds(5));
-				Assert.True(received == 0, $"{name}: klijent je poslao {received} bajtova pre provere servera");
+				Assert.True(connects == listener.Poll(0, SelectMode.SelectRead), $"{name}: veza {(connects ? "nije" : "je")} otvorena");
+				if (connects) {
+					using var accepted = await listener.AcceptAsync().WaitAsync(TimeSpan.FromSeconds(5));
+					var received = await accepted.ReceiveAsync(new byte[64], SocketFlags.None).WaitAsync(TimeSpan.FromSeconds(5));
+					Assert.True(received == 0, $"{name}: klijent je poslao {received} bajtova pre provere servera");
+				}
 			}
 		}
 

@@ -201,6 +201,10 @@ namespace TopPos.E2E.Tests.Infrastructure
 				await EnsureNothingRunningAsync().ConfigureAwait(false);
 
 				Sandbox.DeleteStaleRuns(settings.SandboxRoot);
+				// v4: folderi socket-a kanala ka Agentu (Linux) stariji od dana; link se ne prati.
+				if (OperatingSystem.IsLinux() && new DirectoryInfo(AgentChannel.LinuxSocketRoot) is { Exists: true, LinkTarget: null }) {
+					Sandbox.DeleteStaleRuns(AgentChannel.LinuxSocketRoot);
+				}
 				var directory = Path.Combine(settings.SandboxRoot, $"{DateTime.Now:yyyyMMdd-HHmmss}-{testName}");
 				session = new KioskSession(settings, directory, options, output) { _sessionLock = sessionLock };
 			}

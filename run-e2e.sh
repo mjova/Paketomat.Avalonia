@@ -2,7 +2,8 @@
 # E2E testovi (Linux): pravi kiosk nad simulatorima servera i paketomata, UI preko AT-SPI (doc/e2e.md).
 # Preduslovi: grafička sesija (X11 ili Wayland) sa D-Bus sesijom, zatvorena razvojna instanca kioska, ~2 GB slobodno u
 # /tmp (sandbox testa ~0,6 GB; prošao test ga briše). Serijski uređaji idu preko pty parova simulatora (bez com0com-a).
-# Testovi sa pravim mišem (RealMouse*) se na Linuxu preskaču.
+# Testovi sa pravim mišem (RealMouse*) se na Linuxu preskaču. Komande Agenta traže tools/install-e2e-agent-client.sh (jednom,
+# samo u E2E VM-u); bez toga se ti testovi preskaču.
 # Dodatni argumenti idu u dotnet test, npr.: ./run-e2e.sh --filter "FullyQualifiedName~RecipientPickupTests"
 set -euo pipefail
 cd "$(dirname "$0")"

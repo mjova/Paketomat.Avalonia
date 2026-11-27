@@ -78,6 +78,9 @@ namespace TopPos.E2E.Tests.Infrastructure
 		/// <summary>Build izlaz simulatora servera i paketomata (<c>TopPos.Simulators</c>).</summary>
 		public string SimulatorsOutput => Path.Combine(RepositoryRoot, "tools", "TopPos.Simulators", "bin", BuildConfiguration, "net10.0");
 
+		/// <summary>v4: build izlaz test klijenta kanala ka Agentu (Windows, psexec; na Linuxu je instalirana kopija).</summary>
+		public string AgentClientOutput => Path.Combine(RepositoryRoot, "tools", "TopPos.AgentPipe.TestClient", "bin", BuildConfiguration, "net10.0");
+
 		private static E2ESettings Load()
 		{
 			string sandboxRoot = Path.Combine(Path.GetTempPath(), "toppos-e2e");
