@@ -33,6 +33,8 @@
     <ProjectReference Include="../../src/TopPos.LockController.NCU24L/TopPos.LockController.NCU24L.csproj" />
     <ProjectReference Include="../../src/TopPos.LockController.Serial/TopPos.LockController.Serial.csproj" />
     <ProjectReference Include="../../src/TopPos.LockController.SerialDailyExpress/TopPos.LockController.SerialDailyExpress.csproj" />
+    <!-- Test klijent kanala se pokreće kao zaseban proces (AgentTestClientProcessTests); samo redosled build-a. -->
+    <ProjectReference Include="../../tools/TopPos.AgentPipe.TestClient/TopPos.AgentPipe.TestClient.csproj" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
 </Project>

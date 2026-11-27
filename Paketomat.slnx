@@ -16,6 +16,7 @@
     <Project Path="src/TopPos.Service/TopPos.Service.csproj" />
   </Folder>
   <Folder Name="/tools/">
+    <Project Path="tools/TopPos.AgentPipe.TestClient/TopPos.AgentPipe.TestClient.csproj" />
     <Project Path="tools/TopPos.Simulators.Locker/TopPos.Simulators.Locker.csproj" />
     <Project Path="tools/TopPos.Simulators.Server/TopPos.Simulators.Server.csproj" />
     <Project Path="tools/TopPos.Simulators/TopPos.Simulators.csproj" />

@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+  Test klijent kanala Agent↔kiosk za ručnu proveru na VM-u i za E2E (v2 Tools/TopPos.AgentPipe.TestClient). Nije Agent i ne
+  ide u instaler. v4: oba transporta (named pipe na Windows-u, Unix socket na Linuxu); proveru servera radi sam, bez
+  koda kioska (TopPos.Platform), kao Agent.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <!-- LibraryImport (P/Invoke izvorni generator) -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\TopPos.Agent.Contracts\TopPos.Agent.Contracts.csproj" />
+  </ItemGroup>
+
+</Project>
