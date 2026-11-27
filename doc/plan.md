@@ -168,7 +168,7 @@ Cilj: na ciljnom Linux uređaju dokazati najrizičnije delove jednim kompletnim 
       zahtev Agenta bez transporta — transport je F2)
 - [x] Čisti workflow testovi kopirani i zeleni na Linuxu
 
-### F2 — Platformski servisi i Agent (2–3 nedelje) — urađeno 26–27.11.2026, čeka pun E2E na oba VM-a
+### F2 — Platformski servisi i Agent (2–3 nedelje) — urađeno 26–27.11.2026
 - [x] Stavka 1 iz sekcije 3 (kanal ka Agentu): transport iza `IAgentChannelTransport` — named pipe kao v2 (Windows) i
       Unix socket po ugovoru „Transport na Linuxu“ (`/run/toppos-kiosk/agent.v1.sock`, folder `0700`, `agent.v1.lock`,
       klijent samo root preko `SO_PEERCRED`); izjava u `status.lock` sa `ProcessBootId`, `ProcessStartTicks`,
@@ -182,6 +182,8 @@ Cilj: na ciljnom Linux uređaju dokazati najrizičnije delove jednim kompletnim 
       i kiosk prima unos dok traje, posle nje se poruka vraća. Isto treba u v2 (paket za v2).
 - Rezultati: Agent E2E Windows 26/26 (`2bf907b`), Debian 23 prošlo, 3 preskočena (pravi miš), posle ispravke čitanja
   praznog teksta preko AT-SPI (`4d2322b`). Jezgro Windows 955, Linux 963 (10 preskočeno) + 43 UI.
+- Pun E2E na kraju F2 (`5ac9e52`, 27.11.2026): Windows 177/177 (2 preskočena, F7; 2 h 9 min), Debian 163 prošlo,
+  0 palo, 14 preskočeno (12 pravi miš, 2 F7; 1 h 17 min).
 
 ### F3 — UI (5–7 nedelja kiosk + 2–3 nedelje alati)
 - [ ] Sve stranice × 6 layouta, svi brendovi
@@ -378,7 +380,6 @@ lažnim hostom, `ViewRenderTests` za nove stranice, Codex pregled (1–2 prolaza
 - De-test: ručna prijava kurira sa `;` poslatim kao `%3B` (korisnik).
 - Odloženo po odluci korisnika: kartica kurira skenirana na ekranu za paket ide u log u celini; DEBUG prečica F11 (unos
   barkoda) — za ručnu probu postoji `/_sim/barcode`.
-- Pun E2E na Windows-u i Debianu na kraju F2 (Windows poslednji put pre izmena kioska iz F2, na `0b60b19`).
 - Paket za v2 (ispravke nađene u v4, još nisu poslate): trka `StopAsync`/`DisposeAsync`, port u `OpenDoorOnceTests`,
   prazan `OperationJournalFolder`, nestabilan test pretplate, naslov prozora van ponavljanja u E2E, test klijent (izlazni
   kodovi, rokovi, `--watch` uz `--request-id`), servisna sesija dok je paketomat van funkcije.
