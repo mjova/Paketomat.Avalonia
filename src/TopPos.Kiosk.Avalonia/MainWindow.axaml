@@ -47,14 +47,14 @@ F0 ima jedan layout; ostalih pet (v2 LayoutTemplateSelector) dolazi u F3.
 				   HorizontalAlignment="Center"
 				   VerticalAlignment="Center"/>
 
-		<!-- Kiosk (sadržaj i slojevi) se prikazuje tek sa ViewModel-om; ugašen je dok paketomat nije u funkciji (v2: ceo prozor)
-			 i dok je otvoren status uređaja (v2: modalni prozor) — pozadina sloja zaustavlja dodir, a ovo i tastaturu. Posle
-			 zatvaranja ostaje ugašen dok otkazane provere drže kiosk zauzetim. -->
+		<!-- Kiosk (sadržaj i slojevi) se prikazuje tek sa ViewModel-om; ugašen je dok paketomat nije u funkciji (v2: ceo prozor),
+			 osim tokom servisne sesije (IsKioskInputEnabled), i dok je otvoren status uređaja (v2: modalni prozor) — pozadina sloja
+			 zaustavlja dodir, a ovo i tastaturu. Posle zatvaranja ostaje ugašen dok otkazane provere drže kiosk zauzetim. -->
 		<Panel x:Name="Kiosk"
 			   IsVisible="False">
 			<Panel.IsEnabled>
 				<MultiBinding Converter="{x:Static BoolConverters.And}">
-					<Binding Path="IsLockerOperational" Converter="{x:Static c:KioskConverters.IsTrue}"/>
+					<Binding Path="IsKioskInputEnabled"/>
 					<Binding Path="IsDeviceStatusActive" Converter="{x:Static BoolConverters.Not}"/>
 				</MultiBinding>
 			</Panel.IsEnabled>
@@ -140,6 +140,7 @@ F0 ima jedan layout; ostalih pet (v2 LayoutTemplateSelector) dolazi u F3.
 					   VerticalAlignment="Center"
 					   Source="{Binding MessageKind, Converter={x:Static c:KioskConverters.MessageIcon}}"/>
 				<TextBlock Text="{Binding Message}"
+						   AutomationProperties.AutomationId="Message.Text"
 						   FontSize="32"
 						   Foreground="{DynamicResource PopupMessageForegroundColor}"
 						   TextWrapping="Wrap"

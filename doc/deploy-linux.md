@@ -144,6 +144,41 @@ Ako GRUB meni ne stoji na ekranu, pri startu treba držati `Shift` (BIOS) ili pr
 **Proba na VM-u:** pre `--kiosk-boot` napraviti snapshot (VMware: VM → Snapshot → Take Snapshot). Vraćanje snapshot-a
 poništava sve.
 
+## Kanal ka Agentu
+
+Kiosk nudi Agentu isti protokol kao na Windows-u, preko Unix socket-a umesto named pipe-a. Dogovor je u ugovoru
+„Transport na Linuxu“ (vault: `Biz/TopPos/Paketomat/Info/Ugovor pipe komandi/`). v4 F2 isporučuje stranu kioska i
+proverava je test klijentom i E2E-om. Linux Agent (root servis `paketomat-agent`) koji implementira ugovor još ne postoji
+(faza 4 plana Linux agenta), pa povezivanje sa portalom čeka njegovo izdanje. Kanal je podrazumevano isključen; uključuje
+se u `/etc/toppos-kiosk/app-configuration.json`:
+
+```json
+"AgentCommunication": { "Enabled": true }
+```
+
+| Šta | Gde |
+|---|---|
+| Socket | `/run/toppos-kiosk/agent.v1.sock` (`AgentCommunication.SocketPath`), prava `0600`, vlasnik `toppos` |
+| Lock jedne instance kanala | `/run/toppos-kiosk/agent.v1.lock` (`flock`; drugi vlasnik → kanal se ne pokreće, Error u logu) |
+| Folder | `RuntimeDirectory=toppos-kiosk`, `RuntimeDirectoryMode=0700` (isti folder je i `XDG_RUNTIME_DIR` za cage) |
+| Dnevnik operacija Agenta | `/var/lib/toppos-kiosk/AgentOperations` (`OperationJournalFolder`, relativno prema folderu stanja) |
+| Izjava za Agenta | `/var/lib/toppos-kiosk/status.lock` |
+
+- systemd pravi folder pri startu servisa i briše ga pri zaustavljanju, pa posle `stop` socket ne postoji. Socket koji
+  ostane posle pada kiosk pri sledećem startu zamenjuje; Agent do tada dobija `ECONNREFUSED`, tj. kanal nije dostupan.
+- Kiosk prima samo root klijenta (`SO_PEERCRED`, uid 0). Vezu drugog klijenta zatvara bez odgovora i beleži uid i PID u
+  logu. Folder `0700` ostale naloge ionako drži napolju.
+- Druga putanja socket-a radi, ali kiosk upozorava u logu: Agent prihvata samo putanju ispod `/run/toppos-kiosk/`.
+- Izjava u `status.lock` (tačka 5 ugovora) nosi `ProcessId`, `ProcessStartUtc`, `ProcessBootId` (`boot_id`),
+  `ProcessStartTicks` (polje 22 iz `/proc/<pid>/stat`) i `AgentChannel.SocketPath`. Agent pre prve komande proverava da je
+  proces na drugoj strani socket-a baš taj: uid `toppos`, PID, izvršni fajl `/opt/toppos-kiosk/current/TopPos.Kiosk`,
+  `boot_id` i `starttime` (tačka 4). Kad je kanal isključen, `AgentChannel` izostaje, a Agent čita `Busy` iz fajla.
+- Ručna provera na uređaju: test klijent `tools/TopPos.AgentPipe.TestClient` (ne ide u paket; samostalna kopija kao u
+  `tools/install-e2e-agent-client.sh`). Pokreće se kao root sa proverom kao Agent:
+  `sudo env -u SUDO_UID -u SUDO_GID ./TopPos.AgentPipe.TestClient --status-lock /var/lib/toppos-kiosk/status.lock`
+  (podrazumevano nalog `toppos` i izvršni fajl izdanja). Bez `env -u` klijent pod sudo prima samo kiosk nalog pozivaoca
+  (E2E). `--subscribe 30` prati status, a izlaz 7 znači da kiosk nije prošao proveru.
+
 ## Gašenje
 
 Glavni proces servisa je `kiosk-session.sh`, koji pokreće cage sa kioskom. Servis ima `KillMode=mixed`, pa

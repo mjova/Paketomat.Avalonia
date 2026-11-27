@@ -510,6 +510,7 @@ namespace TopPos.Kiosk.ViewModels
 			// dugme ugašeno pre nego što plaćanje krene da await-uje POS.
 			_workflowMachine.OnTransitioned(destination => IsHomeButtonEnabled = !WorkflowMachine.IsHomeDisabled(destination));
 			_workflowMachine.OnTransitioned(destination => IsPageChromeVisible = !WorkflowMachine.IsFullScreen(destination));
+			_workflowMachine.OnTransitioned(destination => OnRemoteServiceShown(destination == WorkflowState.RemoteService));
 
 			// Status za spoljni servis (status.lock i pipe ka Agentu): Start/Idle = slobodno, svako drugo stanje = zauzeto
 			// (WorkflowStatusRules). Početno slobodno stanje (Idle) je već upisao App.OnStartup (StatusSemaphore.InitializeSession),
@@ -608,10 +609,10 @@ namespace TopPos.Kiosk.ViewModels
 				_logger?.LogWarning($"{nameof(OnLockerStatusChanged)}: status paketomata je promenjen. Paketomat je u funkciji = [{isLockerOperational}]");
 				if (isLockerOperational != true) {
 					_lockerStatusMessage = this["General.LockerOutOfOrder"];
-					await DisplayMessage(_lockerStatusMessage, MessageType.Error, displayTimeInSeconds: 0); // Infinite
 				}
-				else {
-					RemoveLockerStatusMessage();
+				// v4: poruka o kvaru prema trenutnom stanju (servisna sesija ima prednost, ApplyLockerStatusMessage).
+				ApplyLockerStatusMessage();
+				if (isLockerOperational == true) {
 					// Reset samo za prvi Start (iz Idle) i osvežavanje slobodnog Start-a. Sesija u toku se ne prekida: završava se
 					// svojim tokom ili rokom (ranije su vrata otvorena u toku ostajala bez praćenja).
 					await _workflowMachine.FireGuardedAsync(() => _workflowMachine.State == WorkflowState.Idle
@@ -653,8 +654,56 @@ namespace TopPos.Kiosk.ViewModels
 		public bool? IsLockerOperational {
 			get => _isLockerOperational;
 			set {
-				SetProperty(ref _isLockerOperational, value);
+				if (SetProperty(ref _isLockerOperational, value)) {
+					OnPropertyChanged(nameof(IsKioskInputEnabled));
+				}
 			}
+		}
+
+		// Stanje RemoteService (servisna sesija Agenta) je prikazano; menja se iz OnTransitioned, čita i sa pozadinskih niti.
+		private volatile bool _isRemoteServiceShown;
+
+		/// <summary>
+		/// Kiosk prima unos (dodir, tastatura): paketomat je u funkciji, ili je prikazana servisna sesija — serviser dolazi baš
+		/// kad je paketomat van funkcije (odluka 27.11.2026; ranije je panel bio ugašen, a poruka o kvaru prekrivala servisni
+		/// ekran, pa sesija nije mogla da se koristi). Prikaz ga vezuje umesto <see cref="IsLockerOperational"/>.
+		/// </summary>
+		public bool IsKioskInputEnabled => this.IsLockerOperational == true || _isRemoteServiceShown;
+
+		// Dok je servisna sesija prikazana, poruka o kvaru je sklonjena; posle nje se vraća ako je paketomat i dalje van funkcije.
+		private void OnRemoteServiceShown(bool shown)
+		{
+			if (shown == _isRemoteServiceShown) {
+				return;
+			}
+			_isRemoteServiceShown = shown;
+			OnPropertyChanged(nameof(IsKioskInputEnabled));
+			ApplyLockerStatusMessage();
+		}
+
+		/// <summary>
+		/// v4: poruka o kvaru prema trenutnom stanju, na UI niti — prikazana (bez roka) kad je paketomat van funkcije a servisna
+		/// sesija nije prikazana, inače sklonjena (samo ona, ne poruka toka). Zovu je i promena statusa paketomata i servisna
+		/// sesija; uslov se čita tek na UI niti, pa poslednja izvršena vidi oba stanja (nema trke u kojoj zakasnela poruka o kvaru
+		/// prekrije otvorenu sesiju).
+		/// </summary>
+		private void ApplyLockerStatusMessage()
+		{
+			UIThreadSwitcher.RunOnUiThread(() => {
+				if (_lockerStatusMessage is not { } lockerStatusMessage) {
+					return;
+				}
+				if (this.IsLockerOperational == false && !_isRemoteServiceShown) {
+					this.Message = lockerStatusMessage;
+					this.MessageKind = MessageType.Error;
+					this.ShowMessage = true;
+				}
+				else if (this.Message == lockerStatusMessage) {
+					this.Message = null;
+					this.MessageKind = null;
+					this.ShowMessage = false;
+				}
+			});
 		}
 
 		private bool _isBarcodeScannerOutOfOrder;
@@ -827,21 +876,8 @@ namespace TopPos.Kiosk.ViewModels
 			}
 		}
 
-		/// <summary>Skida poruku o stanju paketomata, ako je ona i dalje prikazana (ne poruku toka koja ju je zamenila).</summary>
-		private void RemoveLockerStatusMessage()
-		{
-			var statusMessage = _lockerStatusMessage;
-			UIThreadSwitcher.RunOnUiThread(() => {
-				if (statusMessage != null && this.Message == statusMessage) {
-					this.Message = null;
-					this.MessageKind = null;
-					this.ShowMessage = false;
-				}
-			});
-		}
-
 		/// <summary>
-		/// v4: uklanja poruku samo ako je i dalje prikazana baš ona (kao <see cref="RemoveLockerStatusMessage"/>). Ako je paketomat
+		/// v4: uklanja poruku samo ako je i dalje prikazana baš ona (kao <see cref="ApplyLockerStatusMessage"/>). Ako je paketomat
 		/// u međuvremenu van funkcije, umesto nje ostaje poruka o tome (poruka toka ju je mogla prekriti, a ne ponavlja se).
 		/// </summary>
 		private void RemoveMessage(string message)
@@ -850,7 +886,7 @@ namespace TopPos.Kiosk.ViewModels
 				if (this.Message != message) {
 					return;
 				}
-				if (this.IsLockerOperational == false && _lockerStatusMessage is { } lockerStatusMessage) {
+				if (this.IsLockerOperational == false && !_isRemoteServiceShown && _lockerStatusMessage is { } lockerStatusMessage) {
 					this.Message = lockerStatusMessage;
 					this.MessageKind = MessageType.Error;
 					return;

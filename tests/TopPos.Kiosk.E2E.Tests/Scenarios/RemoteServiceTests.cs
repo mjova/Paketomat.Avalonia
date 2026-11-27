@@ -75,6 +75,56 @@ namespace TopPos.E2E.Tests.Scenarios
 		}
 
 		/// <summary>
+		/// v4 (odluka 27.11.2026): paketomat van funkcije (oba modula isključena), servisna sesija ima prednost. Dok traje, poruka
+		/// o kvaru je sklonjena i kiosk prima unos: serviser se prijavljuje na tastaturi i završava sesiju na ekranu. Posle kraja
+		/// poruka o kvaru je ponovo prikazana, a Start ugašen. Moduli ponovo uključeni → kiosk u funkciji.
+		/// </summary>
+		[SkippableFact]
+		public Task OutOfOrder_SessionHasPriority_OutOfOrderMessageBackAfterEnd()
+		{
+			var pipe = RequireAgent();
+			var options = new KioskOptions {
+				ConfigureClient = c => {
+					WithPipe(pipe).ConfigureClient!(c);
+					c["Locker"]!["DoorWatcherFrequency"] = 3000;
+				},
+			};
+			return KioskSession.RunAsync(nameof(OutOfOrder_SessionHasPriority_OutOfOrderMessageBackAfterEnd), output, options, async kiosk => {
+				const string outOfOrder = "Paketomat trenutno nije u funkciji";
+				await kiosk.WaitForLogLineAsync($"Agent pipe: server pokrenut ({pipe}", 0);
+				var mark = kiosk.Log.Mark();
+				await kiosk.Locker.SetModuleAsync(1, isOn: false);
+				await kiosk.Locker.SetModuleAsync(2, isOn: false);
+				await kiosk.WaitForLogLineAsync("Paketomat je u funkciji = [False]", mark, TimeSpan.FromSeconds(60));
+				await kiosk.Ui.WaitForTextAsync(outOfOrder);
+
+				var session = await BeginAsync(kiosk, pipe);
+				await kiosk.Ui.WaitForHiddenAsync("Message.Text");
+				await LoginOnKeypadAsync(kiosk, session);
+
+				mark = kiosk.Log.Mark();
+				await kiosk.Ui.TapAsync("RemoteServicePage.End");
+				await kiosk.Ui.WaitForTextAsync("Dodirnite „Potvrdi kraj“");
+				await kiosk.Ui.TapAsync("RemoteServicePage.End");
+				await kiosk.WaitForStateAsync(WorkflowState.Start, mark, TimeSpan.FromSeconds(60));
+				await kiosk.Ui.WaitForPageAsync("StartPage");
+				await kiosk.Ui.WaitForTextAsync(outOfOrder);
+				// Dugme postoji (GetBounds ga čeka i kad je onemogućeno), pa je „onemogućeno“ stvarno stanje, ne odsustvo stranice.
+				await kiosk.Ui.GetBoundsAsync("StartPage.RecipientPickUpPackage");
+				Assert.False(await kiosk.Ui.IsEnabledAsync("StartPage.RecipientPickUpPackage"), "Start ekran mora biti onemogućen posle sesije");
+				Assert.Equal(RemoteServiceEndModes.ScreenConfirmed, (await SessionResultAsync(kiosk, pipe, session)).EndMode);
+
+				mark = kiosk.Log.Mark();
+				await kiosk.Locker.SetModuleAsync(1, isOn: true);
+				await kiosk.Locker.SetModuleAsync(2, isOn: true);
+				await kiosk.WaitForLogLineAsync("Paketomat je u funkciji = [True]", mark, TimeSpan.FromSeconds(60));
+				await kiosk.Ui.WaitForHiddenAsync("Message.Text");
+				await kiosk.Ui.WaitForAsync("StartPage.RecipientPickUpPackage");
+				await WaitForBusyAsync(kiosk, busy: false);
+			});
+		}
+
+		/// <summary>
 		/// Prijava QR-om na skeneru; posle prijave skener ne pokreće tok. Modul 2 isključen: prva vrata modula OutcomeUnknown,
 		/// ostala ModuleUnavailable bez slanja, poruka na ekranu, nijedno otključavanje. Modul ponovo uključen: novo otvaranje
 		/// ga pokušava i vrata se otvaraju. Kraj iz portala sa otvorenim vratima: ta vrata su u DoorsNotClosed. Posle kraja

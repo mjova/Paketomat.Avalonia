@@ -168,9 +168,20 @@ Cilj: na ciljnom Linux uređaju dokazati najrizičnije delove jednim kompletnim 
       zahtev Agenta bez transporta — transport je F2)
 - [x] Čisti workflow testovi kopirani i zeleni na Linuxu
 
-### F2 — Platformski servisi i Agent (2–3 nedelje)
-- [ ] Stavke 1–5 i 8 iz sekcije 3 u celini
-- [ ] Agent kanal po dogovoru; **paralelno** Linux ServiceAgent (drugi repo, nije u ovoj proceni)
+### F2 — Platformski servisi i Agent (2–3 nedelje) — urađeno 26–27.11.2026, čeka pun E2E na oba VM-a
+- [x] Stavka 1 iz sekcije 3 (kanal ka Agentu): transport iza `IAgentChannelTransport` — named pipe kao v2 (Windows) i
+      Unix socket po ugovoru „Transport na Linuxu“ (`/run/toppos-kiosk/agent.v1.sock`, folder `0700`, `agent.v1.lock`,
+      klijent samo root preko `SO_PEERCRED`); izjava u `status.lock` sa `ProcessBootId`, `ProcessStartTicks`,
+      `AgentChannel.SocketPath`; kanal povezan u `KioskHost` kao v2. Stavke 2–5 urađene u F0; stavka 8 radi na pty parovima
+      simulatora, pravi USB adapteri ostaju za uređaj (F0b).
+- [x] Agent kanal po dogovoru: odluke D1–D5 (`tasks/todo.md`) prihvaćene; test klijent `tools/TopPos.AgentPipe.TestClient`
+      za oba transporta, sa proverom kioska kao Agent (tačka 4); E2E scenariji Agenta iz v2 na oba transporta (Windows
+      `psexec -s`, Linux `sudo -k -n` uz `tools/install-e2e-agent-client.sh`). Linux ServiceAgent (drugi repo) još ne
+      postoji; povezivanje sa portalom čeka njegovu fazu 4.
+- [x] Servisna sesija dok je paketomat van funkcije (odluka 27.11.2026): sesija ima prednost — poruka o kvaru je sklonjena
+      i kiosk prima unos dok traje, posle nje se poruka vraća. Isto treba u v2 (paket za v2).
+- Rezultati: Agent E2E Windows 26/26 (`2bf907b`), Debian 23 prošlo, 3 preskočena (pravi miš), posle ispravke čitanja
+  praznog teksta preko AT-SPI (`4d2322b`). Jezgro Windows 955, Linux 963 (10 preskočeno) + 43 UI.
 
 ### F3 — UI (5–7 nedelja kiosk + 2–3 nedelje alati)
 - [ ] Sve stranice × 6 layouta, svi brendovi
@@ -367,8 +378,10 @@ lažnim hostom, `ViewRenderTests` za nove stranice, Codex pregled (1–2 prolaza
 - De-test: ručna prijava kurira sa `;` poslatim kao `%3B` (korisnik).
 - Odloženo po odluci korisnika: kartica kurira skenirana na ekranu za paket ide u log u celini; DEBUG prečica F11 (unos
   barkoda) — za ručnu probu postoji `/_sim/barcode`.
-- Za F2: transport i testovi preko kanala, servisna sesija dok je paketomat van funkcije (panel ugašen, poruka o kvaru
-  prekriva servisni ekran — isto u v2), testovi `AgentOutboundQueue`.
+- Pun E2E na Windows-u i Debianu na kraju F2 (Windows poslednji put pre izmena kioska iz F2, na `0b60b19`).
+- Paket za v2 (ispravke nađene u v4, još nisu poslate): trka `StopAsync`/`DisposeAsync`, port u `OpenDoorOnceTests`,
+  prazan `OperationJournalFolder`, nestabilan test pretplate, naslov prozora van ponavljanja u E2E, test klijent (izlazni
+  kodovi, rokovi, `--watch` uz `--request-id`), servisna sesija dok je paketomat van funkcije.
 - Iz F0, i dalje otvoreno: testovi iz v2 koji zavise od WPF `Dispatcher`-a (`OpenDoorOnceTests`, `NcuStaleResponseTests`,
   `LockControllerShutdownTests`, `KioskStatusSourceTests`).
 
@@ -379,11 +392,14 @@ uključuje Codex pregled svakog koraka i tri paketa ispravki prenetih između v2
 čovek-nedelja) je potvrđena, sa rezervom: veći deo vremena je otišao na pregled i ispravke nasleđenih grešaka, a ne na
 sam prenos.
 
-| Deo | Iz tempa F0a (čovek-nedelje) | Posle F1 | Zašto |
+F2 je urađen za **oko dva radna dana** (26–27.11.2026): transport na oba sistema, test klijent, E2E scenariji Agenta na oba
+VM-a, servisna sesija van funkcije i Codex pregled svakog koraka.
+
+| Deo | Iz tempa F0a (čovek-nedelje) | Posle F1 i F2 | Zašto |
 |---|---|---|---|
 | F1 ostatak jezgra | ~1 | ~0,5 (stvarno) | pun E2E prošao na Debianu i Windows-u |
-| F2 platforma + Agent | 1–2 | 1–2 | logika Agenta već preneta; ostaje transport (dva sistema) i dogovor sa Agent stranom |
-| Ostale faze | bez promene | bez promene | F1 ne daje nov podatak za UI, isporuku i pilot |
-| **Ukupno do Linux produkcije** | **~9–14** | **~8,5–13,5** | samo radni napor, bez čekanja |
+| F2 platforma + Agent | 1–2 | ~0,4 (stvarno) | transport na oba sistema, test klijent i E2E za dva radna dana; Linux Agent nije u proceni |
+| Ostale faze | bez promene | bez promene | F1 i F2 ne daju nov podatak za UI, isporuku i pilot |
+| **Ukupno do Linux produkcije** | **~9–14** | **~7,5–12** | samo radni napor, bez čekanja |
 
 Kalendarski rok i dalje određuju hardver (F0b), ServiceAgent za Linux i pilot.

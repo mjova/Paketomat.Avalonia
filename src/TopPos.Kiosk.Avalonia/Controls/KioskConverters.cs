@@ -11,9 +11,6 @@ namespace TopPos.Kiosk.UI.Controls
 	/// <summary>Konverteri prikaza (v2: WPF konverteri iz Flatsoft.Common.UI i resursi slika).</summary>
 	public static class KioskConverters
 	{
-		/// <summary><c>bool?</c> → <c>true</c> samo za <c>true</c> (v2 NullableBooleanConverter: prozor je ugašen dok se ne zna).</summary>
-		public static readonly IValueConverter IsTrue = new FuncValueConverter<bool?, bool>(value => value == true);
-
 		/// <summary>Boja kao tekst (<c>#RRGGBB</c>, npr. stanje boksa u servisnoj sesiji) → četka.</summary>
 		public static readonly IValueConverter ColorToBrush = new FuncValueConverter<string?, IBrush?>(
 			color => string.IsNullOrEmpty(color) ? null : Brush.Parse(color));
