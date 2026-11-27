@@ -380,9 +380,10 @@ lažnim hostom, `ViewRenderTests` za nove stranice, Codex pregled (1–2 prolaza
 - De-test: ručna prijava kurira sa `;` poslatim kao `%3B` (korisnik).
 - Odloženo po odluci korisnika: kartica kurira skenirana na ekranu za paket ide u log u celini; DEBUG prečica F11 (unos
   barkoda) — za ručnu probu postoji `/_sim/barcode`.
-- Paket za v2 (ispravke nađene u v4, još nisu poslate): trka `StopAsync`/`DisposeAsync`, port u `OpenDoorOnceTests`,
-  prazan `OperationJournalFolder`, nestabilan test pretplate, naslov prozora van ponavljanja u E2E, test klijent (izlazni
-  kodovi, rokovi, `--watch` uz `--request-id`), servisna sesija dok je paketomat van funkcije.
+- Paket za v2 (ispravke nađene u v4; spisak poslat v2 27.11.2026, izvodi se odjednom kad se završi v4): trka
+  `StopAsync`/`DisposeAsync`, port u `OpenDoorOnceTests`, prazan `OperationJournalFolder`, nestabilan test pretplate,
+  naslov prozora i Win32 omotač u E2E, test klijent (izlazni kodovi, rokovi, `--watch` uz `--request-id`), servisna
+  sesija dok je paketomat van funkcije.
 - Iz F0, i dalje otvoreno: testovi iz v2 koji zavise od WPF `Dispatcher`-a (`OpenDoorOnceTests`, `NcuStaleResponseTests`,
   `LockControllerShutdownTests`, `KioskStatusSourceTests`).
 
