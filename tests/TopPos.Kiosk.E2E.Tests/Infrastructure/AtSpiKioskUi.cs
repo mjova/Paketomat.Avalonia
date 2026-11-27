@@ -241,8 +241,35 @@ namespace TopPos.E2E.Tests.Infrastructure
 											return new Rectangle(reader.ReadInt32(), reader.ReadInt32(), reader.ReadInt32(), reader.ReadInt32());
 										}), $"GetExtents {node.Path}");
 
+		/// <summary>
+		/// Natpis elementa; prazan kad element nema ime. Avalonia AT-SPI za element bez imena (npr. TextBlock bez teksta) vraća
+		/// ime klase („TextBlock“, <c>AtSpiNode.GetAccessibleName</c>), a pravo ime označava atributom <c>explicit-name</c>.
+		/// </summary>
 		public override async Task<string?> GetTextAsync(string automationId)
-			=> await FindAsync(automationId).ConfigureAwait(false) is { } node ? await NameAsync(node).ConfigureAwait(false) : null;
+		{
+			if (await FindAsync(automationId).ConfigureAwait(false) is not { } node) {
+				return null;
+			}
+			var attributes = await Guarded(() => CallAsync(_bus, node.Bus, node.Path, AccessibleInterface, "GetAttributes", null, null,
+																(m, _) => {
+																	var reader = m.GetBodyReader();
+																	return ReadStringDictionary(ref reader);
+																}),
+											$"GetAttributes {node.Path}").ConfigureAwait(false);
+			return attributes.ContainsKey("explicit-name") ? await NameAsync(node).ConfigureAwait(false) : string.Empty;
+		}
+
+		// a{ss} (atributi AT-SPI elementa).
+		private static Dictionary<string, string> ReadStringDictionary(ref Reader reader)
+		{
+			var result = new Dictionary<string, string>();
+			var end = reader.ReadDictionaryStart();
+			while (reader.HasNext(end)) {
+				reader.AlignStruct();
+				result[reader.ReadString()] = reader.ReadString();
+			}
+			return result;
+		}
 
 		public override async Task<bool> IsEnabledAsync(string automationId)
 			=> await FindAsync(automationId).ConfigureAwait(false) is { } node && (await StateAsync(node).ConfigureAwait(false)).Enabled;
