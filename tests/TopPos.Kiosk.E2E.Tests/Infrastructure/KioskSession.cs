@@ -372,6 +372,15 @@ namespace TopPos.E2E.Tests.Infrastructure
 			// Konfiguraciju klijenta i pripremu foldera radi StartProcessesAsync (portovi simulatora).
 		}
 
+		/// <summary>Veličina prozora iz TOPPOS_E2E_SCREEN (ako je zadata), pa podešavanje testa (može i nju da promeni).</summary>
+		private void ConfigureClient(JsonObject configuration)
+		{
+			if (Settings.Screen is { } screen) {
+				configuration["ScreenResolution"] = new JsonObject { ["Width"] = screen.Width, ["Height"] = screen.Height };
+			}
+			_options?.ConfigureClient?.Invoke(configuration);
+		}
+
 		private async Task StartProcessesAsync()
 		{
 			var ready = await StartSimulatorsAsync().ConfigureAwait(false);
@@ -383,7 +392,10 @@ namespace TopPos.E2E.Tests.Infrastructure
 			Trace($"simulatori gore: {ready.GetRawText()}");
 
 			Sandbox.WriteConfiguration("client.app-configuration.json", Path.Combine(ClientDirectory, "app-configuration.json"),
-										ConfigurationTokens(Settings, serverPort, lockerTcpPort), _options?.ConfigureClient);
+										ConfigurationTokens(Settings, serverPort, lockerTcpPort), ConfigureClient);
+			if (Settings.Screen is { } screen) {
+				Trace($"prozor kiosk-a {screen.Width}x{screen.Height} ({E2ESettings.ScreenVariable})");
+			}
 			// Posle AssertClean i upisa konfiguracije: priprema sme da upiše i runtime fajlove koje provera inače odbija.
 			_options?.PrepareClientDirectory?.Invoke(ClientDirectory);
 

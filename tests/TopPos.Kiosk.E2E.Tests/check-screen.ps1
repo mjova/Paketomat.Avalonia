@@ -1,4 +1,4 @@
-# Da li prozor klijenta u E2E (ScreenResolution iz Config\client.app-configuration.json) staje ceo u radnu povrsinu
+# Da li prozor klijenta u E2E (TOPPOS_E2E_SCREEN ili ScreenResolution iz Config\client.app-configuration.json) staje ceo u radnu povrsinu
 # primarnog ekrana (bez taskbar-a). Isti racun kao Infrastructure\ScreenCheck.cs i MainWindow.CustomizeWindowForDevelopment:
 # prozor centriran na ekranu, mere u WPF logickim jedinicama (skaliranje uracunato).
 # Izlaz: 0 = staje, 1 = ne staje (razlog na izlazu), 2 = provera nije uspela (sablon, PowerShell) - ekran nije izmeren.
@@ -11,6 +11,14 @@ try {
 	$configuration = (Get-Content -Raw -LiteralPath $Template -ErrorAction Stop) -replace '\{\{\w+\}\}', '0' | ConvertFrom-Json
 	$width = [double]$configuration.ScreenResolution.Width
 	$height = [double]$configuration.ScreenResolution.Height
+	# TOPPOS_E2E_SCREEN (SIRINAxVISINA, npr. 1280x800) menja velicinu iz sablona, kao u E2ESettings.Screen.
+	if ($env:TOPPOS_E2E_SCREEN) {
+		if ($env:TOPPOS_E2E_SCREEN -notmatch '^\s*(\d+)\s*[xX*]\s*(\d+)\s*$') {
+			throw "TOPPOS_E2E_SCREEN=""$env:TOPPOS_E2E_SCREEN"": ocekuje se SIRINAxVISINA, npr. 1280x800."
+		}
+		$width = [double]$Matches[1]
+		$height = [double]$Matches[2]
+	}
 	if ($width -le 0 -or $height -le 0) {
 		throw "ScreenResolution (Width, Height) nije zadat u $Template."
 	}

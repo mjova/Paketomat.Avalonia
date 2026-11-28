@@ -27,6 +27,14 @@ namespace TopPos.E2E.Tests.Infrastructure
 		public static void RequireDebugClient(string feature)
 			=> Skip.If(Current.BuildConfiguration != "Debug", $"{feature} postoji samo u Debug build-u klijenta (E2E je u {Current.BuildConfiguration}).");
 
+		public const string ScreenVariable = "TOPPOS_E2E_SCREEN";
+
+		/// <summary>
+		/// Veličina prozora kiosk-a, a time i layout (npr. 1280x800 je Landscape Large, 600x1024 Portrait Small): TOPPOS_E2E_SCREEN
+		/// (<c>ŠIRINAxVISINA</c>); bez nje <c>ScreenResolution</c> iz šablona. Prozor je bez okvira i mora stati u radnu površinu.
+		/// </summary>
+		public (int Width, int Height)? Screen { get; init; }
+
 		public const string LockerPortsVariable = "TOPPOS_E2E_LOCKER_PORTS";
 
 		/// <summary>
@@ -103,7 +111,19 @@ namespace TopPos.E2E.Tests.Infrastructure
 				PosSimulatorPort = posSimulator,
 				LockerClientPort = lockerClient,
 				LockerSimulatorPort = lockerSimulator,
+				Screen = ParseScreen(Environment.GetEnvironmentVariable(ScreenVariable)),
 			};
+		}
+
+		internal static (int Width, int Height)? ParseScreen(string? value)
+		{
+			if (string.IsNullOrWhiteSpace(value)) {
+				return null;
+			}
+			var parts = value.Split(['x', 'X', '*'], StringSplitOptions.TrimEntries);
+			return parts is [var w, var h] && int.TryParse(w, out var width) && int.TryParse(h, out var height) && width > 0 && height > 0
+					? (width, height)
+					: throw new InvalidOperationException($"{ScreenVariable}=\"{value}\": očekuje se ŠIRINAxVISINA, npr. 1280x800.");
 		}
 
 		private static string FindRepositoryRoot()

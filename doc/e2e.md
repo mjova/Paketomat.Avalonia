@@ -90,6 +90,7 @@ U sandbox-u palog testa:
 |---|---|
 | `TOPPOS_E2E=1` | uključuje E2E testove (skripte je postavljaju) |
 | `TOPPOS_E2E_KEEP=1` | čuva sandbox i testova koji su prošli |
+| `TOPPOS_E2E_SCREEN` | veličina prozora kiosk-a `ŠIRINAxVISINA`, a time i layout (flota: `1280x800` Landscape Large, `600x1024` Portrait Small); bez nje 1024×768 iz šablona. Prozor je bez okvira i mora stati u radnu površinu (bez taskbar-a/panela): Windows to proverava `check-screen.ps1`, Linux nema proveru |
 | `TOPPOS_E2E_SCANNER_PORTS`, `TOPPOS_E2E_POS_PORTS`, `TOPPOS_E2E_LOCKER_PORTS` | Windows: com0com parovi `kiosk,simulator` |
 | `TOPPOS_E2E_AGENT_CLIENT` | Linux: test klijent za root (podrazumevano `/usr/local/lib/toppos-e2e/agent-client/TopPos.AgentPipe.TestClient`) |
 
