@@ -22,11 +22,13 @@ namespace TopPos.Kiosk.UI.Tests
 	/// </summary>
 	public class ViewRenderTests
 	{
-		private static LanguageManager Languages(string language = "sr")
+		private static string BrandDirectory(string brand) => Path.Combine(AppContext.BaseDirectory, "Brands", brand);
+
+		private static LanguageManager Languages(string language = "sr", string brand = "DailyExpress")
 		{
 			var languages = new LanguageManager(null);
 			languages.LoadLanguageResources(Path.Combine(AppContext.BaseDirectory, "Languages"), ".lang", language);
-			languages.LoadBrandOverrides(Path.Combine(AppContext.BaseDirectory, "Brands", "DailyExpress"), ".lang");
+			languages.LoadBrandOverrides(BrandDirectory(brand), ".lang");
 			return languages;
 		}
 
@@ -171,8 +173,81 @@ namespace TopPos.Kiosk.UI.Tests
 			languages.LoadLanguageResources(Path.Combine(AppContext.BaseDirectory, "Languages"), ".lang", "sr");
 			languages.LoadBrandOverrides(brandDirectory, ".lang");
 
-			Assert.IsType<Avalonia.Media.SolidColorBrush>(resources["ApplicationBackgroundColor"]);
+			// Isti ključevi u svakom brendu (v2 tema): prikazi koriste DynamicResource, pa ključ koji nedostaje ne javlja grešku.
+			Assert.Equal(__brandKeys, resources.Keys.Cast<string>().Order());
 			Assert.IsType<Avalonia.Media.Imaging.Bitmap>(resources["ApplicationLogo"]);
+			Assert.All(__brandKeys.Where(key => key != "ApplicationLogo"), key => Assert.IsType<Avalonia.Media.SolidColorBrush>(resources[key]));
+		}
+
+		/// <summary>Brendovi sa svojim tekstovima (v2 <c>Brands/&lt;Brand&gt;/sr.lang</c>, <c>en.lang</c>); ostali koriste osnovne.</summary>
+		private static readonly string[] __brandsWithTexts = ["DailyExpress", "EuroExpress", "Posta", "TopPos"];
+
+		// Tekstovi brenda (npr. Pošta: osmocifreni kod) postoje za oba jezika, menjaju postojeće ključeve i stvarno se primenjuju;
+		// neispravan ili izostavljen fajl bi tiho ostavio osnovni tekst.
+		[Theory]
+		[MemberData(nameof(Brands))]
+		public void Brand_texts_override_base_texts(string brand)
+		{
+			foreach (var language in new[] { "sr", "en" }) {
+				var file = Path.Combine(BrandDirectory(brand), $"{language}.lang");
+				Assert.Equal(__brandsWithTexts.Contains(brand), File.Exists(file));
+				if (!File.Exists(file)) {
+					continue;
+				}
+				var overrides = System.Text.Json.JsonSerializer.Deserialize<LanguageData>(File.ReadAllText(file))!.TextEntries;
+				var baseTexts = new LanguageManager(null);
+				baseTexts.LoadLanguageResources(Path.Combine(AppContext.BaseDirectory, "Languages"), ".lang", language);
+				var texts = Languages(language, brand).CurrentLanguage!;
+
+				Assert.Equal(language, texts.LanguageId);
+				Assert.NotEmpty(overrides);
+				Assert.All(overrides, entry => {
+					Assert.True(baseTexts.CurrentLanguage!.TextEntries.ContainsKey(entry.Key), $"{brand} {language}: ključ {entry.Key} ne postoji u osnovnim tekstovima");
+					Assert.Equal(entry.Value, texts.TextEntries[entry.Key]);
+				});
+			}
+		}
+
+		private static readonly string[] __brandKeys = [
+			"AccentedForegroundColor1", "AccentedForegroundColor2", "ApplicationBackgroundColor", "ApplicationLogo", "InformationBackgroundColor",
+			"InformationForegroundColor", "PopupMessageBackgroundColor", "PopupMessageForegroundColor", "StepsBackgroundColor"
+		];
+
+		public static TheoryData<string, string> PagesInBrands {
+			get {
+				var data = new TheoryData<string, string>();
+				foreach (var page in Pages) {
+					foreach (var brand in Brands) {
+						data.Add(page.Data, brand.Data);
+					}
+				}
+				return data;
+			}
+		}
+
+		// Svaka stranica u svakom brendu (boje, logo, tekstovi brenda), bez grešaka povezivanja. Snimci: brands/{brand}.{page}.png.
+		[AvaloniaTheory]
+		[MemberData(nameof(PagesInBrands))]
+		public void Page_renders_in_brand(string page, string brand)
+		{
+			using var errors = new BindingErrors();
+			BrandTheme.Apply(BrandDirectory(brand), App.Current!.Resources);
+			var (viewModel, viewType) = Create(page, Languages(brand: brand));
+			var host = new ContentControl { Content = viewModel };
+			var window = new Window { Width = 1280, Height = 800, Content = host, Background = (Avalonia.Media.IBrush) App.Current.Resources["ApplicationBackgroundColor"]! };
+			window.Show();
+			Dispatcher.UIThread.RunJobs();
+
+			var frame = window.CaptureRenderedFrame();
+
+			Assert.NotNull(frame);
+			Assert.IsType(viewType, host.Presenter?.Child);
+			Assert.Empty(errors.Messages);
+			var folder = Environment.GetEnvironmentVariable("TOPPOS_UI_SNAPSHOTS");
+			if (!string.IsNullOrEmpty(folder)) {
+				Directory.CreateDirectory(Path.Combine(folder, "brands"));
+				frame!.Save(Path.Combine(folder, "brands", $"{brand}.{page}.png"), new Avalonia.Media.Imaging.PngBitmapEncoderOptions());
+			}
 		}
 
 		[AvaloniaTheory]
@@ -241,14 +316,16 @@ namespace TopPos.Kiosk.UI.Tests
 			return $"{page}{V2Suffix(layout)}Layout";
 		}
 
-		/// <summary>Layouti rezolucija iz v2 konfiguracije (flota): 1280×800, 1024×768, 600×1024.</summary>
-		public static TheoryData<string, int, string> PagesInFleetLayouts {
+		/// <summary>Layouti rezolucija iz v2 konfiguracije (flota): 1280×800, 1024×768, 600×1024; svaki jezik i brend (tekstovi brenda).</summary>
+		public static TheoryData<string, int, string, string> PagesInFleetLayouts {
 			get {
-				var data = new TheoryData<string, int, string>();
+				var data = new TheoryData<string, int, string, string>();
 				foreach (var page in Pages) {
 					foreach (var screen in new[] { 0, 1, 5 }) {
 						foreach (var language in new[] { "sr", "en" }) {
-							data.Add(page.Data, screen, language);
+							foreach (var brand in Brands) {
+								data.Add(page.Data, screen, language, brand.Data);
+							}
 						}
 					}
 				}
@@ -260,11 +337,12 @@ namespace TopPos.Kiosk.UI.Tests
 		// (Inter je širi od Segoe UI iz v2, pa su neki v2 layouti na 600 px sekli tekst).
 		[AvaloniaTheory]
 		[MemberData(nameof(PagesInFleetLayouts))]
-		public void Text_fits_on_fleet_screens(string page, int screen, string language)
+		public void Text_fits_on_fleet_screens(string page, int screen, string language, string brand)
 		{
-			BrandTheme.Apply(Path.Combine(AppContext.BaseDirectory, "Brands", "DailyExpress"), App.Current!.Resources);
+			using var errors = new BindingErrors();
+			BrandTheme.Apply(BrandDirectory(brand), App.Current!.Resources);
 			var (layout, width, height) = __screens[screen];
-			var (viewModel, _) = Create(page, Languages(language));
+			var (viewModel, _) = Create(page, Languages(language, brand));
 			var window = new Window { Width = width, Height = height, Content = new ContentControl { Content = viewModel } };
 			LayoutContent.SetScreenLayout(window, layout);
 			window.Show();
@@ -288,7 +366,8 @@ namespace TopPos.Kiosk.UI.Tests
 				}
 			}
 
-			Assert.True(problems.Count == 0, $"{page} {layout} {language}: " + string.Join("; ", problems));
+			Assert.True(problems.Count == 0, $"{page} {layout} {language} {brand}: " + string.Join("; ", problems));
+			Assert.Empty(errors.Messages);
 		}
 
 		// Svaka stranica u svakom layoutu, u prozoru te veličine (bez okvira glavnog prozora). Snimci: {page}.{layout}.png.
@@ -296,6 +375,7 @@ namespace TopPos.Kiosk.UI.Tests
 		[MemberData(nameof(PagesInLayouts))]
 		public void Page_renders_in_layout(string page, int screen)
 		{
+			using var errors = new BindingErrors();
 			BrandTheme.Apply(Path.Combine(AppContext.BaseDirectory, "Brands", "DailyExpress"), App.Current!.Resources);
 			var (layout, width, height) = __screens[screen];
 			var (viewModel, viewType) = Create(page, Languages());
@@ -321,6 +401,7 @@ namespace TopPos.Kiosk.UI.Tests
 				Assert.Equal(expected, shown?.GetType().Name);
 				Assert.Same(viewModel, shown!.DataContext);
 			}
+			Assert.Empty(errors.Messages);
 			var folder = Environment.GetEnvironmentVariable("TOPPOS_UI_SNAPSHOTS");
 			if (!string.IsNullOrEmpty(folder)) {
 				Directory.CreateDirectory(folder);

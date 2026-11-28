@@ -4,6 +4,7 @@ using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.LogicalTree;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using TopPos.Kiosk.UI.Controls;
 using TopPos.Kiosk.UI.Views;
 using Xunit;
@@ -142,6 +143,35 @@ namespace TopPos.Kiosk.UI.Tests
 			Dispatcher.UIThread.RunJobs();
 
 			Assert.NotNull(window.CaptureRenderedFrame());
+		}
+
+		public static TheoryData<string, string> MainWindowLayoutsInBrands {
+			get {
+				var data = new TheoryData<string, string>();
+				foreach (var name in MainWindowLayouts) {
+					foreach (var brand in ViewRenderTests.Brands) {
+						data.Add(name.Data, brand.Data);
+					}
+				}
+				return data;
+			}
+		}
+
+		// Logo brenda (DynamicResource ApplicationLogo) se vidi u zaglavlju svakog layouta. Kontakt podrške u podnožju zavisi
+		// od MainWindowViewModel-a (F4).
+		[AvaloniaTheory]
+		[MemberData(nameof(MainWindowLayoutsInBrands))]
+		public void Main_window_layout_shows_brand_logo(string name, string brand)
+		{
+			BrandTheme.Apply(Path.Combine(AppContext.BaseDirectory, "Brands", brand), App.Current!.Resources);
+			var layout = (Control) Activator.CreateInstance(typeof(MainWindowLandscapeLayout).Assembly.GetType($"TopPos.Kiosk.UI.Views.{name}", throwOnError: true)!)!;
+			var window = new Window { Width = 1280, Height = 800, Content = layout };
+			window.Show();
+			Dispatcher.UIThread.RunJobs();
+
+			var logo = window.GetVisualDescendants().OfType<Image>().Single(image => ReferenceEquals(image.Source, App.Current.Resources["ApplicationLogo"]));
+			Assert.True(logo.IsEffectivelyVisible);
+			Assert.True(logo.Bounds.Width > 0 && logo.Bounds.Height > 0);
 		}
 	}
 }
