@@ -167,6 +167,15 @@ namespace TopPos.Kiosk.UI
 #endif
 			var serviceClient = new TopPosServiceClient(appConfiguration.TopPosService, appConfiguration.Locker.LockerId, microsoftLogger, CancellationToken.None);
 
+			// Zvuk (LibVLC) se pravi u pozadini dok traju provere uređaja: LibVLC pri pokretanju pretražuje plugin-e (na Windows
+			// VM-u bez skraćenog paketa i do 13 s), a UI nit za to vreme ne bi odgovarala. Ne baca izuzetak (bez LibVLC-a: tišina).
+			var audioCreation = System.Diagnostics.Stopwatch.StartNew();
+			var audioPlayerTask = Task.Run(() => {
+				var player = PlatformServices.CreateAudioPlayer(_paths.ProgramDirectory, microsoftLogger);
+				audioCreation.Stop();
+				return player;
+			});
+
 			// Skener je podrazumevano u komandnom režimu (ne prima barkodove do AcceptBarcodes).
 			var barcodeScannerClient = new BarcodeScannerClient(appConfiguration.BarcodeScanner, microsoftLogger, CancellationToken.None);
 			using (var ctsCheckScanner = new CancellationTokenSource(TimeSpan.FromSeconds(10))) {
@@ -220,11 +229,12 @@ namespace TopPos.Kiosk.UI
 			string brandDirectory = Path.Combine(_paths.ProgramDirectory, "Brands", appConfiguration.General.Brand);
 			langManager.LoadBrandOverrides(brandDirectory, ".lang");
 
-			// Od ovde do kraja pokretanja sve je na UI niti (prozor tada ne odgovara): trajanje koraka ide u log.
+			// Trajanje koraka pokretanja ide u log (posle zvuka sve je na UI niti, a prozor tada ne odgovara).
 			var startupStep = System.Diagnostics.Stopwatch.StartNew();
-			var audioPlayer = PlatformServices.CreateAudioPlayer(_paths.ProgramDirectory, microsoftLogger);
+			var audioPlayer = await audioPlayerTask;
 			_audioPlayer = audioPlayer as IDisposable;
-			microsoftLogger.LogInformation("Pokretanje (UI nit): zvuk {Milliseconds} ms", startupStep.ElapsedMilliseconds);
+			microsoftLogger.LogInformation("Pokretanje: zvuk u pozadini {Milliseconds} ms, čekanje na njega {Waited} ms",
+										   audioCreation.ElapsedMilliseconds, startupStep.ElapsedMilliseconds);
 			startupStep.Restart();
 
 			AppDomain.CurrentDomain.UnhandledException += OnUnhandledException;
@@ -236,7 +246,7 @@ namespace TopPos.Kiosk.UI
 			_viewModel = new MainWindowViewModel(appConfiguration, lockClient, barcodeScannerClient, serviceClient, posClient, penPosClient,
 												 langManager, statusSource, coordinator, audioPlayer, App.FindLanguageImage, appContext, microsoftLogger);
 			window.Attach(_viewModel, appConfiguration.ScreenResolution);
-			microsoftLogger.LogInformation("Pokretanje (UI nit): tema i prikaz {Milliseconds} ms", startupStep.ElapsedMilliseconds);
+			microsoftLogger.LogInformation("Pokretanje: tema i prikaz (UI nit) {Milliseconds} ms", startupStep.ElapsedMilliseconds);
 			startupStep.Restart();
 
 			// systemd stop (SIGTERM) i Ctrl+C: uredan izlazak na UI niti, kao kraj Windows sesije u v2.
@@ -276,7 +286,7 @@ namespace TopPos.Kiosk.UI
 								 microsoftLogger);
 
 			statusSource.SetLifecycle(Agent.Contracts.KioskLifecycles.Ready);
-			microsoftLogger.LogInformation("Pokretanje (UI nit): kanal ka Agentu {Milliseconds} ms", startupStep.ElapsedMilliseconds);
+			microsoftLogger.LogInformation("Pokretanje: kanal ka Agentu (UI nit) {Milliseconds} ms", startupStep.ElapsedMilliseconds);
 		}
 
 		/// <summary>

@@ -548,8 +548,8 @@ namespace TopPos.E2E.Tests.Infrastructure
 			await Log.WaitForQuietAsync(TimeSpan.FromSeconds(2), __clientStartTimeout, EnsureClientAlive,
 										"Workflow:", "OnLockerStatusChanged").ConfigureAwait(false);
 			Trace("klijent spreman (inicijalizacija završena)");
-			// Trajanje koraka pokretanja na UI niti (prozor tada ne odgovara na UIA/AT-SPI): u trag, za poređenje po OS-u.
-			foreach (var line in Log.LinesAfter(logMark, "Pokretanje (UI nit)")) {
+			// Trajanje koraka pokretanja (na UI niti prozor ne odgovara na UIA/AT-SPI): u trag, za poređenje po OS-u.
+			foreach (var line in Log.LinesAfter(logMark, "Pokretanje: ")) {
 				Trace($"kiosk: {line[(line.IndexOf("Pokretanje", StringComparison.Ordinal))..].TrimEnd(' ', '{', '}')}");
 			}
 		}

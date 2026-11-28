@@ -7,4 +7,16 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <!--
+    LibVLC na Windows-u (VideoLAN.LibVLC.Windows, kiosk i njegovi testovi): uz program samo ono što treba za mp3 zvukove
+    kioska (fajl → es demux → mpga packetizer → mpg123 → izlaz zvuka). Ceo paket je 956 plugin-a (108 MB), koje LibVLC
+    bez keša pretražuje pri svakom pokretanju — na Windows VM-u 11,5–13,5 s na UI niti (E2E 28.11.2026).
+    `%2A` je `*` za paket (njegovi targets ga razvijaju u svom folderu).
+  -->
+  <ItemGroup>
+    <VlcWindowsX64IncludeFiles Include="libvlc.dll;libvlccore.dll;plugins\access\libfilesystem_plugin.dll;plugins\demux\libes_plugin.dll;plugins\packetizer\libpacketizer_mpegaudio_plugin.dll;plugins\codec\libmpg123_plugin.dll;plugins\audio_output\%2A;plugins\audio_mixer\%2A;plugins\audio_filter\%2A" />
+    <VlcWindowsX86IncludeFiles Include="@(VlcWindowsX64IncludeFiles)" />
+    <VlcWindowsArm64IncludeFiles Include="@(VlcWindowsX64IncludeFiles)" />
+  </ItemGroup>
+
 </Project>
