@@ -220,8 +220,12 @@ namespace TopPos.Kiosk.UI
 			string brandDirectory = Path.Combine(_paths.ProgramDirectory, "Brands", appConfiguration.General.Brand);
 			langManager.LoadBrandOverrides(brandDirectory, ".lang");
 
+			// Od ovde do kraja pokretanja sve je na UI niti (prozor tada ne odgovara): trajanje koraka ide u log.
+			var startupStep = System.Diagnostics.Stopwatch.StartNew();
 			var audioPlayer = PlatformServices.CreateAudioPlayer(_paths.ProgramDirectory, microsoftLogger);
 			_audioPlayer = audioPlayer as IDisposable;
+			microsoftLogger.LogInformation("Pokretanje (UI nit): zvuk {Milliseconds} ms", startupStep.ElapsedMilliseconds);
+			startupStep.Restart();
 
 			AppDomain.CurrentDomain.UnhandledException += OnUnhandledException;
 			TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
@@ -232,6 +236,8 @@ namespace TopPos.Kiosk.UI
 			_viewModel = new MainWindowViewModel(appConfiguration, lockClient, barcodeScannerClient, serviceClient, posClient, penPosClient,
 												 langManager, statusSource, coordinator, audioPlayer, App.FindLanguageImage, appContext, microsoftLogger);
 			window.Attach(_viewModel, appConfiguration.ScreenResolution);
+			microsoftLogger.LogInformation("Pokretanje (UI nit): tema i prikaz {Milliseconds} ms", startupStep.ElapsedMilliseconds);
+			startupStep.Restart();
 
 			// systemd stop (SIGTERM) i Ctrl+C: uredan izlazak na UI niti, kao kraj Windows sesije u v2.
 			_shutdownSignal = new ShutdownSignal(signal => Dispatcher.UIThread.Post(() => {
@@ -270,6 +276,7 @@ namespace TopPos.Kiosk.UI
 								 microsoftLogger);
 
 			statusSource.SetLifecycle(Agent.Contracts.KioskLifecycles.Ready);
+			microsoftLogger.LogInformation("Pokretanje (UI nit): kanal ka Agentu {Milliseconds} ms", startupStep.ElapsedMilliseconds);
 		}
 
 		/// <summary>
