@@ -186,9 +186,13 @@ Cilj: na ciljnom Linux uređaju dokazati najrizičnije delove jednim kompletnim 
   0 palo, 14 preskočeno (12 pravi miš, 2 F7; 1 h 17 min).
 
 ### F3 — UI (5–7 nedelja kiosk + 2–3 nedelje alati)
-- [ ] Sve stranice × 6 layouta, svi brendovi
-- [ ] LockerSimulator, ServerSimulator (`reserve-urlacl.ps1` nije potreban)
-- [ ] Configurator (stavka 10); Technician na kraju (seli se u Locker Station Services)
+- [x] Sve stranice × 6 layouta, svi brendovi (`cd1f219`, `1051e47`, `6b9f644`, `19fdb4a`); pun E2E na `6b9f644`
+      (28.11.2026): Windows 177/177 (2 preskočena, F7), Debian 163 prošlo, 0 palo, 14 preskočeno
+- [-] LockerSimulator, ServerSimulator sa GUI-jem — ne prenose se (odluka 28.11.2026): razvoj je na Windows-u, kiosk u
+      Linux VM-u se povezuje na v2 GUI simulatore (server, NCU24L preko mreže); serijski uređaji na Linuxu preko v4
+      simulatora bez GUI-ja (pty)
+- [-] Configurator (stavka 10) — ne prenosi se (odluka 28.11.2026): na Linux paketomatu kiosk je jedina GUI aplikacija,
+      konfiguraciju menja portal. Alati za Linux posle kioska. Technician na kraju (seli se u Locker Station Services)
 
 ### F4 — Testovi (3–4 nedelje)
 - [ ] Odvojeno: čisti testovi, platformski IPC, stvarna kiosk sesija
